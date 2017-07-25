@@ -31,13 +31,13 @@ suite =
         , describe "type definition value"
             [ test "works" <|
                 \_ ->
-                    "a -> Int -> Char"
+                    "a -> b -> Int"
                         |> Parser.run ElmTypesParser.typeDefinitionValue
                         |> Expect.equal
                             (Ok
                                 [ TypeVariable "a"
-                                , TypeAlias "Int"
-                                , TypeAlias "Char"
+                                , TypeVariable "b"
+                                , TypeAlias { name = "Int", typeVariables = [] }
                                 ]
                             )
             ]

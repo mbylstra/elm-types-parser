@@ -24,7 +24,7 @@ import Parser
 
 type Type
     = TypeVariable String
-    | TypeAlias String
+    | TypeAlias { name : String, typeVariables : List String }
 
 
 tipe : Parser Type
@@ -40,7 +40,7 @@ typeVariable =
 
 typeAlias : Parser Type
 typeAlias =
-    succeed TypeAlias
+    succeed (\name -> TypeAlias { name = name, typeVariables = [] })
         |= upperCamelCaseName
 
 
