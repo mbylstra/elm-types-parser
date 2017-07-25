@@ -56,4 +56,14 @@ suite =
                                 )
                             )
             ]
+        , describe "typeAlias parser"
+            [ test "works" <|
+                \_ ->
+                    "Html msg"
+                        |> Parser.run ElmTypesParser.typeAlias
+                        |> Expect.equal
+                            (Ok
+                                <| TypeAlias { name = "Html", typeVariables = ["msg"] }
+                            )
+            ]
         ]
