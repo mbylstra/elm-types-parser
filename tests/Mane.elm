@@ -28,6 +28,23 @@ suite =
                         |> isErr
                         |> Expect.equal True
             ]
+        , describe "typeAlias parser "
+            [ test "works on alias with no type variables" <|
+                \_ ->
+                    "MyAlias"
+                        |> Parser.run ElmTypesParser.typeAlias
+                        |> Expect.equal (Ok (TypeAlias { name = "MyAlias", typeVariables = [] }))
+            , test "works on alias with one type variables" <|
+                \_ ->
+                    "MyAlias a"
+                        |> Parser.run ElmTypesParser.typeAlias
+                        |> Expect.equal (Ok (TypeAlias { name = "MyAlias", typeVariables = [ "a" ] }))
+            , test "works on alias with two type variables" <|
+                \_ ->
+                    "MyAlias a b"
+                        |> Parser.run ElmTypesParser.typeAlias
+                        |> Expect.equal (Ok (TypeAlias { name = "MyAlias", typeVariables = [ "a", "b" ] }))
+            ]
         , describe "type definition value"
             [ test "works" <|
                 \_ ->
@@ -54,16 +71,6 @@ suite =
                                   , TypeVariable "c"
                                   ]
                                 )
-                            )
-            ]
-        , describe "typeAlias parser"
-            [ test "works" <|
-                \_ ->
-                    "Html msg"
-                        |> Parser.run ElmTypesParser.typeAlias
-                        |> Expect.equal
-                            (Ok
-                                <| TypeAlias { name = "Html", typeVariables = ["msg"] }
                             )
             ]
         ]

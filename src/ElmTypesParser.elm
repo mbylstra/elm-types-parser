@@ -40,8 +40,20 @@ typeVariable =
 
 typeAlias : Parser Type
 typeAlias =
-    succeed (\name -> TypeAlias { name = name, typeVariables = [] })
-        |= upperCamelCaseName
+    let
+        typeVariables : Parser (List String)
+        typeVariables =
+            repeat zeroOrMore <|
+                succeed identity
+                    |. spaces
+                    |= lowerCamelCaseName
+    in
+        succeed
+            (\name typeVariables ->
+                TypeAlias { name = name, typeVariables = typeVariables }
+            )
+            |= upperCamelCaseName
+            |= typeVariables
 
 
 typeDefinition : Parser ( String, List Type )
