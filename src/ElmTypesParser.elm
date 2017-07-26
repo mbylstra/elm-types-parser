@@ -86,6 +86,16 @@ typeDefinitionValue =
             |= extraArguments
 
 
+function : Parser (List Type)
+function =
+    succeed identity
+        |. symbol "("
+        |. maybeSpaces
+        |= typeDefinitionValue
+        |. maybeSpaces
+        |. symbol ")"
+
+
 rightArrow : Parser ()
 rightArrow =
     symbol "->"
@@ -121,6 +131,11 @@ upperCamelCaseName =
 spaces : Parser ()
 spaces =
     ignore oneOrMore isSpace
+
+
+maybeSpaces : Parser ()
+maybeSpaces =
+    ignore zeroOrMore isSpace
 
 
 isLetter : Char -> Bool

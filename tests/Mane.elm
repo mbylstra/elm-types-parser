@@ -73,4 +73,16 @@ suite =
                                 )
                             )
             ]
+        , describe "function"
+            [ test "works" <|
+                \_ ->
+                    "(a -> b)"
+                        |> Parser.run ElmTypesParser.function
+                        |> Expect.equal
+                            (Ok
+                                [ TypeVariable "a"
+                                , TypeVariable "b"
+                                ]
+                            )
+            ]
         ]
