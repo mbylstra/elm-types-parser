@@ -19,17 +19,23 @@ import Parser
         , zeroOrMore
         , (|.)
         , (|=)
+        , lazy
         )
 
 
 type Type
     = TypeVariable String
     | TypeAlias { qualifiedName : List String, typeVariables : List String }
+    | Function (List Type)
 
 
 tipe : Parser Type
 tipe =
-    oneOf [ typeVariable, typeAlias ]
+    oneOf
+        [ typeVariable
+        , typeAlias
+        , function
+        ]
 
 
 typeVariable : Parser Type
@@ -79,19 +85,19 @@ typeDefinitionValue =
 
         extraArguments : Parser (List Type)
         extraArguments =
-            repeat zeroOrMore typeSignatureArgument
+            repeat zeroOrMore (lazy (\_ -> typeSignatureArgument))
     in
         succeed (\tipe extraTipes -> tipe :: extraTipes)
-            |= tipe
+            |= lazy (\_ -> tipe)
             |= extraArguments
 
 
-function : Parser (List Type)
+function : Parser Type
 function =
-    succeed identity
+    succeed Function
         |. symbol "("
         |. maybeSpaces
-        |= typeDefinitionValue
+        |= lazy (\_ -> typeDefinitionValue)
         |. maybeSpaces
         |. symbol ")"
 
@@ -146,17 +152,3 @@ isLetter c =
 isSpace : Char -> Bool
 isSpace c =
     c == ' '
-
-
-testCode : String
-testCode =
-    """
-module Main exposing (..)
-
-import Html exposing (..)
-
-testView : Int -> Html msg
-testView i =
-    text <| toString i
-
-"""

@@ -2,7 +2,7 @@ module Mane exposing (..)
 
 import Expect exposing (Expectation)
 import Test exposing (..)
-import ElmTypesParser exposing (Type(TypeVariable, TypeAlias))
+import ElmTypesParser exposing (Type(TypeVariable, TypeAlias, Function))
 import Parser
 import Result.Extra exposing (isErr)
 
@@ -79,10 +79,11 @@ suite =
                     "(a -> b)"
                         |> Parser.run ElmTypesParser.function
                         |> Expect.equal
-                            (Ok
-                                [ TypeVariable "a"
-                                , TypeVariable "b"
-                                ]
+                            (Ok <|
+                                Function
+                                    [ TypeVariable "a"
+                                    , TypeVariable "b"
+                                    ]
                             )
             ]
         ]
