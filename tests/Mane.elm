@@ -33,17 +33,17 @@ suite =
                 \_ ->
                     "MyAlias"
                         |> Parser.run ElmTypesParser.typeAlias
-                        |> Expect.equal (Ok (TypeAlias { name = "MyAlias", typeVariables = [] }))
+                        |> Expect.equal (Ok (TypeAlias { qualifiedName = [ "MyAlias" ], typeVariables = [] }))
             , test "works on alias with one type variables" <|
                 \_ ->
                     "MyAlias a"
                         |> Parser.run ElmTypesParser.typeAlias
-                        |> Expect.equal (Ok (TypeAlias { name = "MyAlias", typeVariables = [ "a" ] }))
+                        |> Expect.equal (Ok (TypeAlias { qualifiedName = [ "MyAlias" ], typeVariables = [ "a" ] }))
             , test "works on alias with two type variables" <|
                 \_ ->
                     "MyAlias a b"
                         |> Parser.run ElmTypesParser.typeAlias
-                        |> Expect.equal (Ok (TypeAlias { name = "MyAlias", typeVariables = [ "a", "b" ] }))
+                        |> Expect.equal (Ok (TypeAlias { qualifiedName = [ "MyAlias" ], typeVariables = [ "a", "b" ] }))
             ]
         , describe "type definition value"
             [ test "works" <|
@@ -54,7 +54,7 @@ suite =
                             (Ok
                                 [ TypeVariable "a"
                                 , TypeVariable "b"
-                                , TypeAlias { name = "Int", typeVariables = [] }
+                                , TypeAlias { qualifiedName = [ "Int" ], typeVariables = [] }
                                 ]
                             )
             ]

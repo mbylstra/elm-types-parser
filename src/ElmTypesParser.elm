@@ -24,7 +24,7 @@ import Parser
 
 type Type
     = TypeVariable String
-    | TypeAlias { name : String, typeVariables : List String }
+    | TypeAlias { qualifiedName : List String, typeVariables : List String }
 
 
 tipe : Parser Type
@@ -50,9 +50,9 @@ typeAlias =
     in
         succeed
             (\name typeVariables ->
-                TypeAlias { name = name, typeVariables = typeVariables }
+                TypeAlias { qualifiedName = name, typeVariables = typeVariables }
             )
-            |= upperCamelCaseName
+            |= qualifiedTypeName
             |= typeVariables
 
 
@@ -96,6 +96,19 @@ lowerCamelCaseName =
     succeed (++)
         |= keep (Exactly 1) isLower
         |= keep zeroOrMore (\c -> isLetter c || isDigit c)
+
+
+qualifiedTypeName : Parser (List String)
+qualifiedTypeName =
+    let
+        subModule =
+            succeed identity
+                |. symbol "."
+                |= upperCamelCaseName
+    in
+        succeed (::)
+            |= upperCamelCaseName
+            |= repeat zeroOrMore subModule
 
 
 upperCamelCaseName : Parser String
