@@ -1,6 +1,14 @@
 module Mane exposing (..)
 
-import ElmTypesParser exposing (Type(..), parseTypeAlias, separatedBy, parseUnionType)
+import ElmTypesParser
+    exposing
+        ( parseTypeAlias
+        , parseUnion
+        , parseTypeConstructor
+        , parseTypeConstructors
+        , someWhitespace
+        )
+import Types exposing (Type(..))
 
 
 -- import ElmTypesParser exposing (tipe)
@@ -11,8 +19,8 @@ import Parser exposing (Parser, (|.), (|=))
 
 -- import Parser.LanguageKit as LanguageKit
 -- import Char
--- import Result.Extra exposing (isErr)
 
+import Result.Extra exposing (isErr)
 import Test exposing (..)
 
 
@@ -159,22 +167,54 @@ suite =
                     |> ElmTypesParser.parse
                     |> Result.map generateData
                     |> Expect.equal (Ok "1 True")
-        , test "record" <|
+        , test "someWhitespace 1" <|
             \_ ->
-                let
-                    s =
-                        """
-                  { email : String
-                  , password : String
-                  , loading : Bool
-                  , error : Bool
-                  }
-                  """
-                in
-                    s
-                        |> ElmTypesParser.parse
-                        |> Result.map generateData
-                        |> Expect.equal (Ok "1 True")
+                ""
+                    |> Parser.run someWhitespace
+                    |> isErr
+                    |> Expect.equal True
+        , test "someWhitespace 2" <|
+            \_ ->
+                "\n"
+                    |> Parser.run someWhitespace
+                    |> isErr
+                    |> Expect.equal False
+        , test "someWhitespace 3" <|
+            \_ ->
+                "\n\n"
+                    |> Parser.run someWhitespace
+                    |> isErr
+                    |> Expect.equal False
+
+        -- , test "someWhitespace 3" <|
+        --     \_ ->
+        --         "\n --comment"
+        --             |> Parser.run someWhitespace
+        --             |> isErr
+        --             |> Expect.equal False
+        -- , test "someWhitespace 4" <|
+        --     -- This is expected, but it should be improved so that a comment counts as whitespace
+        --     \_ ->
+        --         "--comment"
+        --             |> Parser.run someWhitespace
+        --             |> isErr
+        --             |> Expect.equal True
+        -- , test "record" <|
+        --     \_ ->
+        --         let
+        --             s =
+        --                 """
+        --           { email : String
+        --           , password : String
+        --           , loading : Bool
+        --           , error : Bool
+        --           }
+        --           """
+        --         in
+        --             s
+        --                 |> ElmTypesParser.parse
+        --                 |> Result.map generateData
+        --                 |> Expect.equal (Ok "1 True")
         , test "splitIntoBlocks" <|
             \_ ->
                 "aaa\n aaa\nbbb\nccc"
@@ -184,42 +224,138 @@ suite =
                         , "bbb"
                         , "ccc"
                         ]
-        , test "classifyBlocks" <|
-            \_ ->
-                "module Blah exposing (..)\nimport String\n\ntype alias Id = Int\ntype MyType = MyType\nx : Int\nx = 5\n\n"
-                    |> splitIntoBlocks
-                    |> List.map classifyBlock
-                    |> Expect.equal
-                        [ ModuleStatement, ImportStatement, TypeAnnotation, FunctionDefinition ]
-        , test "parse type alias" <|
-            \_ ->
-                "type alias Id = Int"
-                    |> parseTypeAlias
-                    |> Expect.equal (Ok ( "Id", Type "Int" [] ))
-        , test "separatedBy" <|
-            \_ ->
-                let
-                    parser =
-                        separatedBy (Parser.symbol "|") Parser.int
-                in
-                    "1|2|3"
-                        |> Parser.run parser
-                        |> Expect.equal (Ok [ 1, 2, 3 ])
-        , test "separatedBy2" <|
-            \_ ->
-                let
-                    parser =
-                        separatedBy (Parser.symbol "|") Parser.int
-                in
-                    "1"
-                        |> Parser.run parser
-                        |> Expect.equal (Ok [ 1 ])
 
-        -- We need union type constructor tests here
-        , test "unionType with single constructor that takes one arg" <|
+        -- , test "classifyBlocks" <|
+        --     \_ ->
+        --         "module Blah exposing (..)\nimport String\n\ntype alias Id = Int\ntype MyType = MyType\nx : Int\nx = 5\n\n"
+        --             |> splitIntoBlocks
+        --             |> List.map classifyBlock
+        --             |> Expect.equal
+        --                 [ ModuleStatement, ImportStatement, TypeAnnotation, FunctionDefinition ]
+        -- , test "parse type alias" <|
+        --     \_ ->
+        --         "type alias Id = Int"
+        --             |> parseTypeAlias
+        --             |> Expect.equal (Ok ( "Id", Type "Int" [] ))
+        , test "typeConstructor: takes no args" <|
+            \_ ->
+                "TypeA"
+                    |> parseTypeConstructor
+                    |> Expect.equal
+                        (Ok
+                            ( "TypeA", [] )
+                        )
+        , test "typeConstructor: takes one simple Type arg" <|
+            \_ ->
+                "TypeA Int"
+                    |> parseTypeConstructor
+                    |> Expect.equal
+                        (Ok
+                            ( "TypeA", [ Type "Int" [] ] )
+                        )
+        , test "typeConstructor: takes two simple Type args" <|
+            \_ ->
+                "MyType ArgA ArgB"
+                    |> parseTypeConstructor
+                    |> Expect.equal
+                        (Ok
+                            ( "MyType", [ Type "ArgA" [], Type "ArgB" [] ] )
+                        )
+        , test "typeConstructor: takes three simple Type args" <|
+            \_ ->
+                "MyType ArgA ArgB ArgC"
+                    |> parseTypeConstructor
+                    |> Expect.equal
+                        (Ok
+                            ( "MyType", [ Type "ArgA" [], Type "ArgB" [], Type "ArgC" [] ] )
+                        )
+        , test "typeConstructor: takes two type variables as args" <|
+            \_ ->
+                "MyType a b"
+                    |> parseTypeConstructor
+                    |> Expect.equal
+                        (Ok
+                            ( "MyType", [ Var "a", Var "b" ] )
+                        )
+        , test "typeConstructor: takes a tuple arg" <|
+            \_ ->
+                "MyType (Int, String)"
+                    |> parseTypeConstructor
+                    |> Expect.equal
+                        (Ok
+                            ( "MyType", [ Tuple [ Type "Int" [], Type "String" [] ] ] )
+                        )
+        , test "typeConstructors: with one that doesn't take any args" <|
+            \_ ->
+                "MyType"
+                    |> parseTypeConstructors
+                    |> Expect.equal
+                        (Ok
+                            [ ( "MyType", [] ) ]
+                        )
+        , test "typeConstructors: with one arg, and it takes a Unit type" <|
+            \_ ->
+                "TypeA ()"
+                    |> parseTypeConstructors
+                    |> Expect.equal
+                        (Ok
+                            [ ( "TypeA", [ Tuple [] ] ) ]
+                        )
+        , test "typeConstructors: Two of them. Both take no args." <|
+            \_ ->
+                "TypeA | TypeB"
+                    |> parseTypeConstructors
+                    |> Expect.equal
+                        (Ok
+                            [ ( "TypeA", [] )
+                            , ( "TypeB", [] )
+                            ]
+                        )
+        , test "typeConstructors: Two of them.  First takes a type variable as an arg." <|
+            \_ ->
+                "TypeA a | TypeB"
+                    |> parseTypeConstructors
+                    |> Expect.equal
+                        (Ok
+                            [ ( "TypeA", [ Var "a" ] )
+                            , ( "TypeB", [] )
+                            ]
+                        )
+        , test "typeConstructors: Three of them.  First two take a type variable as an arg." <|
+            \_ ->
+                "TypeA a | TypeB b | TypeC"
+                    |> parseTypeConstructors
+                    |> Expect.equal
+                        (Ok
+                            [ ( "TypeA", [ Var "a" ] )
+                            , ( "TypeB", [ Var "b" ] )
+                            , ( "TypeC", [] )
+                            ]
+                        )
+        , test "typeConstructors: Two of them.  First takes a simple Type as an arg." <|
+            \_ ->
+                "TypeA Int | TypeB"
+                    |> parseTypeConstructors
+                    |> Expect.equal
+                        (Ok
+                            [ ( "TypeA", [ Type "Int" [] ] )
+                            , ( "TypeB", [] )
+                            ]
+                        )
+        , test "typeConstructors: Two of them.  Both take a simple Type as an arg." <|
+            \_ ->
+                "TypeA Int | TypeB String"
+                    |> parseTypeConstructors
+                    |> Expect.equal
+                        (Ok
+                            [ ( "TypeA", [ Type "Int" [] ] )
+                            , ( "TypeB", [ Type "String" [] ] )
+                            ]
+                        )
+        , test "unionType: single constructor that takes one arg" <|
             \_ ->
                 "type MyType = TypeA Int"
-                    |> parseUnionType
+                    |> parseUnion
                     |> Expect.equal
                         (Ok
                             ( "MyType"
@@ -227,10 +363,10 @@ suite =
                               ]
                             )
                         )
-        , test "unionType with single constructor that takes two args" <|
+        , test "unionType: single constructor that takes two args" <|
             \_ ->
                 "type MyType = TypeA Int String"
-                    |> parseUnionType
+                    |> parseUnion
                     |> Expect.equal
                         (Ok
                             ( "MyType"
@@ -238,10 +374,10 @@ suite =
                               ]
                             )
                         )
-        , test "unionType with single constructor that takes no args" <|
+        , test "unionType: single constructor that takes no args" <|
             \_ ->
                 "type MyType = TypeA"
-                    |> parseUnionType
+                    |> parseUnion
                     |> Expect.equal
                         (Ok
                             ( "MyType"
@@ -252,7 +388,7 @@ suite =
         , test "unionType with two constructors that take no args" <|
             \_ ->
                 "type MyType = TypeA | TypeB"
-                    |> parseUnionType
+                    |> parseUnion
                     |> Expect.equal
                         (Ok
                             ( "MyType"

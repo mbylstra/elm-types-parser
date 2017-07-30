@@ -1,12 +1,18 @@
 module ElmTypesParser
     exposing
-        ( Type(..)
-        , decoder
+        ( decoder
         , parse
         , parseTypeAlias
-        , separatedBy
         , whitespace
-        , parseUnionType
+        , parseUnion
+        , parseTypeConstructor
+        , parseTypeConstructors
+        , someWhitespace
+        , tuple
+        , record
+        , qualifiedCapVar
+        , lowVar
+        , spaces
         )
 
 {-| This is specifically for handling the types that appear in
@@ -21,36 +27,13 @@ check out the source code and go from there. It's not too tough!
 
 import Char
 import Json.Decode as Decode exposing (Decoder)
-import Parser exposing (Parser, (|=), (|.))
+import Parser exposing (Count(AtLeast), Parser, zeroOrMore, (|.), (|=))
 import Parser.LanguageKit as Parser
 import Set
+import Types exposing (Type(..))
 
 
 -- TYPES
-
-
-{-| Represent Elm types as values! Here are some examples:
-
-    Int            ==> Type "Int" []
-
-    a -> b         ==> Lambda (Var "a") (Var "b")
-
-    ( a, b )       ==> Tuple [ Var "a", Var "b" ]
-
-    Maybe a        ==> Type "Maybe" [ Var "a" ]
-
-    { x : Float }  ==> Record [("x", Type "Float" [])] Nothing
-
--}
-type Type
-    = Var String
-    | Lambda Type Type
-    | Tuple (List Type)
-    | Type String (List Type)
-    | Record (List ( String, Type )) (Maybe String)
-
-
-
 -- DECODE
 
 
@@ -86,14 +69,11 @@ parse source =
 
 tipe : Parser Type
 tipe =
-    Parser.succeed identity
-        |. whitespace
-        |= (Parser.lazy <|
-                \_ ->
-                    tipeTerm
-                        |> Parser.andThen tipeHelp
-           )
-        |. whitespace
+    (Parser.lazy <|
+        \_ ->
+            tipeTerm
+                |> Parser.andThen tipeHelp
+    )
 
 
 tipeHelp : Type -> Parser Type
@@ -256,27 +236,41 @@ variable isFirst =
 
 
 -- HELPERS
+-- spaces =
+--     Parser.ignore Parser.zeroOrMore (\char -> char == ' ')
+-- someWhitespace : Parser ()
+-- someWhitespace =
+--     Parser.succeed ()
+--         |. Parser.ignore (AtLeast 1) isSpace
+--         |. whitespace
+
+
+someWhitespace : Parser ()
+someWhitespace =
+    Parser.ignore (AtLeast 1) isSpace
 
 
 spaces : Parser ()
-
-
-
--- spaces =
---     Parser.ignore Parser.zeroOrMore (\char -> char == ' ')
-
-
 spaces =
     whitespace
 
 
+isSpace : Char -> Bool
+isSpace char =
+    char == ' ' || char == '\n' || char == '\x0D'
+
+
 whitespace : Parser ()
 whitespace =
-    Parser.whitespace
-        { allowTabs = False
-        , lineComment = Parser.LineComment "--"
-        , multiComment = Parser.NestableComment "{-" "-}"
-        }
+    Parser.ignore zeroOrMore isSpace
+
+
+
+-- Parser.whitespace
+--     { allowTabs = False
+--     , lineComment = Parser.LineComment "--"
+--     , multiComment = Parser.NestableComment "{-" "-}"
+--     }
 
 
 commaSep : Parser a -> Parser (List a)
@@ -322,11 +316,11 @@ typeAlias : Parser TypeAliasDefinition
 typeAlias =
     Parser.succeed (,)
         |. Parser.symbol "type alias"
-        |. whitespace
+        |. someWhitespace
         |= capVar
-        |. whitespace
+        |. someWhitespace
         |. Parser.symbol "="
-        |. whitespace
+        |. someWhitespace
         |= tipe
 
 
@@ -335,16 +329,16 @@ parseTypeAlias source =
     Parser.run typeAlias source
 
 
-type alias UnionTypeConstructor =
-    ( String, UnionTypeConstructorArgs )
+type alias TypeConstructor =
+    ( String, TypeConstructorArgs )
 
 
-type alias UnionTypeConstructorArgs =
+type alias TypeConstructorArgs =
     List Type
 
 
-type alias UnionType =
-    ( String, List UnionTypeConstructor )
+type alias Union =
+    ( String, List TypeConstructor )
 
 
 pipeSymbol : Parser ()
@@ -352,63 +346,120 @@ pipeSymbol =
     Parser.symbol "|"
 
 
-parseUnionType : String -> Result Parser.Error UnionType
-parseUnionType source =
+parseUnion : String -> Result Parser.Error Union
+parseUnion source =
     Parser.run unionType source
 
 
-unionType : Parser UnionType
+unionType : Parser Union
 unionType =
     Parser.succeed (,)
         |. Parser.symbol "type"
-        |. whitespace
+        |. someWhitespace
         |= capVar
-        |. whitespace
+        |. someWhitespace
         |. Parser.symbol "="
-        |. whitespace
-        |= unionTypeConstructors
+        |. someWhitespace
+        |= typeConstructors
 
 
-unionTypeConstructors : Parser (List UnionTypeConstructor)
-unionTypeConstructors =
-    separatedBy
-        (Parser.succeed () |. whitespace |. pipeSymbol |. whitespace)
-        unionTypeConstructor
+parseTypeConstructors : String -> Result Parser.Error (List TypeConstructor)
+parseTypeConstructors source =
+    Parser.run typeConstructors source
 
 
-unionTypeConstructor : Parser UnionTypeConstructor
-unionTypeConstructor =
+typeConstructors : Parser (List TypeConstructor)
+typeConstructors =
+    typeConstructor
+        |> Parser.andThen (\first -> typeConstructorsHelp [ first ])
+
+
+typeConstructorsHelp : List TypeConstructor -> Parser (List TypeConstructor)
+typeConstructorsHelp revList =
+    Parser.oneOf
+        [ typeConstructorsExtraOne
+            |> Parser.andThen (\extraOne -> typeConstructorsHelp (extraOne :: revList))
+        , Parser.succeed (List.reverse revList)
+        ]
+
+
+typeConstructorsExtraOne : Parser TypeConstructor
+typeConstructorsExtraOne =
+    Parser.delayedCommit someWhitespace <|
+        Parser.succeed identity
+            |. pipeSymbol
+            |. someWhitespace
+            |= typeConstructor
+
+
+parseTypeConstructor : String -> Result Parser.Error TypeConstructor
+parseTypeConstructor source =
+    Parser.run typeConstructor source
+
+
+typeConstructor : Parser TypeConstructor
+typeConstructor =
     Parser.succeed (,)
         |= capVar
-        |= unionTypeConstructorArgs
-
-
-unionTypeConstructorArgs : Parser (List Type)
-unionTypeConstructorArgs =
-    Parser.repeat Parser.zeroOrMore
-        (Parser.succeed identity
-            |. whitespace
-            |= tipe
-         -- TODO this might need a thunk!
-        )
-
-
-separatedBy : Parser () -> Parser a -> Parser (List a)
-separatedBy separator parser =
-    Parser.succeed (::)
-        |= parser
-        |= Parser.repeat Parser.zeroOrMore
-            (Parser.succeed identity
-                |. separator
-                |= parser
-            )
+        |= typeConstructorArgs
 
 
 
--- unionTypeConstructors =
--- qualifiedCapVar : Parser String
--- qualifiedCapVar =
---     Parser.source <|
---         capVar
---             |. Parser.repeat Parser.zeroOrMore (Parser.symbol "." |. capVar)
--- parse
+-- The next step might be to do the delayedCommit thing? I think the oneOf and succeed is key
+-- Hmmm.. why is repeatZero not working???
+
+
+typeConstructorArgs : Parser (List Type)
+typeConstructorArgs =
+    (Parser.oneOf
+        [ -- (Parser.succeed identity
+          --     |. someWhitespace
+          --     |= typeConstructorArg
+          --   )
+          typeConstructorArgsExtraOne
+            |> Parser.andThen (\first -> typeConstructorArgsHelp [ first ])
+        , Parser.succeed []
+        ]
+    )
+
+
+typeConstructorArgsHelp : List Type -> Parser (List Type)
+typeConstructorArgsHelp revList =
+    Parser.oneOf
+        [ typeConstructorArgsExtraOne
+            |> Parser.andThen (\extraOne -> typeConstructorArgsHelp (extraOne :: revList))
+        , Parser.succeed (List.reverse revList)
+        ]
+
+
+typeConstructorArgsExtraOne : Parser Type
+typeConstructorArgsExtraOne =
+    Parser.delayedCommit someWhitespace <|
+        Parser.succeed identity
+            |= typeConstructorArg
+
+
+typeConstructorArg : Parser Type
+typeConstructorArg =
+    Parser.oneOf
+        [ record
+        , tuple
+        , lowVar |> Parser.map Var
+        , qualifiedCapVar |> Parser.map (\name -> Type name [])
+        ]
+
+
+
+-- typeConstructorArgs : Parser (List Type)
+-- typeConstructorArgs =
+--     Parser.repeat Parser.zeroOrMore
+--         (Parser.succeed identity
+--             |. someWhitespace
+--             |= Parser.oneOf
+--                 -- [ record
+--                 -- , tuple
+--                 []
+--          -- [ lowVar |> Parser.map Var
+--          -- , qualifiedCapVar |> Parser.map (\name -> Type name [])
+--          -- ]
+--         )
