@@ -1,7 +1,6 @@
 module ElmTypesParser
     exposing
-        ( decoder
-        , parse
+        ( parseTipe
         , parseTypeAlias
         , whitespace
         , parseUnion
@@ -13,7 +12,6 @@ module ElmTypesParser
         , qualifiedCapVar
         , lowVar
         , spaces
-        , Type(..)
         )
 
 {-| This is specifically for handling the types that appear in
@@ -26,8 +24,8 @@ check out the source code and go from there. It's not too tough!
 
 -}
 
+import Types exposing (..)
 import Char
-import Json.Decode as Decode exposing (Decoder)
 import Parser exposing (Count(AtLeast), Parser, zeroOrMore, (|.), (|=))
 import Parser.LanguageKit as Parser
 import Set
@@ -49,57 +47,8 @@ import Set
     { x : Float }  ==> Record [("x", Type "Float" [])] Nothing
 
 -}
-type Type
-    = Var String
-    | Lambda Type Type
-    | Tuple (List Type)
-    | Type String (List Type)
-    | Record (List ( String, Type )) (Maybe String)
-
-
-type alias TypeConstructor =
-    ( String, TypeConstructorArgs )
-
-
-type alias TypeConstructorArgs =
-    List Type
-
-
-type alias Union =
-    ( String, List TypeConstructor )
-
-
-type alias TypeAliasDefinition =
-    ( String, Type )
-
-
-
--- DECODE
-
-
-{-| Decode the JSON representation of `Type` values.
--}
-decoder : Decoder Type
-decoder =
-    Decode.andThen decoderHelp Decode.string
-
-
-decoderHelp : String -> Decoder Type
-decoderHelp string =
-    case parse string of
-        Err error ->
-            Decode.fail "TODO"
-
-        Ok tipe ->
-            Decode.succeed tipe
-
-
-
--- PARSE TYPES
-
-
-parse : String -> Result Parser.Error Type
-parse source =
+parseTipe : String -> Result Parser.Error Type
+parseTipe source =
     Parser.run tipe source
 
 
