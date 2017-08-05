@@ -13,6 +13,7 @@ module ElmTypesParser
         , qualifiedCapVar
         , lowVar
         , spaces
+        , Type(..)
         )
 
 {-| This is specifically for handling the types that appear in
@@ -30,10 +31,49 @@ import Json.Decode as Decode exposing (Decoder)
 import Parser exposing (Count(AtLeast), Parser, zeroOrMore, (|.), (|=))
 import Parser.LanguageKit as Parser
 import Set
-import Types exposing (Type(..))
 
 
 -- TYPES
+
+
+{-| Represent Elm types as values! Here are some examples:
+
+    Int            ==> Type "Int" []
+
+    a -> b         ==> Lambda (Var "a") (Var "b")
+
+    ( a, b )       ==> Tuple [ Var "a", Var "b" ]
+
+    Maybe a        ==> Type "Maybe" [ Var "a" ]
+
+    { x : Float }  ==> Record [("x", Type "Float" [])] Nothing
+
+-}
+type Type
+    = Var String
+    | Lambda Type Type
+    | Tuple (List Type)
+    | Type String (List Type)
+    | Record (List ( String, Type )) (Maybe String)
+
+
+type alias TypeConstructor =
+    ( String, TypeConstructorArgs )
+
+
+type alias TypeConstructorArgs =
+    List Type
+
+
+type alias Union =
+    ( String, List TypeConstructor )
+
+
+type alias TypeAliasDefinition =
+    ( String, Type )
+
+
+
 -- DECODE
 
 
@@ -308,10 +348,6 @@ comma =
 --------------------------------------------------------------------------------
 
 
-type alias TypeAliasDefinition =
-    ( String, Type )
-
-
 typeAlias : Parser TypeAliasDefinition
 typeAlias =
     Parser.succeed (,)
@@ -327,18 +363,6 @@ typeAlias =
 parseTypeAlias : String -> Result Parser.Error TypeAliasDefinition
 parseTypeAlias source =
     Parser.run typeAlias source
-
-
-type alias TypeConstructor =
-    ( String, TypeConstructorArgs )
-
-
-type alias TypeConstructorArgs =
-    List Type
-
-
-type alias Union =
-    ( String, List TypeConstructor )
 
 
 pipeSymbol : Parser ()
@@ -447,19 +471,3 @@ typeConstructorArg =
         , lowVar |> Parser.map Var
         , qualifiedCapVar |> Parser.map (\name -> Type name [])
         ]
-
-
-
--- typeConstructorArgs : Parser (List Type)
--- typeConstructorArgs =
---     Parser.repeat Parser.zeroOrMore
---         (Parser.succeed identity
---             |. someWhitespace
---             |= Parser.oneOf
---                 -- [ record
---                 -- , tuple
---                 []
---          -- [ lowVar |> Parser.map Var
---          -- , qualifiedCapVar |> Parser.map (\name -> Type name [])
---          -- ]
---         )

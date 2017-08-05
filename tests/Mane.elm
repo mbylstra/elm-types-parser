@@ -7,8 +7,8 @@ import ElmTypesParser
         , parseTypeConstructor
         , parseTypeConstructors
         , someWhitespace
+        , Type(..)
         )
-import Types exposing (Type(..))
 
 
 -- import ElmTypesParser exposing (tipe)
