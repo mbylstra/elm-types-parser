@@ -124,4 +124,23 @@ suite =
                     )
                     |> Expect.equal
                         (Just "Json.Decode")
+        , test "isExplicityInImport B.C.Foo" <|
+            \_ ->
+                isExplicitlyInImport
+                    { name = "Foo", modulePath = [ "B", "C" ] }
+                    ( "B.C"
+                    , { alias = Nothing, exposedNames = { open = False, explicits = [] } }
+                    )
+                    |> Expect.equal
+                        (Just "B.C")
+
+        -- , test "isExplicityInImport using exposing" <|
+        --     \_ ->
+        --         isExplicitlyInImport
+        --             { name = "string", modulePath = [] }
+        --             ( "Json.Decode"
+        --             , { alias = Just "Decode", exposedNames = { open = False, explicits = [ "string" ] } }
+        --             )
+        --             |> Expect.equal
+        --                 (Just "Json.Decode")
         ]

@@ -19,6 +19,7 @@ getFilesToParse blocks =
     let
         externalNames =
             getAllExternalNames blocks
+                |> List.map rawNameToQualifiedName
 
         reversedImports =
             filterByImports blocks |> List.reverse
@@ -30,7 +31,6 @@ getFilesToParse blocks =
             Debug.log "reversedImports" reversedImports
     in
         externalNames
-            |> List.map rawNameToQualifiedName
             |> List.concatMap
                 (\qualifiedName ->
                     reversedImports

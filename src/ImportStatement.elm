@@ -126,8 +126,9 @@ rawNameToQualifiedName : String -> QualifiedName
 rawNameToQualifiedName rawName =
     rawName
         |> String.split "."
+        |> List.reverse
         |> List.Extra.uncons
-        |> Maybe.map (\( head, tail ) -> { name = head, modulePath = tail })
+        |> Maybe.map (\( head, tail ) -> { name = head, modulePath = List.reverse tail })
         |> Maybe.withDefault { name = "", modulePath = [] }
 
 
