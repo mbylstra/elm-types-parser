@@ -85,16 +85,21 @@ explicitExposedNames =
     Parser.succeed (\head tail -> head :: tail)
         |. Parser.symbol "("
         |. whitespace
-        |= Parser.oneOf [ lowVar, capVar ]
+        |= lowOrCapVar
         |. whitespace
         |= Parser.repeat Parser.zeroOrMore
             (Parser.succeed identity
                 |. Parser.symbol ","
                 |. whitespace
-                |= lowVar
+                |= lowOrCapVar
                 |. whitespace
             )
         |. whitespace
+
+
+lowOrCapVar : Parser String
+lowOrCapVar =
+    Parser.oneOf [ lowVar, capVar ]
 
 
 openListing : Listing

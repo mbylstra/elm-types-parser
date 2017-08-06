@@ -24,6 +24,8 @@ getFilesToParse blocks =
         reversedImports =
             filterByImports blocks |> List.reverse
 
+        -- _ =
+        --     Debug.log "blocks" blocks
         _ =
             Debug.log "externalNames" externalNames
 

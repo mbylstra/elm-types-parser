@@ -76,13 +76,13 @@ suite =
                         )
         , test "importStatement no alias but with exposing" <|
             \_ ->
-                "import Blah exposing (varA, varB)"
+                "import Blah exposing (VarA, VarB)"
                     |> parseImportStatement
                     |> Expect.equal
                         (Ok <|
                             ( "Blah"
                             , { alias = Nothing
-                              , exposedNames = { explicits = [ "varA", "varB" ], open = False }
+                              , exposedNames = { explicits = [ "VarA", "VarB" ], open = False }
                               }
                             )
                         )

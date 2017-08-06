@@ -1,6 +1,6 @@
 port module Main exposing (..)
 
-import FindFilesToParse exposing (getAllFilesToParse)
+import FindFilesToParse exposing (getFilesToParse)
 import FirstPass exposing (parseModule)
 import Json.Decode
 import PackageInfo exposing (PackageInfo)
@@ -63,7 +63,7 @@ init { elmPackageContents, viewModuleContents } =
         filesToParse =
             viewModuleContents
                 |> parseModule
-                |> getAllFilesToParse
+                |> getFilesToParse
 
         _ =
             Debug.log "files to parse" filesToParse

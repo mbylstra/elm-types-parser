@@ -53,12 +53,13 @@ suite =
             \_ ->
                 ([ "import A exposing (Bar)"
                  , "import B.C"
-                 , "func : B.C.Foo -> Bar -> Int"
+                 , "import C.D as D"
+                 , "func : B.C.Foo -> Bar -> Int -> D.Baz"
                  ]
                     |> String.join "\n"
                 )
                     |> parseModule
                     |> getFilesToParse
                     |> Expect.equal
-                        [ "A", "B.C" ]
+                        [ "A", "B.C", "C.D" ]
         ]
