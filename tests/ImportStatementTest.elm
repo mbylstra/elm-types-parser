@@ -50,10 +50,22 @@ suite =
                 "import Blah"
                     |> Parser.run importStatementName
                     |> Expect.equal (Ok "Blah")
+        , test "basic import" <|
+            \_ ->
+                "import A.B"
+                    |> parseImportStatement
+                    |> Expect.equal
+                        (Ok ( "A.B", { alias = Nothing, exposedNames = { open = False, explicits = [] } } ))
+        , test "import with exposing" <|
+            \_ ->
+                "import A exposing (bar)"
+                    |> parseImportStatement
+                    |> Expect.equal
+                        (Ok ( "A", { alias = Nothing, exposedNames = { open = False, explicits = [ "bar" ] } } ))
         , test "importStatement" <|
             \_ ->
                 "import Blah as Blaze exposing (varA, varB)"
-                    |> Parser.run importStatement
+                    |> parseImportStatement
                     |> Expect.equal
                         (Ok <|
                             ( "Blah"
@@ -62,40 +74,54 @@ suite =
                               }
                             )
                         )
+        , test "importStatement no alias but with exposing" <|
+            \_ ->
+                "import Blah exposing (varA, varB)"
+                    |> parseImportStatement
+                    |> Expect.equal
+                        (Ok <|
+                            ( "Blah"
+                            , { alias = Nothing
+                              , exposedNames = { explicits = [ "varA", "varB" ], open = False }
+                              }
+                            )
+                        )
         , test "isExplicityInImport top level dir" <|
             \_ ->
-                { name = "div", modulePath = [ "Html" ] }
-                    |> isExplicitlyInImport
-                        ( "Html"
-                        , { alias = Nothing, exposedNames = { open = False, explicits = [] } }
-                        )
+                (isExplicitlyInImport
+                    { name = "div", modulePath = [ "Html" ] }
+                    ( "Html"
+                    , { alias = Nothing, exposedNames = { open = False, explicits = [] } }
+                    )
+                )
                     |> Expect.equal
                         (Just "Html")
         , test "isExplicityInImport subdir" <|
             \_ ->
-                { name = "string", modulePath = [ "Json", "Decode" ] }
-                    |> isExplicitlyInImport
-                        ( "Json.Decode"
-                        , { alias = Nothing, exposedNames = { open = False, explicits = [] } }
-                        )
+                (isExplicitlyInImport
+                    { name = "string", modulePath = [ "Json", "Decode" ] }
+                    ( "Json.Decode"
+                    , { alias = Nothing, exposedNames = { open = False, explicits = [] } }
+                    )
+                )
                     |> Expect.equal
                         (Just "Json.Decode")
         , test "isExplicityInImport using alias" <|
             \_ ->
-                { name = "string", modulePath = [ "Decode" ] }
-                    |> isExplicitlyInImport
-                        ( "Json.Decode"
-                        , { alias = Just "Decode", exposedNames = { open = False, explicits = [] } }
-                        )
+                isExplicitlyInImport
+                    { name = "string", modulePath = [ "Decode" ] }
+                    ( "Json.Decode"
+                    , { alias = Just "Decode", exposedNames = { open = False, explicits = [] } }
+                    )
                     |> Expect.equal
                         (Just "Json.Decode")
         , test "isExplicityInImport using exposing" <|
             \_ ->
-                { name = "string", modulePath = [] }
-                    |> isExplicitlyInImport
-                        ( "Json.Decode"
-                        , { alias = Just "Decode", exposedNames = { open = False, explicits = [ "string" ] } }
-                        )
+                isExplicitlyInImport
+                    { name = "string", modulePath = [] }
+                    ( "Json.Decode"
+                    , { alias = Just "Decode", exposedNames = { open = False, explicits = [ "string" ] } }
+                    )
                     |> Expect.equal
                         (Just "Json.Decode")
         ]

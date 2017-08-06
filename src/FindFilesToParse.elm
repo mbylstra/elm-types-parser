@@ -2,28 +2,69 @@ module FindFilesToParse exposing (..)
 
 import Types
     exposing
-        ( Block(TypeAnnotation, TypeAliasDefinition, Union)
+        ( Block(TypeAnnotation, TypeAliasDefinition, Union, UserImport)
         , Type(Var, Lambda, Tuple, Type, Record)
         , TypeAnnotation
         , TypeAliasDefinition
+        , UserImport
         , Union
         )
 import Maybe.Extra exposing (unwrap)
 import Set exposing (Set)
+import ImportStatement exposing (rawNameToQualifiedName, isExplicitlyInImport)
 
 
-getAllFilesToParse : List Block -> List String
-getAllFilesToParse blocks =
+getFilesToParse : List Block -> List String
+getFilesToParse blocks =
+    let
+        externalNames =
+            getAllExternalNames blocks
+
+        reversedImports =
+            filterByImports blocks |> List.reverse
+
+        _ =
+            Debug.log "externalNames" externalNames
+
+        _ =
+            Debug.log "reversedImports" reversedImports
+    in
+        externalNames
+            |> List.map rawNameToQualifiedName
+            |> List.concatMap
+                (\qualifiedName ->
+                    reversedImports
+                        |> List.filterMap (isExplicitlyInImport qualifiedName)
+                )
+            |> Set.fromList
+            |> Set.toList
+
+
+getAllExternalNames : List Block -> List String
+getAllExternalNames blocks =
     let
         localNames =
             getLocalNames blocks
     in
         blocks
             |> filterTypeExpressions
-            |> List.concatMap (getFilesToParse localNames)
+            |> List.concatMap (getExternalNames localNames)
             -- remove duplicates
             |> Set.fromList
             |> Set.toList
+
+
+filterByImports : List Block -> List UserImport
+filterByImports =
+    List.filterMap
+        (\block ->
+            case block of
+                UserImport userImport ->
+                    Just userImport
+
+                _ ->
+                    Nothing
+        )
 
 
 filterTypeExpressions : List Block -> List Type
@@ -67,26 +108,26 @@ getLocalNames blocks =
             )
 
 
-getFilesToParse : LocalNames -> Type -> List String
-getFilesToParse localNames tipe =
+getExternalNames : LocalNames -> Type -> List String
+getExternalNames localNames tipe =
     case tipe of
         Var _ ->
             []
 
         Lambda typeA typeB ->
-            getFilesToParse localNames typeA
-                |> (++) (getFilesToParse localNames typeB)
+            getExternalNames localNames typeA
+                |> (++) (getExternalNames localNames typeB)
 
         Tuple tupleItems ->
             tupleItems
-                |> List.concatMap (getFilesToParse localNames)
+                |> List.concatMap (getExternalNames localNames)
 
         Type name concreteTypeVars ->
             handleTypeName localNames name |> unwrap [] List.singleton
 
         Record fields _ ->
             fields
-                |> List.concatMap (Tuple.second >> (getFilesToParse localNames))
+                |> List.concatMap (Tuple.second >> (getExternalNames localNames))
 
 
 coreTypes : List String

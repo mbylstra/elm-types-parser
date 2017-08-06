@@ -2,36 +2,45 @@ module FindFilesToParseTest exposing (..)
 
 import Expect exposing (Expectation, equalSets)
 import Test exposing (..)
-import FindFilesToParse exposing (getAllFilesToParse, handleTypeName)
+import FindFilesToParse exposing (getAllExternalNames, handleTypeName, getFilesToParse)
 import FirstPass exposing (parseModule)
 
 
 suite : Test
 suite =
-    describe "getFilesToParse"
+    describe "FindFilesToParse"
         [ test "very basic" <|
             \_ ->
                 ([ "func : ModuleB.Foo"
-                 , "func x = 3"
                  ]
                     |> String.join "\n"
                 )
                     |> parseModule
-                    |> getAllFilesToParse
+                    |> getAllExternalNames
                     |> Expect.equal
                         [ "ModuleB.Foo" ]
         , test "very basic 2" <|
             \_ ->
                 ([ "type alias Alias = ModuleB.Foo"
                  , "func : Alias"
-                 , "func x = 3"
                  ]
                     |> String.join "\n"
                 )
                     |> parseModule
-                    |> getAllFilesToParse
+                    |> getAllExternalNames
                     |> Expect.equal
                         [ "ModuleB.Foo" ]
+        , test "lambda" <|
+            \_ ->
+                ([ "type alias Alias = ModuleA.Foo"
+                 , "func : Alias -> C.D"
+                 ]
+                    |> String.join "\n"
+                )
+                    |> parseModule
+                    |> getAllExternalNames
+                    |> Expect.equal
+                        [ "C.D", "ModuleA.Foo" ]
         , test "handleTypeName" <|
             \_ ->
                 "ModuleB.Foo"
@@ -40,4 +49,16 @@ suite =
                         (Just
                             "ModuleB.Foo"
                         )
+        , test "getFilesToParse" <|
+            \_ ->
+                ([ "import A exposing (Bar)"
+                 , "import B.C"
+                 , "func : B.C.Foo -> Bar -> Int"
+                 ]
+                    |> String.join "\n"
+                )
+                    |> parseModule
+                    |> getFilesToParse
+                    |> Expect.equal
+                        [ "A", "B.C" ]
         ]

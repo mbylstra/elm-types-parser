@@ -1,8 +1,9 @@
 module ImportStatement exposing (..)
 
 import Parser exposing (Count(AtLeast), Parser, zeroOrMore, (|.), (|=))
-import ElmTypesParser exposing (qualifiedCapVar, whitespace, lowVar, someWhitespace)
+import ElmTypesParser exposing (qualifiedCapVar, whitespace, lowVar, capVar, someWhitespace)
 import Types exposing (..)
+import List.Extra
 
 
 parseImportStatement : String -> Result Parser.Error UserImport
@@ -21,6 +22,17 @@ importStatement =
         |= exposedNames
 
 
+
+-- importStatement : Parser UserImport
+-- importStatement =
+--     Parser.succeed
+--         (\name exposedNames ->
+--             ( name, { alias = Nothing, exposedNames = exposedNames } )
+--         )
+--         |= importStatementName
+--         |= exposedNames
+
+
 importStatementName : Parser String
 importStatementName =
     Parser.succeed identity
@@ -31,14 +43,21 @@ importStatementName =
 
 importAlias : Parser (Maybe String)
 importAlias =
-    Parser.oneOf
-        [ Parser.succeed (\name -> Just name)
-            |. someWhitespace
-            |. Parser.symbol "as"
-            |. someWhitespace
-            |= qualifiedCapVar
-        , Parser.succeed Nothing
-        ]
+    let
+        hasAlias =
+            Parser.delayedCommit someWhitespace <|
+                Parser.succeed (\name -> Just name)
+                    |. Parser.symbol "as"
+                    |. someWhitespace
+                    |= qualifiedCapVar
+
+        noAlias =
+            Parser.succeed Nothing
+    in
+        Parser.oneOf
+            [ hasAlias
+            , noAlias
+            ]
 
 
 exposedNames : Parser Listing
@@ -66,8 +85,7 @@ explicitExposedNames =
     Parser.succeed (\head tail -> head :: tail)
         |. Parser.symbol "("
         |. whitespace
-        |= lowVar
-        -- or could be capVar (TODO)
+        |= Parser.oneOf [ lowVar, capVar ]
         |. whitespace
         |= Parser.repeat Parser.zeroOrMore
             (Parser.succeed identity
@@ -104,13 +122,22 @@ listing xs =
 --     importMethodn
 
 
+rawNameToQualifiedName : String -> QualifiedName
+rawNameToQualifiedName rawName =
+    rawName
+        |> String.split "."
+        |> List.Extra.uncons
+        |> Maybe.map (\( head, tail ) -> { name = head, modulePath = tail })
+        |> Maybe.withDefault { name = "", modulePath = [] }
+
+
 modulePathToString : List String -> String
 modulePathToString segments =
     String.join "." segments
 
 
-isExplicitlyInImport : UserImport -> QualifiedName -> Maybe String
-isExplicitlyInImport ( rawName, { alias, exposedNames } ) { name, modulePath } =
+isExplicitlyInImport : QualifiedName -> UserImport -> Maybe String
+isExplicitlyInImport { name, modulePath } ( rawName, { alias, exposedNames } ) =
     let
         modulePathString =
             modulePathToString modulePath
