@@ -1,7 +1,7 @@
 module FirstPass exposing (..)
 
 import ElmTypesParser exposing (parseTypeAlias, parseTypeAnnotation, parseUnion)
-import ImportStatementParser exposing (importStatement, parseImportStatement)
+import ImportStatement exposing (importStatement, parseImportStatement)
 import Parser
 import Types exposing (Block(..))
 

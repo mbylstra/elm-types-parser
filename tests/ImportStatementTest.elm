@@ -1,6 +1,6 @@
-module ImportStatementParserTest exposing (..)
+module ImportStatementTest exposing (..)
 
-import ImportStatementParser exposing (..)
+import ImportStatement exposing (..)
 import Parser
 import Expect exposing (Expectation, equalSets)
 import Test exposing (..)
@@ -62,4 +62,40 @@ suite =
                               }
                             )
                         )
+        , test "isExplicityInImport top level dir" <|
+            \_ ->
+                { name = "div", modulePath = [ "Html" ] }
+                    |> isExplicitlyInImport
+                        ( "Html"
+                        , { alias = Nothing, exposedNames = { open = False, explicits = [] } }
+                        )
+                    |> Expect.equal
+                        (Just "Html")
+        , test "isExplicityInImport subdir" <|
+            \_ ->
+                { name = "string", modulePath = [ "Json", "Decode" ] }
+                    |> isExplicitlyInImport
+                        ( "Json.Decode"
+                        , { alias = Nothing, exposedNames = { open = False, explicits = [] } }
+                        )
+                    |> Expect.equal
+                        (Just "Json.Decode")
+        , test "isExplicityInImport using alias" <|
+            \_ ->
+                { name = "string", modulePath = [ "Decode" ] }
+                    |> isExplicitlyInImport
+                        ( "Json.Decode"
+                        , { alias = Just "Decode", exposedNames = { open = False, explicits = [] } }
+                        )
+                    |> Expect.equal
+                        (Just "Json.Decode")
+        , test "isExplicityInImport using exposing" <|
+            \_ ->
+                { name = "string", modulePath = [] }
+                    |> isExplicitlyInImport
+                        ( "Json.Decode"
+                        , { alias = Just "Decode", exposedNames = { open = False, explicits = [ "string" ] } }
+                        )
+                    |> Expect.equal
+                        (Just "Json.Decode")
         ]

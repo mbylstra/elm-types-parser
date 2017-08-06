@@ -55,3 +55,9 @@ type alias Listing =
     { explicits : List String
     , open : Bool
     }
+
+
+type alias QualifiedName =
+    { name : String
+    , modulePath : List String
+    }

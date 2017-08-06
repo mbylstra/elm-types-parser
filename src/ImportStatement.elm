@@ -1,4 +1,4 @@
-module ImportStatementParser exposing (..)
+module ImportStatement exposing (..)
 
 import Parser exposing (Count(AtLeast), Parser, zeroOrMore, (|.), (|=))
 import ElmTypesParser exposing (qualifiedCapVar, whitespace, lowVar, someWhitespace)
@@ -92,3 +92,53 @@ closedListing =
 listing : List String -> Listing
 listing xs =
     Listing xs False
+
+
+
+-- Lookup ----------------------------------------------------------------------
+-- findModule : List UserImport -> QualifiedName -> String
+-- findModule imports { name, modulePath } =
+--     let
+--         reversedImports = List.reverse imports
+--         _findModule : UserImport ->
+--     importMethodn
+
+
+modulePathToString : List String -> String
+modulePathToString segments =
+    String.join "." segments
+
+
+isExplicitlyInImport : UserImport -> QualifiedName -> Maybe String
+isExplicitlyInImport ( rawName, { alias, exposedNames } ) { name, modulePath } =
+    let
+        modulePathString =
+            modulePathToString modulePath
+    in
+        if modulePathString == rawName then
+            Just rawName
+        else
+            let
+                maybeName =
+                    case alias of
+                        Just theAlias ->
+                            if theAlias == modulePathString then
+                                Just rawName
+                            else
+                                Nothing
+
+                        Nothing ->
+                            Nothing
+            in
+                case maybeName of
+                    Just theAlias ->
+                        Just theAlias
+
+                    Nothing ->
+                        if modulePath == [] then
+                            if exposedNames.explicits |> List.member name then
+                                Just rawName
+                            else
+                                Nothing
+                        else
+                            Nothing

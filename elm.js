@@ -8762,18 +8762,18 @@ var _user$project$FindFilesToParse$getAllFilesToParse = function (blocks) {
 				_user$project$FindFilesToParse$filterTypeExpressions(blocks))));
 };
 
-var _user$project$ImportStatementParser$listing = function (xs) {
+var _user$project$ImportStatement$listing = function (xs) {
 	return A2(_user$project$Types$Listing, xs, false);
 };
-var _user$project$ImportStatementParser$closedListing = A2(
+var _user$project$ImportStatement$closedListing = A2(
 	_user$project$Types$Listing,
 	{ctor: '[]'},
 	false);
-var _user$project$ImportStatementParser$openListing = A2(
+var _user$project$ImportStatement$openListing = A2(
 	_user$project$Types$Listing,
 	{ctor: '[]'},
 	true);
-var _user$project$ImportStatementParser$explicitExposedNames = A2(
+var _user$project$ImportStatement$explicitExposedNames = A2(
 	_elm_tools$parser$Parser_ops['|.'],
 	A2(
 		_elm_tools$parser$Parser_ops['|='],
@@ -8811,13 +8811,13 @@ var _user$project$ImportStatementParser$explicitExposedNames = A2(
 					_user$project$ElmTypesParser$lowVar),
 				_user$project$ElmTypesParser$whitespace))),
 	_user$project$ElmTypesParser$whitespace);
-var _user$project$ImportStatementParser$exposedNamesList = _elm_tools$parser$Parser$oneOf(
+var _user$project$ImportStatement$exposedNamesList = _elm_tools$parser$Parser$oneOf(
 	{
 		ctor: '::',
 		_0: A2(
 			_elm_tools$parser$Parser$andThen,
 			function (_p0) {
-				return _elm_tools$parser$Parser$succeed(_user$project$ImportStatementParser$openListing);
+				return _elm_tools$parser$Parser$succeed(_user$project$ImportStatement$openListing);
 			},
 			_elm_tools$parser$Parser$symbol('(..)')),
 		_1: {
@@ -8826,13 +8826,13 @@ var _user$project$ImportStatementParser$exposedNamesList = _elm_tools$parser$Par
 				_elm_tools$parser$Parser$andThen,
 				function (names) {
 					return _elm_tools$parser$Parser$succeed(
-						_user$project$ImportStatementParser$listing(names));
+						_user$project$ImportStatement$listing(names));
 				},
-				_user$project$ImportStatementParser$explicitExposedNames),
+				_user$project$ImportStatement$explicitExposedNames),
 			_1: {ctor: '[]'}
 		}
 	});
-var _user$project$ImportStatementParser$exposedNames = _elm_tools$parser$Parser$oneOf(
+var _user$project$ImportStatement$exposedNames = _elm_tools$parser$Parser$oneOf(
 	{
 		ctor: '::',
 		_0: A2(
@@ -8847,14 +8847,14 @@ var _user$project$ImportStatementParser$exposedNames = _elm_tools$parser$Parser$
 						_user$project$ElmTypesParser$someWhitespace),
 					_elm_tools$parser$Parser$symbol('exposing')),
 				_user$project$ElmTypesParser$someWhitespace),
-			_user$project$ImportStatementParser$exposedNamesList),
+			_user$project$ImportStatement$exposedNamesList),
 		_1: {
 			ctor: '::',
-			_0: _elm_tools$parser$Parser$succeed(_user$project$ImportStatementParser$closedListing),
+			_0: _elm_tools$parser$Parser$succeed(_user$project$ImportStatement$closedListing),
 			_1: {ctor: '[]'}
 		}
 	});
-var _user$project$ImportStatementParser$importAlias = _elm_tools$parser$Parser$oneOf(
+var _user$project$ImportStatement$importAlias = _elm_tools$parser$Parser$oneOf(
 	{
 		ctor: '::',
 		_0: A2(
@@ -8879,7 +8879,7 @@ var _user$project$ImportStatementParser$importAlias = _elm_tools$parser$Parser$o
 			_1: {ctor: '[]'}
 		}
 	});
-var _user$project$ImportStatementParser$importStatementName = A2(
+var _user$project$ImportStatement$importStatementName = A2(
 	_elm_tools$parser$Parser_ops['|='],
 	A2(
 		_elm_tools$parser$Parser_ops['|.'],
@@ -8889,7 +8889,7 @@ var _user$project$ImportStatementParser$importStatementName = A2(
 			_elm_tools$parser$Parser$symbol('import')),
 		_user$project$ElmTypesParser$someWhitespace),
 	_user$project$ElmTypesParser$qualifiedCapVar);
-var _user$project$ImportStatementParser$importStatement = A2(
+var _user$project$ImportStatement$importStatement = A2(
 	_elm_tools$parser$Parser_ops['|='],
 	A2(
 		_elm_tools$parser$Parser_ops['|='],
@@ -8904,11 +8904,11 @@ var _user$project$ImportStatementParser$importStatement = A2(
 							_1: {alias: maybeAlias, exposedNames: exposedNames}
 						};
 					})),
-			_user$project$ImportStatementParser$importStatementName),
-		_user$project$ImportStatementParser$importAlias),
-	_user$project$ImportStatementParser$exposedNames);
-var _user$project$ImportStatementParser$parseImportStatement = function (string) {
-	return A2(_elm_tools$parser$Parser$run, _user$project$ImportStatementParser$importStatement, string);
+			_user$project$ImportStatement$importStatementName),
+		_user$project$ImportStatement$importAlias),
+	_user$project$ImportStatement$exposedNames);
+var _user$project$ImportStatement$parseImportStatement = function (string) {
+	return A2(_elm_tools$parser$Parser$run, _user$project$ImportStatement$importStatement, string);
 };
 
 var _user$project$FirstPass$parseBlock = function (rawBlock) {
@@ -8920,7 +8920,7 @@ var _user$project$FirstPass$parseBlock = function (rawBlock) {
 			return A2(
 				_elm_lang$core$Result$map,
 				_user$project$Types$UserImport,
-				_user$project$ImportStatementParser$parseImportStatement(_p0._0));
+				_user$project$ImportStatement$parseImportStatement(_p0._0));
 		case 'TypeAliasDefinitionBlock':
 			return A2(
 				_elm_lang$core$Result$map,
