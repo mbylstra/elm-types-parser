@@ -1,0 +1,25 @@
+{
+  "name": "elm-types-parser",
+  "version": "1.0.0",
+  "description": "![alt text](http://ghk.h-cdn.co/assets/cm/15/11/640x480/54ffe5266025c-dog1.jpg \"I don't know what I'm doing\")",
+  "main": "main.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mbylstra/elm-types-parser.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mbylstra/elm-types-parser/issues"
+  },
+  "homepage": "https://github.com/mbylstra/elm-types-parser#readme",
+  "dependencies": {
+    "lodash": "^4.17.4"
+  }
+}

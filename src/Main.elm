@@ -1,9 +1,12 @@
 port module Main exposing (..)
 
+import FindFilesToParse exposing (getAllFilesToParse)
+import FirstPass exposing (parseModule)
+import Json.Decode
+import PackageInfo exposing (PackageInfo)
 import Process
 import Task
 import Time exposing (Time)
-import PackageInfo exposing (PackageInfo)
 
 
 {- REMOVE WHEN COMPILER BUG IS FIXED -}
@@ -19,6 +22,7 @@ port externalStop : (() -> msg) -> Sub msg
 
 type alias Flags =
     { elmPackageContents : String
+    , viewModuleContents : String
     }
 
 
@@ -39,14 +43,30 @@ type alias Model =
 type Msg
     = Stop
     | Abort
+    | ReadElmMessageResult ReadElmModuleResult
+
+
+type alias ReadElmModuleResult =
+    { contents : Maybe String
+    , scope : ReadElmModuleScope
+    }
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { elmPackageContents } =
+init { elmPackageContents, viewModuleContents } =
     let
         packageInfoResult : Result String PackageInfo
         packageInfoResult =
             Json.Decode.decodeString PackageInfo.decoder elmPackageContents
+
+        filesToParse : List String
+        filesToParse =
+            viewModuleContents
+                |> parseModule
+                |> getAllFilesToParse
+
+        _ =
+            Debug.log "files to parse" filesToParse
     in
         case packageInfoResult of
             Ok packageInfo ->
@@ -69,10 +89,27 @@ update msg model =
         Abort ->
             model ! [ exitApp -1 ]
 
+        ReadElmMessageResult result ->
+            model ! []
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     externalStop <| always Abort
+
+
+type alias ReadElmModuleScope =
+    { path : String, dir : String, name : String }
+
+
+port readElmModule :
+    { path : String
+    , scope : ReadElmModuleScope
+    }
+    -> Cmd msg
+
+
+port readElmModuleResult : (ReadElmModuleResult -> msg) -> Sub msg
 
 
 
