@@ -5,19 +5,9 @@ import ElmTypesParser exposing (qualifiedCapVar, whitespace, lowVar, someWhitesp
 import Types exposing (..)
 
 
-openListing : Listing
-openListing =
-    Listing [] True
-
-
-closedListing : Listing
-closedListing =
-    Listing [] False
-
-
-listing : List String -> Listing
-listing xs =
-    Listing xs False
+parseImportStatement : String -> Result Parser.Error UserImport
+parseImportStatement string =
+    Parser.run importStatement string
 
 
 importStatement : Parser UserImport
@@ -87,4 +77,18 @@ explicitExposedNames =
                 |. whitespace
             )
         |. whitespace
-        |. Parser.symbol ")"
+
+
+openListing : Listing
+openListing =
+    Listing [] True
+
+
+closedListing : Listing
+closedListing =
+    Listing [] False
+
+
+listing : List String -> Listing
+listing xs =
+    Listing xs False

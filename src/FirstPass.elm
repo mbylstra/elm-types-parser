@@ -1,19 +1,34 @@
 module FirstPass exposing (..)
 
+import ElmTypesParser exposing (parseTypeAlias, parseTypeAnnotation, parseUnion)
+import ImportStatementParser exposing (importStatement, parseImportStatement)
+import Parser
+import Types exposing (Block(..))
+
 
 type RawBlocks
     = List (List String)
 
 
-type Block
-    = EmptyLines
-    | ImportStatement
-    | ModuleStatement
-    | TypeAliasDefinition
-    | TypeDefinition
-    | TypeAnnotation
-    | FunctionDefinition
-    | Unknown
+type RawBlock
+    = EmptyLines String
+    | ImportStatementBlock String
+    | ModuleStatementBlock String
+    | TypeAliasDefinitionBlock String
+    | TypeDefinition String
+    | TypeAnnotationBlock String
+    | FunctionDefinitionBlock String
+    | UnknownBlock String
+
+
+parseModule : String -> List Block
+parseModule source =
+    source
+        |> splitIntoBlocks
+        |> classifyBlocks
+        |> List.map parseBlock
+        |> List.map Result.toMaybe
+        |> List.filterMap identity
 
 
 splitIntoBlocks : String -> List String
@@ -43,25 +58,57 @@ splitIntoBlocks elmCode =
                     blocks ++ [ currBlock ]
 
 
-classifyBlock : String -> Block
+classifyBlock : String -> RawBlock
 classifyBlock s =
     if s |> String.startsWith "module" then
-        ModuleStatement
+        ModuleStatementBlock s
     else if s |> String.startsWith "import" then
-        ImportStatement
+        ImportStatementBlock s
     else if s |> String.startsWith "type alias" then
-        TypeAliasDefinition
+        TypeAliasDefinitionBlock s
     else if s |> String.startsWith "type" then
-        TypeDefinition
+        TypeDefinition s
     else if s |> String.contains "=" then
-        FunctionDefinition
+        FunctionDefinitionBlock s
     else if s |> String.contains ":" then
-        TypeAnnotation
+        TypeAnnotationBlock s
     else
-        EmptyLines
+        EmptyLines s
 
 
-classifyBlocks : List String -> List ( Block, String )
+classifyBlocks : List String -> List RawBlock
 classifyBlocks strings =
     strings
-        |> List.map (\string -> ( classifyBlock string, string ))
+        |> List.map classifyBlock
+
+
+parseBlock : RawBlock -> Result Parser.Error Block
+parseBlock rawBlock =
+    case rawBlock of
+        EmptyLines string ->
+            Ok <| IgnoreBlock
+
+        ImportStatementBlock string ->
+            parseImportStatement string
+                |> Result.map UserImport
+
+        TypeAliasDefinitionBlock string ->
+            parseTypeAlias string
+                |> Result.map TypeAliasDefinition
+
+        TypeDefinition string ->
+            parseUnion string
+                |> Result.map Union
+
+        TypeAnnotationBlock string ->
+            parseTypeAnnotation string
+                |> Result.map TypeAnnotation
+
+        ModuleStatementBlock string ->
+            Ok IgnoreBlock
+
+        FunctionDefinitionBlock string ->
+            Ok IgnoreBlock
+
+        UnknownBlock string ->
+            Ok IgnoreBlock

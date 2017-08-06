@@ -1,6 +1,14 @@
 module Types exposing (..)
 
 
+type Block
+    = TypeAliasDefinition TypeAliasDefinition
+    | Union Union
+    | UserImport UserImport
+    | TypeAnnotation TypeAnnotation
+    | IgnoreBlock
+
+
 type Type
     = Var String
     | Lambda Type Type
@@ -27,6 +35,10 @@ type alias TypeAliasDefinition =
 
 type alias UserImport =
     ( RawName, ImportMethod )
+
+
+type alias TypeAnnotation =
+    ( String, Type )
 
 
 type alias RawName =

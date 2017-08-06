@@ -9,19 +9,10 @@ import ElmTypesParser
         , someWhitespace
         )
 import Types exposing (..)
-
-
--- import ElmTypesParser exposing (tipe)
-
 import Expect exposing (Expectation, equalSets)
 import Parser exposing (Parser, (|.), (|=))
 import DataGeneration exposing (generateData)
-import FirstPass exposing (splitIntoBlocks)
-
-
--- import Parser.LanguageKit as LanguageKit
--- import Char
-
+import FirstPass exposing (..)
 import Result.Extra exposing (isErr)
 import Test exposing (..)
 
@@ -41,7 +32,7 @@ suite =
         -- , test "complex one" <|
         --     \_ ->
         --         "(Int -> a) -> { x : Int, y : { z : String }}"
-        --             |> ElmTypesParser.parse
+        --             |> ElmTypesParser.parseTipe
         --             |> toString
         --             |> Expect.equal "asdasd"
         , test "generateData" <|
@@ -115,11 +106,11 @@ suite =
         --             |> List.map classifyBlock
         --             |> Expect.equal
         --                 [ ModuleStatement, ImportStatement, TypeAnnotation, FunctionDefinition ]
-        -- , test "parse type alias" <|
-        --     \_ ->
-        --         "type alias Id = Int"
-        --             |> parseTypeAlias
-        --             |> Expect.equal (Ok ( "Id", Type "Int" [] ))
+        , test "parse type alias" <|
+            \_ ->
+                "type alias Id = Int"
+                    |> parseTypeAlias
+                    |> Expect.equal (Ok ( "Id", Type "Int" [] ))
         , test "typeConstructor: takes no args" <|
             \_ ->
                 "TypeA"
