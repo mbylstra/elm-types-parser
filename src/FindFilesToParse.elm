@@ -9,6 +9,7 @@ import Types
         , Union
         )
 import Maybe.Extra exposing (unwrap)
+import Set exposing (Set)
 
 
 getAllFilesToParse : List Block -> List String
@@ -20,21 +21,28 @@ getAllFilesToParse blocks =
         blocks
             |> filterTypeExpressions
             |> List.concatMap (getFilesToParse localNames)
+            -- remove duplicates
+            |> Set.fromList
+            |> Set.toList
 
 
 filterTypeExpressions : List Block -> List Type
 filterTypeExpressions =
-    List.filterMap
+    List.concatMap
         (\block ->
             case block of
                 TypeAnnotation ( _, tipe ) ->
-                    Just tipe
+                    [ tipe ]
 
                 TypeAliasDefinition ( _, tipe ) ->
-                    Just tipe
+                    [ tipe ]
+
+                Union ( _, typeConstructors ) ->
+                    typeConstructors
+                        |> List.concatMap (Tuple.second)
 
                 _ ->
-                    Nothing
+                    []
         )
 
 
@@ -83,7 +91,18 @@ getFilesToParse localNames tipe =
 
 coreTypes : List String
 coreTypes =
-    [ "Bool", "Int", "Float", "String", "Char" ]
+    [ "Bool"
+    , "Int"
+    , "Float"
+    , "String"
+    , "Char"
+    , "Html"
+    , "List"
+    , "Attribute"
+    , "Maybe"
+    , "Dict"
+    , "Result"
+    ]
 
 
 anyTrue : List Bool -> Bool

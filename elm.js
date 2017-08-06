@@ -8606,7 +8606,31 @@ var _user$project$FindFilesToParse$coreTypes = {
 				_1: {
 					ctor: '::',
 					_0: 'Char',
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: 'Html',
+						_1: {
+							ctor: '::',
+							_0: 'List',
+							_1: {
+								ctor: '::',
+								_0: 'Attribute',
+								_1: {
+									ctor: '::',
+									_0: 'Maybe',
+									_1: {
+										ctor: '::',
+										_0: 'Dict',
+										_1: {
+											ctor: '::',
+											_0: 'Result',
+											_1: {ctor: '[]'}
+										}
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -8690,36 +8714,52 @@ var _user$project$FindFilesToParse$getLocalNames = function (blocks) {
 		},
 		blocks);
 };
-var _user$project$FindFilesToParse$filterTypeExpressions = _elm_lang$core$List$filterMap(
+var _user$project$FindFilesToParse$filterTypeExpressions = _elm_lang$core$List$concatMap(
 	function (block) {
 		var _p3 = block;
-		_v2_2:
+		_v2_3:
 		do {
 			switch (_p3.ctor) {
 				case 'TypeAnnotation':
 					if (_p3._0.ctor === '_Tuple2') {
-						return _elm_lang$core$Maybe$Just(_p3._0._1);
+						return {
+							ctor: '::',
+							_0: _p3._0._1,
+							_1: {ctor: '[]'}
+						};
 					} else {
-						break _v2_2;
+						break _v2_3;
 					}
 				case 'TypeAliasDefinition':
 					if (_p3._0.ctor === '_Tuple2') {
-						return _elm_lang$core$Maybe$Just(_p3._0._1);
+						return {
+							ctor: '::',
+							_0: _p3._0._1,
+							_1: {ctor: '[]'}
+						};
 					} else {
-						break _v2_2;
+						break _v2_3;
+					}
+				case 'Union':
+					if (_p3._0.ctor === '_Tuple2') {
+						return A2(_elm_lang$core$List$concatMap, _elm_lang$core$Tuple$second, _p3._0._1);
+					} else {
+						break _v2_3;
 					}
 				default:
-					break _v2_2;
+					break _v2_3;
 			}
 		} while(false);
-		return _elm_lang$core$Maybe$Nothing;
+		return {ctor: '[]'};
 	});
 var _user$project$FindFilesToParse$getAllFilesToParse = function (blocks) {
 	var localNames = _user$project$FindFilesToParse$getLocalNames(blocks);
-	return A2(
-		_elm_lang$core$List$concatMap,
-		_user$project$FindFilesToParse$getFilesToParse(localNames),
-		_user$project$FindFilesToParse$filterTypeExpressions(blocks));
+	return _elm_lang$core$Set$toList(
+		_elm_lang$core$Set$fromList(
+			A2(
+				_elm_lang$core$List$concatMap,
+				_user$project$FindFilesToParse$getFilesToParse(localNames),
+				_user$project$FindFilesToParse$filterTypeExpressions(blocks))));
 };
 
 var _user$project$ImportStatementParser$listing = function (xs) {
