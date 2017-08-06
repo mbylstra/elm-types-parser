@@ -17,7 +17,6 @@ suite =
                     |> String.join "\n"
                 )
                     |> parseModule
-                    |> Debug.log "stuff"
                     |> getAllFilesToParse
                     |> Expect.equal
                         [ "ModuleB.Foo" ]
@@ -30,7 +29,6 @@ suite =
                     |> String.join "\n"
                 )
                     |> parseModule
-                    |> Debug.log "stuff"
                     |> getAllFilesToParse
                     |> Expect.equal
                         [ "ModuleB.Foo" ]
