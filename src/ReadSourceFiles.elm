@@ -1,4 +1,4 @@
-port module ReadSourceFilesProgress exposing (..)
+port module ReadSourceFiles exposing (..)
 
 import Dict exposing (Dict)
 import Helpers exposing (qualifiedNameToPath)
@@ -49,7 +49,11 @@ init moduleNames dirNames =
                 |> List.map
                     (\moduleName ->
                         ( moduleName
-                        , dirNames |> List.map (\dirName -> { dirName = dirName, status = DirNotOpenedYet })
+                        , dirNames
+                            |> List.map
+                                (\dirName ->
+                                    { dirName = dirName, status = DirNotOpenedYet }
+                                )
                         )
                     )
                 |> Dict.fromList
@@ -73,7 +77,11 @@ getCmd model =
                         in
                             readElmModule
                                 { path = path
-                                , scope = { path = path, dir = nextDirName, moduleName = moduleName }
+                                , scope =
+                                    { path = path
+                                    , dir = nextDirName
+                                    , moduleName = moduleName
+                                    }
                                 }
 
                     _ ->
@@ -134,7 +142,9 @@ atLeastOneSuccess dirStatuses =
         |> List.head
 
 
-haveNotExhaustedAllOptions : List { dirName : String, status : DirStatus } -> Maybe String
+haveNotExhaustedAllOptions :
+    List { dirName : String, status : DirStatus }
+    -> Maybe String
 haveNotExhaustedAllOptions dirStatuses =
     dirStatuses
         |> List.map

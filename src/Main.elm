@@ -6,7 +6,7 @@ import FirstPass exposing (parseModule)
 import Json.Decode
 import PackageInfo exposing (PackageInfo)
 import Process
-import ReadSourceFilesProgress
+import ReadSourceFiles
 import Task
 import Time exposing (Time)
 
@@ -47,7 +47,7 @@ type alias ModuleName =
 
 type alias Model =
     { packageInfo : PackageInfo
-    , readSourceFilesProgress : ReadSourceFilesProgress.Model
+    , readSourceFilesProgress : ReadSourceFiles.Model
     , sourceFiles : Dict ModuleName SourceCode
     }
 
@@ -55,7 +55,7 @@ type alias Model =
 type Msg
     = Stop
     | Abort
-    | ReadSourceFilesProgressMsg ReadSourceFilesProgress.Msg
+    | ReadSourceFilesMsg ReadSourceFiles.Msg
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -84,7 +84,7 @@ init { elmPackageContents, viewModuleContents } =
                     -- paths =
                     --     modulesToParse |> List.map qualifiedNameToPath
                     ( readSourceFilesProgress, readSourceFilesProgressCmd ) =
-                        ReadSourceFilesProgress.init modulesToParse srcDirs
+                        ReadSourceFiles.init modulesToParse srcDirs
 
                     -- _ =
                     --     Debug.log "paths" paths
@@ -94,7 +94,7 @@ init { elmPackageContents, viewModuleContents } =
                     , sourceFiles = Dict.empty
                     }
                         ! [ readSourceFilesProgressCmd
-                                |> Cmd.map ReadSourceFilesProgressMsg
+                                |> Cmd.map ReadSourceFilesMsg
                           ]
 
             -- we need to figure out what inital commands we need based on the current state (same as after an update)
@@ -115,10 +115,10 @@ update msg model =
         Abort ->
             model ! [ exitApp -1 ]
 
-        ReadSourceFilesProgressMsg rsfpMsg ->
+        ReadSourceFilesMsg rsfpMsg ->
             { model
                 | readSourceFilesProgress =
-                    ReadSourceFilesProgress.update
+                    ReadSourceFiles.update
                         rsfpMsg
                         model.readSourceFilesProgress
             }
@@ -129,8 +129,8 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ externalStop <| always Abort
-        , ReadSourceFilesProgress.subscriptions
-            |> Sub.map ReadSourceFilesProgressMsg
+        , ReadSourceFiles.subscriptions
+            |> Sub.map ReadSourceFilesMsg
         ]
 
 
