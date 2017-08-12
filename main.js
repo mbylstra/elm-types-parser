@@ -33,6 +33,18 @@ ports.exitApp.subscribe(exitCode => {
 	process.exit(exitCode);
 });
 
+ports.readElmModule.subscribe(data => {
+	console.log('read elm module');
+
+	fs.readFile(data.path, 'utf8', (err, contents) => {
+	  if (err) {
+			ports.readElmModuleResult.send({ scope: data.scope, contents: null});
+		} else {
+			ports.readElmModuleResult.send({ scope: data.scope, contents: contents});
+		}
+	});
+});
+
 process.on('uncaughtException', err => {
 	console.log(`Uncaught exception:\n`, err);
 	process.exit(1);
@@ -47,6 +59,7 @@ process.on('SIGTERM', _ => {
 	console.log(`SIGTERM received.`);
 	ports.externalStop.send(null);
 });
+
 
 
 // function readElmFiles(dirs, elmFiles) {

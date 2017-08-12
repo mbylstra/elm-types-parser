@@ -1,4 +1,4 @@
-module FindFilesToParse exposing (..)
+module FindModulesToParse exposing (..)
 
 import Types
     exposing
@@ -14,8 +14,8 @@ import Set exposing (Set)
 import ImportStatement exposing (rawNameToQualifiedName, isExplicitlyInImport)
 
 
-getFilesToParse : List Block -> List String
-getFilesToParse blocks =
+getModulesToParse : List Block -> List String
+getModulesToParse blocks =
     let
         externalNames =
             getAllExternalNames blocks
@@ -145,6 +145,7 @@ coreTypes =
     , "Maybe"
     , "Dict"
     , "Result"
+    , "Decoder" -- doesn't work?
     ]
 
 

@@ -1,10 +1,12 @@
 port module Main exposing (..)
 
-import FindFilesToParse exposing (getFilesToParse)
+import Dict exposing (Dict)
+import FindModulesToParse exposing (getModulesToParse)
 import FirstPass exposing (parseModule)
 import Json.Decode
 import PackageInfo exposing (PackageInfo)
 import Process
+import ReadSourceFilesProgress
 import Task
 import Time exposing (Time)
 
@@ -35,21 +37,25 @@ main =
         }
 
 
+type alias SourceCode =
+    String
+
+
+type alias ModuleName =
+    String
+
+
 type alias Model =
     { packageInfo : PackageInfo
+    , readSourceFilesProgress : ReadSourceFilesProgress.Model
+    , sourceFiles : Dict ModuleName SourceCode
     }
 
 
 type Msg
     = Stop
     | Abort
-    | ReadElmMessageResult ReadElmModuleResult
-
-
-type alias ReadElmModuleResult =
-    { contents : Maybe String
-    , scope : ReadElmModuleScope
-    }
+    | ReadSourceFilesProgressMsg ReadSourceFilesProgress.Msg
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -58,20 +64,40 @@ init { elmPackageContents, viewModuleContents } =
         packageInfoResult : Result String PackageInfo
         packageInfoResult =
             Json.Decode.decodeString PackageInfo.decoder elmPackageContents
-
-        filesToParse : List String
-        filesToParse =
-            viewModuleContents
-                |> parseModule
-                |> getFilesToParse
-
-        _ =
-            Debug.log "files to parse" filesToParse
     in
         case packageInfoResult of
             Ok packageInfo ->
-                { packageInfo = packageInfo } ! []
+                let
+                    modulesToParse : List String
+                    modulesToParse =
+                        viewModuleContents
+                            |> parseModule
+                            |> getModulesToParse
 
+                    -- path = TODO get full path, dir, name
+                    _ =
+                        Debug.log "files to parse" modulesToParse
+
+                    srcDirs =
+                        packageInfo.sourceDirectories
+
+                    -- paths =
+                    --     modulesToParse |> List.map qualifiedNameToPath
+                    ( readSourceFilesProgress, readSourceFilesProgressCmd ) =
+                        ReadSourceFilesProgress.init modulesToParse srcDirs
+
+                    -- _ =
+                    --     Debug.log "paths" paths
+                in
+                    { packageInfo = packageInfo
+                    , readSourceFilesProgress = readSourceFilesProgress
+                    , sourceFiles = Dict.empty
+                    }
+                        ! [ readSourceFilesProgressCmd
+                                |> Cmd.map ReadSourceFilesProgressMsg
+                          ]
+
+            -- we need to figure out what inital commands we need based on the current state (same as after an update)
             Err err ->
                 let
                     err2 =
@@ -89,27 +115,23 @@ update msg model =
         Abort ->
             model ! [ exitApp -1 ]
 
-        ReadElmMessageResult result ->
-            model ! []
+        ReadSourceFilesProgressMsg rsfpMsg ->
+            { model
+                | readSourceFilesProgress =
+                    ReadSourceFilesProgress.update
+                        rsfpMsg
+                        model.readSourceFilesProgress
+            }
+                ! []
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    externalStop <| always Abort
-
-
-type alias ReadElmModuleScope =
-    { path : String, dir : String, name : String }
-
-
-port readElmModule :
-    { path : String
-    , scope : ReadElmModuleScope
-    }
-    -> Cmd msg
-
-
-port readElmModuleResult : (ReadElmModuleResult -> msg) -> Sub msg
+    Sub.batch
+        [ externalStop <| always Abort
+        , ReadSourceFilesProgress.subscriptions
+            |> Sub.map ReadSourceFilesProgressMsg
+        ]
 
 
 

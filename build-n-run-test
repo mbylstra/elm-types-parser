@@ -1,0 +1,2 @@
+./make
+node main.js src/Main.elm

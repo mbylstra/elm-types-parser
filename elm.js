@@ -10016,8 +10016,8 @@ var _user$project$ImportStatement$parseImportStatement = function (string) {
 	return A2(_elm_tools$parser$Parser$run, _user$project$ImportStatement$importStatement, string);
 };
 
-var _user$project$FindFilesToParse$anyTrue = _elm_lang$core$List$any(_elm_lang$core$Basics$identity);
-var _user$project$FindFilesToParse$coreTypes = {
+var _user$project$FindModulesToParse$anyTrue = _elm_lang$core$List$any(_elm_lang$core$Basics$identity);
+var _user$project$FindModulesToParse$coreTypes = {
 	ctor: '::',
 	_0: 'Bool',
 	_1: {
@@ -10050,7 +10050,11 @@ var _user$project$FindFilesToParse$coreTypes = {
 										_1: {
 											ctor: '::',
 											_0: 'Result',
-											_1: {ctor: '[]'}
+											_1: {
+												ctor: '::',
+												_0: 'Decoder',
+												_1: {ctor: '[]'}
+											}
 										}
 									}
 								}
@@ -10062,12 +10066,12 @@ var _user$project$FindFilesToParse$coreTypes = {
 		}
 	}
 };
-var _user$project$FindFilesToParse$handleTypeName = F2(
+var _user$project$FindModulesToParse$handleTypeName = F2(
 	function (localNames, typeName) {
-		return _user$project$FindFilesToParse$anyTrue(
+		return _user$project$FindModulesToParse$anyTrue(
 			{
 				ctor: '::',
-				_0: A2(_elm_lang$core$List$member, typeName, _user$project$FindFilesToParse$coreTypes),
+				_0: A2(_elm_lang$core$List$member, typeName, _user$project$FindModulesToParse$coreTypes),
 				_1: {
 					ctor: '::',
 					_0: A2(_elm_lang$core$List$member, typeName, localNames),
@@ -10075,7 +10079,7 @@ var _user$project$FindFilesToParse$handleTypeName = F2(
 				}
 			}) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(typeName);
 	});
-var _user$project$FindFilesToParse$getExternalNames = F2(
+var _user$project$FindModulesToParse$getExternalNames = F2(
 	function (localNames, tipe) {
 		var _p0 = tipe;
 		switch (_p0.ctor) {
@@ -10087,32 +10091,32 @@ var _user$project$FindFilesToParse$getExternalNames = F2(
 						function (x, y) {
 							return A2(_elm_lang$core$Basics_ops['++'], x, y);
 						}),
-					A2(_user$project$FindFilesToParse$getExternalNames, localNames, _p0._1),
-					A2(_user$project$FindFilesToParse$getExternalNames, localNames, _p0._0));
+					A2(_user$project$FindModulesToParse$getExternalNames, localNames, _p0._1),
+					A2(_user$project$FindModulesToParse$getExternalNames, localNames, _p0._0));
 			case 'Tuple':
 				return A2(
 					_elm_lang$core$List$concatMap,
-					_user$project$FindFilesToParse$getExternalNames(localNames),
+					_user$project$FindModulesToParse$getExternalNames(localNames),
 					_p0._0);
 			case 'Type':
 				return A3(
 					_elm_community$maybe_extra$Maybe_Extra$unwrap,
 					{ctor: '[]'},
 					_elm_lang$core$List$singleton,
-					A2(_user$project$FindFilesToParse$handleTypeName, localNames, _p0._0));
+					A2(_user$project$FindModulesToParse$handleTypeName, localNames, _p0._0));
 			default:
 				return A2(
 					_elm_lang$core$List$concatMap,
 					function (_p1) {
 						return A2(
-							_user$project$FindFilesToParse$getExternalNames,
+							_user$project$FindModulesToParse$getExternalNames,
 							localNames,
 							_elm_lang$core$Tuple$second(_p1));
 					},
 					_p0._0);
 		}
 	});
-var _user$project$FindFilesToParse$getLocalNames = function (blocks) {
+var _user$project$FindModulesToParse$getLocalNames = function (blocks) {
 	return A2(
 		_elm_lang$core$List$filterMap,
 		function (block) {
@@ -10140,7 +10144,7 @@ var _user$project$FindFilesToParse$getLocalNames = function (blocks) {
 		},
 		blocks);
 };
-var _user$project$FindFilesToParse$filterTypeExpressions = _elm_lang$core$List$concatMap(
+var _user$project$FindModulesToParse$filterTypeExpressions = _elm_lang$core$List$concatMap(
 	function (block) {
 		var _p3 = block;
 		_v2_3:
@@ -10178,7 +10182,7 @@ var _user$project$FindFilesToParse$filterTypeExpressions = _elm_lang$core$List$c
 		} while(false);
 		return {ctor: '[]'};
 	});
-var _user$project$FindFilesToParse$filterByImports = _elm_lang$core$List$filterMap(
+var _user$project$FindModulesToParse$filterByImports = _elm_lang$core$List$filterMap(
 	function (block) {
 		var _p4 = block;
 		if (_p4.ctor === 'UserImport') {
@@ -10187,23 +10191,23 @@ var _user$project$FindFilesToParse$filterByImports = _elm_lang$core$List$filterM
 			return _elm_lang$core$Maybe$Nothing;
 		}
 	});
-var _user$project$FindFilesToParse$getAllExternalNames = function (blocks) {
-	var localNames = _user$project$FindFilesToParse$getLocalNames(blocks);
+var _user$project$FindModulesToParse$getAllExternalNames = function (blocks) {
+	var localNames = _user$project$FindModulesToParse$getLocalNames(blocks);
 	return _elm_lang$core$Set$toList(
 		_elm_lang$core$Set$fromList(
 			A2(
 				_elm_lang$core$List$concatMap,
-				_user$project$FindFilesToParse$getExternalNames(localNames),
-				_user$project$FindFilesToParse$filterTypeExpressions(blocks))));
+				_user$project$FindModulesToParse$getExternalNames(localNames),
+				_user$project$FindModulesToParse$filterTypeExpressions(blocks))));
 };
-var _user$project$FindFilesToParse$getFilesToParse = function (blocks) {
+var _user$project$FindModulesToParse$getModulesToParse = function (blocks) {
 	var reversedImports = _elm_lang$core$List$reverse(
-		_user$project$FindFilesToParse$filterByImports(blocks));
+		_user$project$FindModulesToParse$filterByImports(blocks));
 	var _p5 = A2(_elm_lang$core$Debug$log, 'reversedImports', reversedImports);
 	var externalNames = A2(
 		_elm_lang$core$List$map,
 		_user$project$ImportStatement$rawNameToQualifiedName,
-		_user$project$FindFilesToParse$getAllExternalNames(blocks));
+		_user$project$FindModulesToParse$getAllExternalNames(blocks));
 	var _p6 = A2(_elm_lang$core$Debug$log, 'externalNames', externalNames);
 	return _elm_lang$core$Set$toList(
 		_elm_lang$core$Set$fromList(
@@ -10352,6 +10356,24 @@ var _user$project$FirstPass$parseModule = function (source) {
 				_user$project$FirstPass$parseBlock,
 				_user$project$FirstPass$classifyBlocks(
 					_user$project$FirstPass$splitIntoBlocks(source)))));
+};
+
+var _user$project$Helpers$qualifiedNameToPath = function (name) {
+	return A2(
+		_elm_lang$core$Maybe$withDefault,
+		'',
+		A2(
+			_elm_lang$core$Maybe$map,
+			function (_p0) {
+				var _p1 = _p0;
+				var fileName = A2(_elm_lang$core$Basics_ops['++'], _p1._0, '.elm');
+				var fullReversePath = {ctor: '::', _0: fileName, _1: _p1._1};
+				var path = _elm_lang$core$List$reverse(fullReversePath);
+				return A2(_elm_lang$core$String$join, '/', path);
+			},
+			_elm_community$list_extra$List_Extra$uncons(
+				_elm_lang$core$List$reverse(
+					A2(_elm_lang$core$String$split, '.', name)))));
 };
 
 var _user$project$Utils$resultAndMap = _elm_lang$core$Result$map2(
@@ -10699,84 +10721,47 @@ var _user$project$PackageInfo$decoder = A4(
 									_user$project$PackageInfo_Version$decoder,
 									_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$PackageInfo$PackageInfo))))))))));
 
-var _user$project$Main$delayMsg = F2(
-	function (time, msg) {
-		return A2(
-			_elm_lang$core$Task$perform,
-			function (_p0) {
-				return msg;
-			},
-			_elm_lang$core$Process$sleep(time));
-	});
-var _user$project$Main$init = function (_p1) {
-	var _p2 = _p1;
-	var filesToParse = _user$project$FindFilesToParse$getFilesToParse(
-		_user$project$FirstPass$parseModule(_p2.viewModuleContents));
-	var _p3 = A2(_elm_lang$core$Debug$log, 'files to parse', filesToParse);
-	var packageInfoResult = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p2.elmPackageContents);
-	var _p4 = packageInfoResult;
-	if (_p4.ctor === 'Ok') {
-		return A2(
-			_elm_lang$core$Platform_Cmd_ops['!'],
-			{packageInfo: _p4._0},
-			{ctor: '[]'});
-	} else {
-		var err2 = A2(_elm_lang$core$Basics_ops['++'], 'Invalid elm-package.json.\n\n ', _p4._0);
-		return _elm_lang$core$Native_Utils.crash(
-			'Main',
-			{
-				start: {line: 80, column: 21},
-				end: {line: 80, column: 32}
-			})(err2);
-	}
-};
-var _user$project$Main$exitApp = _elm_lang$core$Native_Platform.outgoingPort(
-	'exitApp',
-	function (v) {
-		return v;
-	});
-var _user$project$Main$update = F2(
+var _user$project$ReadSourceFilesProgress$update = F2(
 	function (msg, model) {
-		var _p5 = msg;
-		switch (_p5.ctor) {
-			case 'Stop':
-				return A2(
-					_elm_lang$core$Platform_Cmd_ops['!'],
-					model,
-					{
-						ctor: '::',
-						_0: _user$project$Main$exitApp(0),
-						_1: {ctor: '[]'}
-					});
-			case 'Abort':
-				return A2(
-					_elm_lang$core$Platform_Cmd_ops['!'],
-					model,
-					{
-						ctor: '::',
-						_0: _user$project$Main$exitApp(-1),
-						_1: {ctor: '[]'}
-					});
-			default:
-				return A2(
-					_elm_lang$core$Platform_Cmd_ops['!'],
-					model,
-					{ctor: '[]'});
-		}
+		var _p0 = msg;
+		var _p1 = A2(_elm_lang$core$Debug$log, '', _p0._0);
+		return model;
 	});
-var _user$project$Main$externalStop = _elm_lang$core$Native_Platform.incomingPort(
-	'externalStop',
-	_elm_lang$core$Json_Decode$null(
-		{ctor: '_Tuple0'}));
-var _user$project$Main$readElmModule = _elm_lang$core$Native_Platform.outgoingPort(
-	'readElmModule',
-	function (v) {
-		return {
-			path: v.path,
-			scope: {path: v.scope.path, dir: v.scope.dir, name: v.scope.name}
-		};
-	});
-var _user$project$Main$readElmModuleResult = _elm_lang$core$Native_Platform.incomingPort(
+var _user$project$ReadSourceFilesProgress$haveNotExhaustedAllOptions = function (dirStatuses) {
+	return _elm_lang$core$List$head(
+		A2(
+			_elm_lang$core$List$filterMap,
+			_elm_lang$core$Basics$identity,
+			A2(
+				_elm_lang$core$List$map,
+				function (item) {
+					var _p2 = item.status;
+					if (_p2.ctor === 'DirNotOpenedYet') {
+						return _elm_lang$core$Maybe$Just(item.dirName);
+					} else {
+						return _elm_lang$core$Maybe$Nothing;
+					}
+				},
+				dirStatuses)));
+};
+var _user$project$ReadSourceFilesProgress$atLeastOneSuccess = function (dirStatuses) {
+	return _elm_lang$core$List$head(
+		A2(
+			_elm_lang$core$List$filterMap,
+			_elm_lang$core$Basics$identity,
+			A2(
+				_elm_lang$core$List$map,
+				function (item) {
+					var _p3 = item.status;
+					if (_p3.ctor === 'DirSuccess') {
+						return _elm_lang$core$Maybe$Just(item.dirName);
+					} else {
+						return _elm_lang$core$Maybe$Nothing;
+					}
+				},
+				dirStatuses)));
+};
+var _user$project$ReadSourceFilesProgress$readElmModuleResult = _elm_lang$core$Native_Platform.incomingPort(
 	'readElmModuleResult',
 	A2(
 		_elm_lang$core$Json_Decode$andThen,
@@ -10798,11 +10783,11 @@ var _user$project$Main$readElmModuleResult = _elm_lang$core$Native_Platform.inco
 								function (dir) {
 									return A2(
 										_elm_lang$core$Json_Decode$andThen,
-										function (name) {
+										function (moduleName) {
 											return _elm_lang$core$Json_Decode$succeed(
-												{path: path, dir: dir, name: name});
+												{path: path, dir: dir, moduleName: moduleName});
 										},
-										A2(_elm_lang$core$Json_Decode$field, 'name', _elm_lang$core$Json_Decode$string));
+										A2(_elm_lang$core$Json_Decode$field, 'moduleName', _elm_lang$core$Json_Decode$string));
 								},
 								A2(_elm_lang$core$Json_Decode$field, 'dir', _elm_lang$core$Json_Decode$string));
 						},
@@ -10821,28 +10806,241 @@ var _user$project$Main$readElmModuleResult = _elm_lang$core$Native_Platform.inco
 						_1: {ctor: '[]'}
 					}
 				}))));
+var _user$project$ReadSourceFilesProgress$readElmModule = _elm_lang$core$Native_Platform.outgoingPort(
+	'readElmModule',
+	function (v) {
+		return {
+			path: v.path,
+			scope: {path: v.scope.path, dir: v.scope.dir, moduleName: v.scope.moduleName}
+		};
+	});
+var _user$project$ReadSourceFilesProgress$ReadElmModuleScope = F3(
+	function (a, b, c) {
+		return {path: a, dir: b, moduleName: c};
+	});
+var _user$project$ReadSourceFilesProgress$ReadElmModuleResultR = F2(
+	function (a, b) {
+		return {contents: a, scope: b};
+	});
+var _user$project$ReadSourceFilesProgress$DirFail = {ctor: 'DirFail'};
+var _user$project$ReadSourceFilesProgress$DirSuccess = {ctor: 'DirSuccess'};
+var _user$project$ReadSourceFilesProgress$DirNotOpenedYet = {ctor: 'DirNotOpenedYet'};
+var _user$project$ReadSourceFilesProgress$HaveNotExhaustedAllOptions = function (a) {
+	return {ctor: 'HaveNotExhaustedAllOptions', _0: a};
+};
+var _user$project$ReadSourceFilesProgress$TotalFail = {ctor: 'TotalFail'};
+var _user$project$ReadSourceFilesProgress$Success = function (a) {
+	return {ctor: 'Success', _0: a};
+};
+var _user$project$ReadSourceFilesProgress$moduleStatus = F2(
+	function (model, moduleName) {
+		var dirStatuses = A2(
+			_elm_lang$core$Maybe$withDefault,
+			{ctor: '[]'},
+			A2(_elm_lang$core$Dict$get, moduleName, model));
+		if (_elm_lang$core$Native_Utils.eq(
+			dirStatuses,
+			{ctor: '[]'})) {
+			return _user$project$ReadSourceFilesProgress$TotalFail;
+		} else {
+			var _p4 = _user$project$ReadSourceFilesProgress$atLeastOneSuccess(dirStatuses);
+			if (_p4.ctor === 'Just') {
+				return _user$project$ReadSourceFilesProgress$Success(
+					{dirName: _p4._0});
+			} else {
+				var _p5 = _user$project$ReadSourceFilesProgress$haveNotExhaustedAllOptions(dirStatuses);
+				if (_p5.ctor === 'Just') {
+					return _user$project$ReadSourceFilesProgress$HaveNotExhaustedAllOptions(
+						{nextDirName: _p5._0});
+				} else {
+					return _user$project$ReadSourceFilesProgress$TotalFail;
+				}
+			}
+		}
+	});
+var _user$project$ReadSourceFilesProgress$moduleStatuses = function (model) {
+	return A2(
+		_elm_lang$core$List$map,
+		function (_p6) {
+			var _p7 = _p6;
+			var _p8 = _p7._0;
+			return {
+				ctor: '_Tuple2',
+				_0: _p8,
+				_1: A2(_user$project$ReadSourceFilesProgress$moduleStatus, model, _p8)
+			};
+		},
+		_elm_lang$core$Dict$toList(model));
+};
+var _user$project$ReadSourceFilesProgress$getCmd = function (model) {
+	return _elm_lang$core$Platform_Cmd$batch(
+		A2(
+			_elm_lang$core$Debug$log,
+			'cmds',
+			A2(
+				_elm_lang$core$List$map,
+				function (_p9) {
+					var _p10 = _p9;
+					var _p13 = _p10._0;
+					var _p11 = _p10._1;
+					if (_p11.ctor === 'HaveNotExhaustedAllOptions') {
+						var _p12 = _p11._0.nextDirName;
+						var path = A2(
+							_elm_lang$core$Basics_ops['++'],
+							_p12,
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								'/',
+								_user$project$Helpers$qualifiedNameToPath(_p13)));
+						return _user$project$ReadSourceFilesProgress$readElmModule(
+							{
+								path: path,
+								scope: {path: path, dir: _p12, moduleName: _p13}
+							});
+					} else {
+						return _elm_lang$core$Platform_Cmd$none;
+					}
+				},
+				_user$project$ReadSourceFilesProgress$moduleStatuses(model))));
+};
+var _user$project$ReadSourceFilesProgress$init = F2(
+	function (moduleNames, dirNames) {
+		var model = _elm_lang$core$Dict$fromList(
+			A2(
+				_elm_lang$core$List$map,
+				function (moduleName) {
+					return {
+						ctor: '_Tuple2',
+						_0: moduleName,
+						_1: A2(
+							_elm_lang$core$List$map,
+							function (dirName) {
+								return {dirName: dirName, status: _user$project$ReadSourceFilesProgress$DirNotOpenedYet};
+							},
+							dirNames)
+					};
+				},
+				moduleNames));
+		return A2(
+			_elm_lang$core$Platform_Cmd_ops['!'],
+			model,
+			{
+				ctor: '::',
+				_0: _user$project$ReadSourceFilesProgress$getCmd(model),
+				_1: {ctor: '[]'}
+			});
+	});
+var _user$project$ReadSourceFilesProgress$ReadElmModuleResult = function (a) {
+	return {ctor: 'ReadElmModuleResult', _0: a};
+};
+var _user$project$ReadSourceFilesProgress$subscriptions = _user$project$ReadSourceFilesProgress$readElmModuleResult(_user$project$ReadSourceFilesProgress$ReadElmModuleResult);
+
+var _user$project$Main$delayMsg = F2(
+	function (time, msg) {
+		return A2(
+			_elm_lang$core$Task$perform,
+			function (_p0) {
+				return msg;
+			},
+			_elm_lang$core$Process$sleep(time));
+	});
+var _user$project$Main$exitApp = _elm_lang$core$Native_Platform.outgoingPort(
+	'exitApp',
+	function (v) {
+		return v;
+	});
+var _user$project$Main$update = F2(
+	function (msg, model) {
+		var _p1 = msg;
+		switch (_p1.ctor) {
+			case 'Stop':
+				return A2(
+					_elm_lang$core$Platform_Cmd_ops['!'],
+					model,
+					{
+						ctor: '::',
+						_0: _user$project$Main$exitApp(0),
+						_1: {ctor: '[]'}
+					});
+			case 'Abort':
+				return A2(
+					_elm_lang$core$Platform_Cmd_ops['!'],
+					model,
+					{
+						ctor: '::',
+						_0: _user$project$Main$exitApp(-1),
+						_1: {ctor: '[]'}
+					});
+			default:
+				return A2(
+					_elm_lang$core$Platform_Cmd_ops['!'],
+					_elm_lang$core$Native_Utils.update(
+						model,
+						{
+							readSourceFilesProgress: A2(_user$project$ReadSourceFilesProgress$update, _p1._0, model.readSourceFilesProgress)
+						}),
+					{ctor: '[]'});
+		}
+	});
+var _user$project$Main$externalStop = _elm_lang$core$Native_Platform.incomingPort(
+	'externalStop',
+	_elm_lang$core$Json_Decode$null(
+		{ctor: '_Tuple0'}));
 var _user$project$Main$Flags = F2(
 	function (a, b) {
 		return {elmPackageContents: a, viewModuleContents: b};
 	});
-var _user$project$Main$Model = function (a) {
-	return {packageInfo: a};
-};
-var _user$project$Main$ReadElmModuleResult = F2(
-	function (a, b) {
-		return {contents: a, scope: b};
-	});
-var _user$project$Main$ReadElmModuleScope = F3(
+var _user$project$Main$Model = F3(
 	function (a, b, c) {
-		return {path: a, dir: b, name: c};
+		return {packageInfo: a, readSourceFilesProgress: b, sourceFiles: c};
 	});
-var _user$project$Main$ReadElmMessageResult = function (a) {
-	return {ctor: 'ReadElmMessageResult', _0: a};
+var _user$project$Main$ReadSourceFilesProgressMsg = function (a) {
+	return {ctor: 'ReadSourceFilesProgressMsg', _0: a};
+};
+var _user$project$Main$init = function (_p2) {
+	var _p3 = _p2;
+	var packageInfoResult = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p3.elmPackageContents);
+	var _p4 = packageInfoResult;
+	if (_p4.ctor === 'Ok') {
+		var _p7 = _p4._0;
+		var srcDirs = _p7.sourceDirectories;
+		var modulesToParse = _user$project$FindModulesToParse$getModulesToParse(
+			_user$project$FirstPass$parseModule(_p3.viewModuleContents));
+		var _p5 = A2(_elm_lang$core$Debug$log, 'files to parse', modulesToParse);
+		var _p6 = A2(_user$project$ReadSourceFilesProgress$init, modulesToParse, srcDirs);
+		var readSourceFilesProgress = _p6._0;
+		var readSourceFilesProgressCmd = _p6._1;
+		return A2(
+			_elm_lang$core$Platform_Cmd_ops['!'],
+			{packageInfo: _p7, readSourceFilesProgress: readSourceFilesProgress, sourceFiles: _elm_lang$core$Dict$empty},
+			{
+				ctor: '::',
+				_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ReadSourceFilesProgressMsg, readSourceFilesProgressCmd),
+				_1: {ctor: '[]'}
+			});
+	} else {
+		var err2 = A2(_elm_lang$core$Basics_ops['++'], 'Invalid elm-package.json.\n\n ', _p4._0);
+		return _elm_lang$core$Native_Utils.crash(
+			'Main',
+			{
+				start: {line: 106, column: 21},
+				end: {line: 106, column: 32}
+			})(err2);
+	}
 };
 var _user$project$Main$Abort = {ctor: 'Abort'};
 var _user$project$Main$subscriptions = function (model) {
-	return _user$project$Main$externalStop(
-		_elm_lang$core$Basics$always(_user$project$Main$Abort));
+	return _elm_lang$core$Platform_Sub$batch(
+		{
+			ctor: '::',
+			_0: _user$project$Main$externalStop(
+				_elm_lang$core$Basics$always(_user$project$Main$Abort)),
+			_1: {
+				ctor: '::',
+				_0: A2(_elm_lang$core$Platform_Sub$map, _user$project$Main$ReadSourceFilesProgressMsg, _user$project$ReadSourceFilesProgress$subscriptions),
+				_1: {ctor: '[]'}
+			}
+		});
 };
 var _user$project$Main$main = _elm_lang$core$Platform$programWithFlags(
 	{init: _user$project$Main$init, update: _user$project$Main$update, subscriptions: _user$project$Main$subscriptions})(
