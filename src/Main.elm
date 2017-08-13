@@ -9,6 +9,7 @@ import Process
 import ReadSourceFiles
 import Task
 import Time exposing (Time)
+import DeterminePackageLocations
 
 
 {- REMOVE WHEN COMPILER BUG IS FIXED -}
@@ -48,6 +49,7 @@ type alias ModuleName =
 type alias Model =
     { packageInfo : PackageInfo
     , readSourceFilesProgress : ReadSourceFiles.Model
+    , determinePackageLocations : DeterminePackageLocations.Model
     , sourceFiles : Dict ModuleName SourceCode
     }
 
@@ -56,6 +58,7 @@ type Msg
     = Stop
     | Abort
     | ReadSourceFilesMsg ReadSourceFiles.Msg
+    | DeterminePackageLocationsMsg DeterminePackageLocations.Msg
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -68,6 +71,9 @@ init { elmPackageContents, viewModuleContents } =
         case packageInfoResult of
             Ok packageInfo ->
                 let
+                    ( determinePackageLocationsModel, determinePackageLocationsCmd ) =
+                        DeterminePackageLocations.init packageInfo
+
                     modulesToParse : List String
                     modulesToParse =
                         viewModuleContents
@@ -75,9 +81,8 @@ init { elmPackageContents, viewModuleContents } =
                             |> getModulesToParse
 
                     -- path = TODO get full path, dir, name
-                    _ =
-                        Debug.log "files to parse" modulesToParse
-
+                    -- _ =
+                    --     Debug.log "files to parse" modulesToParse
                     srcDirs =
                         packageInfo.sourceDirectories
 
@@ -92,9 +97,12 @@ init { elmPackageContents, viewModuleContents } =
                     { packageInfo = packageInfo
                     , readSourceFilesProgress = readSourceFilesProgress
                     , sourceFiles = Dict.empty
+                    , determinePackageLocations = determinePackageLocationsModel
                     }
-                        ! [ readSourceFilesProgressCmd
-                                |> Cmd.map ReadSourceFilesMsg
+                        -- ! [ readSourceFilesProgressCmd
+                        --         |> Cmd.map ReadSourceFilesMsg
+                        ! [ determinePackageLocationsCmd
+                                |> Cmd.map DeterminePackageLocationsMsg
                           ]
 
             -- we need to figure out what inital commands we need based on the current state (same as after an update)
@@ -108,7 +116,7 @@ init { elmPackageContents, viewModuleContents } =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
+    case Debug.log "msg" msg of
         Stop ->
             model ! [ exitApp 0 ]
 
@@ -124,13 +132,23 @@ update msg model =
             }
                 ! []
 
+        DeterminePackageLocationsMsg dplMsg ->
+            let
+                _ =
+                    Debug.log "dplsMsg" dplMsg
+            in
+                { model | determinePackageLocations = DeterminePackageLocations.update dplMsg model.determinePackageLocations } ! []
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ externalStop <| always Abort
-        , ReadSourceFiles.subscriptions
-            |> Sub.map ReadSourceFilesMsg
+
+        -- , ReadSourceFiles.subscriptions
+        --     |> Sub.map ReadSourceFilesMsg
+        -- , DeterminePackageLocation.subscriptions
+        --     |> Sub.map DeterminePackageLocationMsg
         ]
 
 

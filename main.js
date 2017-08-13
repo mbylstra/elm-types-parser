@@ -45,6 +45,20 @@ ports.readElmModule.subscribe(data => {
 	});
 });
 
+ports.getFilenamesInDir.subscribe(function getFilenamesInDir(data) {
+	console.log('data', data);
+	const scope = data.scope;
+	const path = data.path;
+	fs.readdir(path, (err, files) => {
+			if (err) {
+				ports.getFilenamesInDirResult.send({filenames: [], scope: scope});
+			} else {
+				console.log('success');
+				ports.getFilenamesInDirResult.send({filenames: files, scope: scope});
+			}
+	});
+});
+
 process.on('uncaughtException', err => {
 	console.log(`Uncaught exception:\n`, err);
 	process.exit(1);

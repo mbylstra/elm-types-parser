@@ -9257,6 +9257,771 @@ var _elm_tools$parser$Parser_LanguageKit$NestableComment = F2(
 	});
 var _elm_tools$parser$Parser_LanguageKit$NoMultiComment = {ctor: 'NoMultiComment'};
 
+var _ucode$elm_path$Path_Generic$extSeparator = '.';
+var _ucode$elm_path$Path_Generic$isExtSeparator = F2(
+	function (x, y) {
+		return _elm_lang$core$Native_Utils.eq(x, y);
+	})(_ucode$elm_path$Path_Generic$extSeparator);
+var _ucode$elm_path$Path_Generic$splitExtension = function (path) {
+	var _p0 = A2(
+		_elm_lang$core$String$split,
+		_ucode$elm_path$Path_Generic$extSeparator,
+		_elm_lang$core$String$reverse(path));
+	if (_p0.ctor === '[]') {
+		return {ctor: '_Tuple2', _0: '', _1: ''};
+	} else {
+		if (_p0._1.ctor === '[]') {
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$String$reverse(_p0._0),
+				_1: ''
+			};
+		} else {
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$String$reverse(
+					A2(_elm_lang$core$String$join, _ucode$elm_path$Path_Generic$extSeparator, _p0._1)),
+				_1: A2(
+					_elm_lang$core$Basics_ops['++'],
+					_ucode$elm_path$Path_Generic$extSeparator,
+					_elm_lang$core$String$reverse(_p0._0))
+			};
+		}
+	}
+};
+var _ucode$elm_path$Path_Generic$takeExtension = function (_p1) {
+	return _elm_lang$core$Tuple$second(
+		_ucode$elm_path$Path_Generic$splitExtension(_p1));
+};
+var _ucode$elm_path$Path_Generic$dropExtension = function (_p2) {
+	return _elm_lang$core$Tuple$first(
+		_ucode$elm_path$Path_Generic$splitExtension(_p2));
+};
+var _ucode$elm_path$Path_Generic$hasExtension = function (_p3) {
+	return _elm_lang$core$String$isEmpty(
+		_elm_lang$core$Tuple$second(
+			_ucode$elm_path$Path_Generic$splitExtension(_p3)));
+};
+var _ucode$elm_path$Path_Generic$splitExtensions = function (path) {
+	var _p4 = A2(_elm_lang$core$String$split, _ucode$elm_path$Path_Generic$extSeparator, path);
+	if (_p4.ctor === '[]') {
+		return {ctor: '_Tuple2', _0: '', _1: ''};
+	} else {
+		if (_p4._1.ctor === '[]') {
+			return {ctor: '_Tuple2', _0: _p4._0, _1: ''};
+		} else {
+			return {
+				ctor: '_Tuple2',
+				_0: _p4._0,
+				_1: A2(_elm_lang$core$String$join, _ucode$elm_path$Path_Generic$extSeparator, _p4._1)
+			};
+		}
+	}
+};
+var _ucode$elm_path$Path_Generic$takeExtensions = function (_p5) {
+	return _elm_lang$core$Tuple$second(
+		_ucode$elm_path$Path_Generic$splitExtensions(_p5));
+};
+var _ucode$elm_path$Path_Generic$dropExtensions = function (_p6) {
+	return _elm_lang$core$Tuple$first(
+		_ucode$elm_path$Path_Generic$splitExtensions(_p6));
+};
+var _ucode$elm_path$Path_Generic$normalizeExt = function (ext) {
+	return A2(_elm_lang$core$String$startsWith, _ucode$elm_path$Path_Generic$extSeparator, ext) ? ext : A2(_elm_lang$core$Basics_ops['++'], _ucode$elm_path$Path_Generic$extSeparator, ext);
+};
+var _ucode$elm_path$Path_Generic$replaceExtension = F2(
+	function (path, ext) {
+		return A2(
+			_elm_lang$core$Basics$flip,
+			F2(
+				function (x, y) {
+					return A2(_elm_lang$core$Basics_ops['++'], x, y);
+				}),
+			_ucode$elm_path$Path_Generic$normalizeExt(ext))(
+			_elm_lang$core$Tuple$first(
+				_ucode$elm_path$Path_Generic$splitExtension(path)));
+	});
+var _ucode$elm_path$Path_Generic_ops = _ucode$elm_path$Path_Generic_ops || {};
+_ucode$elm_path$Path_Generic_ops['-<.>'] = _ucode$elm_path$Path_Generic$replaceExtension;
+var _ucode$elm_path$Path_Generic$addExtension = function (path) {
+	return function (_p7) {
+		return A2(
+			F2(
+				function (x, y) {
+					return A2(_elm_lang$core$Basics_ops['++'], x, y);
+				}),
+			path,
+			_ucode$elm_path$Path_Generic$normalizeExt(_p7));
+	};
+};
+var _ucode$elm_path$Path_Generic_ops = _ucode$elm_path$Path_Generic_ops || {};
+_ucode$elm_path$Path_Generic_ops['<.>'] = _ucode$elm_path$Path_Generic$addExtension;
+var _ucode$elm_path$Path_Generic$pathSeparators = function (platform) {
+	var _p8 = platform;
+	if (_p8.ctor === 'Windows') {
+		return {
+			ctor: '::',
+			_0: '/',
+			_1: {
+				ctor: '::',
+				_0: '\\',
+				_1: {ctor: '[]'}
+			}
+		};
+	} else {
+		return {
+			ctor: '::',
+			_0: '/',
+			_1: {ctor: '[]'}
+		};
+	}
+};
+var _ucode$elm_path$Path_Generic$isPathSeparator = function (platform) {
+	return A2(
+		_elm_lang$core$Basics$flip,
+		_elm_lang$core$List$member,
+		_ucode$elm_path$Path_Generic$pathSeparators(platform));
+};
+var _ucode$elm_path$Path_Generic$hasTrailingPathSeparator = F2(
+	function (platform, path) {
+		return A2(
+			_elm_lang$core$List$any,
+			A2(_elm_lang$core$Basics$flip, _elm_lang$core$String$endsWith, path),
+			_ucode$elm_path$Path_Generic$pathSeparators(platform)) && (!A2(_ucode$elm_path$Path_Generic$isPathSeparator, platform, path));
+	});
+var _ucode$elm_path$Path_Generic$pathSeparator = function (platform) {
+	var _p9 = platform;
+	if (_p9.ctor === 'Windows') {
+		return '\\';
+	} else {
+		return '/';
+	}
+};
+var _ucode$elm_path$Path_Generic$splitFileName = F2(
+	function (platform, path) {
+		var _p10 = A2(
+			_elm_lang$core$String$split,
+			_ucode$elm_path$Path_Generic$pathSeparator(platform),
+			_elm_lang$core$String$reverse(path));
+		if (_p10.ctor === '[]') {
+			return {ctor: '_Tuple2', _0: '', _1: ''};
+		} else {
+			if (_p10._1.ctor === '[]') {
+				return {ctor: '_Tuple2', _0: '', _1: _p10._0};
+			} else {
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$String$reverse(
+						A2(
+							_elm_lang$core$String$join,
+							_ucode$elm_path$Path_Generic$pathSeparator(platform),
+							{ctor: '::', _0: '', _1: _p10._1})),
+					_1: _elm_lang$core$String$reverse(_p10._0)
+				};
+			}
+		}
+	});
+var _ucode$elm_path$Path_Generic$takeFileName = function (platform) {
+	return function (_p11) {
+		return _elm_lang$core$Tuple$second(
+			A2(_ucode$elm_path$Path_Generic$splitFileName, platform, _p11));
+	};
+};
+var _ucode$elm_path$Path_Generic$takeBaseName = function (platform) {
+	return function (_p12) {
+		return _ucode$elm_path$Path_Generic$dropExtension(
+			A2(_ucode$elm_path$Path_Generic$takeFileName, platform, _p12));
+	};
+};
+var _ucode$elm_path$Path_Generic$replaceDirectory = F2(
+	function (platform, path) {
+		return A2(
+			_elm_lang$core$Basics$flip,
+			F2(
+				function (x, y) {
+					return A2(_elm_lang$core$Basics_ops['++'], x, y);
+				}),
+			A2(_ucode$elm_path$Path_Generic$takeFileName, platform, path));
+	});
+var _ucode$elm_path$Path_Generic$dropFileName = function (platform) {
+	return function (_p13) {
+		return _elm_lang$core$Tuple$first(
+			A2(_ucode$elm_path$Path_Generic$splitFileName, platform, _p13));
+	};
+};
+var _ucode$elm_path$Path_Generic$replaceFileName = F2(
+	function (platform, path) {
+		return F2(
+			function (x, y) {
+				return A2(_elm_lang$core$Basics_ops['++'], x, y);
+			})(
+			A2(_ucode$elm_path$Path_Generic$dropFileName, platform, path));
+	});
+var _ucode$elm_path$Path_Generic$replaceBaseName = F3(
+	function (platform, path, $new) {
+		var _p14 = A2(_ucode$elm_path$Path_Generic$splitFileName, platform, path);
+		var dir = _p14._0;
+		var old = _p14._1;
+		var _p15 = _ucode$elm_path$Path_Generic$splitExtension(old);
+		var ext = _p15._1;
+		return A2(
+			_elm_lang$core$Basics_ops['++'],
+			dir,
+			A2(_elm_lang$core$Basics_ops['++'], $new, ext));
+	});
+var _ucode$elm_path$Path_Generic$takeDirectory = function (platform) {
+	return function (_p16) {
+		return _elm_lang$core$Tuple$first(
+			A2(_ucode$elm_path$Path_Generic$splitFileName, platform, _p16));
+	};
+};
+var _ucode$elm_path$Path_Generic$splitPath = F2(
+	function (platform, path) {
+		var _p17 = A2(
+			_elm_lang$core$String$split,
+			_ucode$elm_path$Path_Generic$pathSeparator(platform),
+			path);
+		if (_p17.ctor === '::') {
+			var _p19 = _p17._1;
+			var _p18 = _p17._0;
+			return _elm_lang$core$String$isEmpty(_p18) ? {
+				ctor: '::',
+				_0: _ucode$elm_path$Path_Generic$pathSeparator(platform),
+				_1: _p19
+			} : {ctor: '::', _0: _p18, _1: _p19};
+		} else {
+			return _p17;
+		}
+	});
+var _ucode$elm_path$Path_Generic$addTrailingPathSeparator = F2(
+	function (platform, path) {
+		return A2(_ucode$elm_path$Path_Generic$hasTrailingPathSeparator, platform, path) ? path : A2(
+			_elm_lang$core$Basics_ops['++'],
+			path,
+			_ucode$elm_path$Path_Generic$pathSeparator(platform));
+	});
+var _ucode$elm_path$Path_Generic$combine = F3(
+	function (platform, path1, path2) {
+		if (A2(
+			_elm_lang$core$List$any,
+			A2(_elm_lang$core$Basics$flip, _elm_lang$core$String$startsWith, path2),
+			_ucode$elm_path$Path_Generic$pathSeparators(platform))) {
+			return path2;
+		} else {
+			var _p20 = {ctor: '_Tuple2', _0: path1, _1: path2};
+			if (_p20._0 === '') {
+				return _p20._1;
+			} else {
+				if (_p20._1 === '') {
+					return _p20._0;
+				} else {
+					var _p22 = _p20._1;
+					var _p21 = _p20._0;
+					return A2(_ucode$elm_path$Path_Generic$isPathSeparator, platform, _p21) ? A2(_elm_lang$core$Basics_ops['++'], _p21, _p22) : A2(
+						_elm_lang$core$Basics_ops['++'],
+						A2(_ucode$elm_path$Path_Generic$addTrailingPathSeparator, platform, _p21),
+						_p22);
+				}
+			}
+		}
+	});
+var _ucode$elm_path$Path_Generic$joinPath = function (_p23) {
+	return A3(
+		_elm_lang$core$Basics$flip,
+		_elm_lang$core$List$foldr,
+		'',
+		_ucode$elm_path$Path_Generic$combine(_p23));
+};
+var _ucode$elm_path$Path_Generic$dropTrailingPathSeparator = F2(
+	function (platform, path) {
+		return A2(_ucode$elm_path$Path_Generic$hasTrailingPathSeparator, platform, path) ? A2(
+			_elm_lang$core$Maybe$withDefault,
+			path,
+			A2(
+				_elm_lang$core$Maybe$map,
+				function (_p24) {
+					return A2(
+						_ucode$elm_path$Path_Generic$joinPath,
+						platform,
+						_elm_lang$core$List$reverse(_p24));
+				},
+				_elm_lang$core$List$tail(
+					_elm_lang$core$List$reverse(
+						A2(_ucode$elm_path$Path_Generic$splitPath, platform, path))))) : path;
+	});
+var _ucode$elm_path$Path_Generic$Url = {ctor: 'Url'};
+var _ucode$elm_path$Path_Generic$Windows = {ctor: 'Windows'};
+var _ucode$elm_path$Path_Generic$Posix = {ctor: 'Posix'};
+
+var _ucode$elm_path$Path_Posix$dropExtensions = _ucode$elm_path$Path_Generic$dropExtensions;
+var _ucode$elm_path$Path_Posix$takeExtensions = _ucode$elm_path$Path_Generic$takeExtensions;
+var _ucode$elm_path$Path_Posix$splitExtensions = _ucode$elm_path$Path_Generic$splitExtensions;
+var _ucode$elm_path$Path_Posix$hasExtension = _ucode$elm_path$Path_Generic$hasExtension;
+var _ucode$elm_path$Path_Posix$addExtension = _ucode$elm_path$Path_Generic$addExtension;
+var _ucode$elm_path$Path_Posix_ops = _ucode$elm_path$Path_Posix_ops || {};
+_ucode$elm_path$Path_Posix_ops['<.>'] = _ucode$elm_path$Path_Posix$addExtension;
+var _ucode$elm_path$Path_Posix$dropExtension = _ucode$elm_path$Path_Generic$dropExtension;
+var _ucode$elm_path$Path_Posix$replaceExtension = _ucode$elm_path$Path_Generic$replaceExtension;
+var _ucode$elm_path$Path_Posix_ops = _ucode$elm_path$Path_Posix_ops || {};
+_ucode$elm_path$Path_Posix_ops['-<.>'] = _ucode$elm_path$Path_Posix$replaceExtension;
+var _ucode$elm_path$Path_Posix$takeExtension = _ucode$elm_path$Path_Generic$takeExtension;
+var _ucode$elm_path$Path_Posix$splitExtension = _ucode$elm_path$Path_Generic$splitExtension;
+var _ucode$elm_path$Path_Posix$isExtSeparator = _ucode$elm_path$Path_Generic$isExtSeparator;
+var _ucode$elm_path$Path_Posix$extSeparator = _ucode$elm_path$Path_Generic$extSeparator;
+var _ucode$elm_path$Path_Posix$currPlatform = _ucode$elm_path$Path_Generic$Posix;
+var _ucode$elm_path$Path_Posix$pathSeparator = _ucode$elm_path$Path_Generic$pathSeparator(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$pathSeparators = _ucode$elm_path$Path_Generic$pathSeparators(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$isPathSeparator = _ucode$elm_path$Path_Generic$isPathSeparator(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$splitFileName = _ucode$elm_path$Path_Generic$splitFileName(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$takeFileName = _ucode$elm_path$Path_Generic$takeFileName(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$replaceFileName = _ucode$elm_path$Path_Generic$replaceFileName(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$dropFileName = _ucode$elm_path$Path_Generic$dropFileName(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$takeBaseName = _ucode$elm_path$Path_Generic$takeBaseName(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$replaceBaseName = _ucode$elm_path$Path_Generic$replaceBaseName(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$takeDirectory = _ucode$elm_path$Path_Generic$takeDirectory(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$replaceDirectory = _ucode$elm_path$Path_Generic$replaceDirectory(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$combine = _ucode$elm_path$Path_Generic$combine(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix_ops = _ucode$elm_path$Path_Posix_ops || {};
+_ucode$elm_path$Path_Posix_ops['</>'] = _ucode$elm_path$Path_Posix$combine;
+var _ucode$elm_path$Path_Posix$splitPath = _ucode$elm_path$Path_Generic$splitPath(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$joinPath = _ucode$elm_path$Path_Generic$joinPath(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$hasTrailingPathSeparator = _ucode$elm_path$Path_Generic$hasTrailingPathSeparator(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$addTrailingPathSeparator = _ucode$elm_path$Path_Generic$addTrailingPathSeparator(_ucode$elm_path$Path_Posix$currPlatform);
+var _ucode$elm_path$Path_Posix$dropTrailingPathSeparator = _ucode$elm_path$Path_Generic$dropTrailingPathSeparator(_ucode$elm_path$Path_Posix$currPlatform);
+
+var _user$project$Utils$resultAndMap = _elm_lang$core$Result$map2(
+	F2(
+		function (x, y) {
+			return x(y);
+		}));
+
+var _user$project$PackageInfo_Version$compare = F2(
+	function (left, right) {
+		return (!_elm_lang$core$Native_Utils.eq(left.major, right.major)) ? A2(_elm_lang$core$Basics$compare, left.major, right.major) : ((!_elm_lang$core$Native_Utils.eq(left.minor, right.minor)) ? A2(_elm_lang$core$Basics$compare, left.minor, right.minor) : A2(_elm_lang$core$Basics$compare, left.patch, right.patch));
+	});
+var _user$project$PackageInfo_Version$toString = function (_p0) {
+	var _p1 = _p0;
+	return A2(
+		_elm_lang$core$String$join,
+		'.',
+		A2(
+			_elm_lang$core$List$map,
+			_elm_lang$core$Basics$toString,
+			{
+				ctor: '::',
+				_0: _p1.major,
+				_1: {
+					ctor: '::',
+					_0: _p1.minor,
+					_1: {
+						ctor: '::',
+						_0: _p1.patch,
+						_1: {ctor: '[]'}
+					}
+				}
+			}));
+};
+var _user$project$PackageInfo_Version$encoder = function (_p2) {
+	return _elm_lang$core$Json_Encode$string(
+		_user$project$PackageInfo_Version$toString(_p2));
+};
+var _user$project$PackageInfo_Version$parseSegment = function (versionType) {
+	return function (_p3) {
+		return A2(
+			_elm_lang$core$Result$mapError,
+			_elm_lang$core$Basics$always(
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					'Unparseable ',
+					A2(_elm_lang$core$Basics_ops['++'], versionType, ' component'))),
+			A2(
+				_elm_lang$core$Result$andThen,
+				_elm_lang$core$String$toInt,
+				A2(
+					_elm_lang$core$Result$fromMaybe,
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						'Missing ',
+						A2(_elm_lang$core$Basics_ops['++'], versionType, ' version component')),
+					_p3)));
+	};
+};
+var _user$project$PackageInfo_Version$Version = F3(
+	function (a, b, c) {
+		return {major: a, minor: b, patch: c};
+	});
+var _user$project$PackageInfo_Version$fromString = function (input) {
+	var split = A2(_elm_lang$core$String$split, '.', input);
+	var major = A2(
+		_user$project$PackageInfo_Version$parseSegment,
+		'major',
+		_elm_lang$core$List$head(split));
+	var minor = A2(
+		_user$project$PackageInfo_Version$parseSegment,
+		'minor',
+		_elm_lang$core$List$head(
+			A2(_elm_lang$core$List$drop, 1, split)));
+	var patch = A2(
+		_user$project$PackageInfo_Version$parseSegment,
+		'patch',
+		_elm_lang$core$List$head(
+			A2(_elm_lang$core$List$drop, 2, split)));
+	return A2(
+		_user$project$Utils$resultAndMap,
+		A2(
+			_user$project$Utils$resultAndMap,
+			A2(
+				_user$project$Utils$resultAndMap,
+				_elm_lang$core$Result$Ok(_user$project$PackageInfo_Version$Version),
+				major),
+			minor),
+		patch);
+};
+var _user$project$PackageInfo_Version$decoder = A2(
+	_elm_lang$core$Json_Decode$andThen,
+	function (result) {
+		var _p4 = result;
+		if (_p4.ctor === 'Ok') {
+			return _elm_lang$core$Json_Decode$succeed(_p4._0);
+		} else {
+			return _elm_lang$core$Json_Decode$fail(_p4._0);
+		}
+	},
+	A2(_elm_lang$core$Json_Decode$map, _user$project$PackageInfo_Version$fromString, _elm_lang$core$Json_Decode$string));
+
+var _user$project$PackageInfo_VersionRange$contains = F2(
+	function (version, _p0) {
+		var _p1 = _p0;
+		return (!_elm_lang$core$Native_Utils.eq(
+			A2(_user$project$PackageInfo_Version$compare, version, _p1.minimum),
+			_elm_lang$core$Basics$LT)) && _elm_lang$core$Native_Utils.eq(
+			A2(_user$project$PackageInfo_Version$compare, version, _p1.maximum),
+			_elm_lang$core$Basics$LT);
+	});
+var _user$project$PackageInfo_VersionRange$toString = function (_p2) {
+	var _p3 = _p2;
+	return A2(
+		_elm_lang$core$Basics_ops['++'],
+		_user$project$PackageInfo_Version$toString(_p3.minimum),
+		A2(
+			_elm_lang$core$Basics_ops['++'],
+			' <= v < ',
+			_user$project$PackageInfo_Version$toString(_p3.maximum)));
+};
+var _user$project$PackageInfo_VersionRange$encoder = function (_p4) {
+	return _elm_lang$core$Json_Encode$string(
+		_user$project$PackageInfo_VersionRange$toString(_p4));
+};
+var _user$project$PackageInfo_VersionRange$parseSegment = function (side) {
+	return function (_p5) {
+		return A2(
+			_elm_lang$core$Result$mapError,
+			function (e) {
+				return A2(
+					_elm_lang$core$Basics_ops['++'],
+					'Unparseable ',
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						side,
+						A2(_elm_lang$core$Basics_ops['++'], ' constraint: ', e)));
+			},
+			A2(
+				_elm_lang$core$Result$andThen,
+				_user$project$PackageInfo_Version$fromString,
+				A2(
+					_elm_lang$core$Result$fromMaybe,
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						'Missing ',
+						A2(_elm_lang$core$Basics_ops['++'], side, ' constraint')),
+					_p5)));
+	};
+};
+var _user$project$PackageInfo_VersionRange$splitRegex = _elm_lang$core$Regex$regex('\\s*<=\\s*v\\s*<\\s*');
+var _user$project$PackageInfo_VersionRange$VersionRange = F2(
+	function (a, b) {
+		return {minimum: a, maximum: b};
+	});
+var _user$project$PackageInfo_VersionRange$enclosing = function (version) {
+	var nextMajor = A3(_user$project$PackageInfo_Version$Version, version.major + 1, 0, 0);
+	return A2(_user$project$PackageInfo_VersionRange$VersionRange, version, nextMajor);
+};
+var _user$project$PackageInfo_VersionRange$fromString = function (input) {
+	var split = A3(
+		_elm_lang$core$Regex$split,
+		_elm_lang$core$Regex$AtMost(1),
+		_user$project$PackageInfo_VersionRange$splitRegex,
+		input);
+	var min = A2(
+		_user$project$PackageInfo_VersionRange$parseSegment,
+		'lefthand',
+		_elm_lang$core$List$head(split));
+	var max = A2(
+		_user$project$PackageInfo_VersionRange$parseSegment,
+		'righthand',
+		_elm_lang$core$List$head(
+			A2(_elm_lang$core$List$drop, 1, split)));
+	return A2(
+		_user$project$Utils$resultAndMap,
+		A2(
+			_user$project$Utils$resultAndMap,
+			_elm_lang$core$Result$Ok(_user$project$PackageInfo_VersionRange$VersionRange),
+			min),
+		max);
+};
+var _user$project$PackageInfo_VersionRange$decoder = A2(
+	_elm_lang$core$Json_Decode$andThen,
+	function (result) {
+		var _p6 = result;
+		if (_p6.ctor === 'Ok') {
+			return _elm_lang$core$Json_Decode$succeed(_p6._0);
+		} else {
+			return _elm_lang$core$Json_Decode$fail(_p6._0);
+		}
+	},
+	A2(_elm_lang$core$Json_Decode$map, _user$project$PackageInfo_VersionRange$fromString, _elm_lang$core$Json_Decode$string));
+
+var _user$project$PackageInfo$dependenciesEncoder = function (deps) {
+	return _elm_lang$core$Json_Encode$object(
+		A2(
+			_elm_lang$core$List$map,
+			function (dep) {
+				return {
+					ctor: '_Tuple2',
+					_0: dep.name,
+					_1: _user$project$PackageInfo_VersionRange$encoder(dep.versionRange)
+				};
+			},
+			deps));
+};
+var _user$project$PackageInfo$encoder = function (packageInfo) {
+	return _elm_lang$core$Json_Encode$object(
+		{
+			ctor: '::',
+			_0: {
+				ctor: '_Tuple2',
+				_0: 'version',
+				_1: _user$project$PackageInfo_Version$encoder(packageInfo.version)
+			},
+			_1: {
+				ctor: '::',
+				_0: {
+					ctor: '_Tuple2',
+					_0: 'summary',
+					_1: _elm_lang$core$Json_Encode$string(packageInfo.summary)
+				},
+				_1: {
+					ctor: '::',
+					_0: {
+						ctor: '_Tuple2',
+						_0: 'repository',
+						_1: _elm_lang$core$Json_Encode$string(packageInfo.repository)
+					},
+					_1: {
+						ctor: '::',
+						_0: {
+							ctor: '_Tuple2',
+							_0: 'license',
+							_1: _elm_lang$core$Json_Encode$string(packageInfo.license)
+						},
+						_1: {
+							ctor: '::',
+							_0: {
+								ctor: '_Tuple2',
+								_0: 'source-directories',
+								_1: _elm_lang$core$Json_Encode$list(
+									A2(_elm_lang$core$List$map, _elm_lang$core$Json_Encode$string, packageInfo.sourceDirectories))
+							},
+							_1: {
+								ctor: '::',
+								_0: {
+									ctor: '_Tuple2',
+									_0: 'exposed-modules',
+									_1: _elm_lang$core$Json_Encode$list(
+										A2(_elm_lang$core$List$map, _elm_lang$core$Json_Encode$string, packageInfo.exposedModules))
+								},
+								_1: {
+									ctor: '::',
+									_0: {
+										ctor: '_Tuple2',
+										_0: 'dependencies',
+										_1: _user$project$PackageInfo$dependenciesEncoder(packageInfo.dependencies)
+									},
+									_1: {
+										ctor: '::',
+										_0: {
+											ctor: '_Tuple2',
+											_0: 'elm-version',
+											_1: _user$project$PackageInfo_VersionRange$encoder(packageInfo.elmVersion)
+										},
+										_1: {
+											ctor: '::',
+											_0: {
+												ctor: '_Tuple2',
+												_0: 'native-modules',
+												_1: _elm_lang$core$Json_Encode$bool(packageInfo.nativeModules)
+											},
+											_1: {ctor: '[]'}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		});
+};
+var _user$project$PackageInfo$Dependency = F2(
+	function (a, b) {
+		return {name: a, versionRange: b};
+	});
+var _user$project$PackageInfo$dependenciesDecoder = function () {
+	var mapPairs = function (list) {
+		return A2(
+			_elm_lang$core$List$map,
+			function (_p0) {
+				var _p1 = _p0;
+				return A2(_user$project$PackageInfo$Dependency, _p1._0, _p1._1);
+			},
+			list);
+	};
+	return A2(
+		_elm_lang$core$Json_Decode$map,
+		mapPairs,
+		_elm_lang$core$Json_Decode$keyValuePairs(_user$project$PackageInfo_VersionRange$decoder));
+}();
+var _user$project$PackageInfo$PackageInfo = F9(
+	function (a, b, c, d, e, f, g, h, i) {
+		return {version: a, summary: b, repository: c, license: d, sourceDirectories: e, exposedModules: f, dependencies: g, elmVersion: h, nativeModules: i};
+	});
+var _user$project$PackageInfo$decoder = A4(
+	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$optional,
+	'native-modules',
+	_elm_lang$core$Json_Decode$bool,
+	false,
+	A3(
+		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+		'elm-version',
+		_user$project$PackageInfo_VersionRange$decoder,
+		A3(
+			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+			'dependencies',
+			_user$project$PackageInfo$dependenciesDecoder,
+			A3(
+				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+				'exposed-modules',
+				_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string),
+				A3(
+					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+					'source-directories',
+					_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string),
+					A3(
+						_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+						'license',
+						_elm_lang$core$Json_Decode$string,
+						A3(
+							_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+							'repository',
+							_elm_lang$core$Json_Decode$string,
+							A3(
+								_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+								'summary',
+								_elm_lang$core$Json_Decode$string,
+								A3(
+									_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+									'version',
+									_user$project$PackageInfo_Version$decoder,
+									_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$PackageInfo$PackageInfo))))))))));
+
+var _user$project$DeterminePackageLocation$splitPackageName = function (packageName) {
+	var _p0 = A2(_elm_lang$core$String$split, '/', packageName);
+	if (((_p0.ctor === '::') && (_p0._1.ctor === '::')) && (_p0._1._1.ctor === '[]')) {
+		return _elm_lang$core$Maybe$Just(
+			{ctor: '_Tuple2', _0: _p0._0, _1: _p0._1._0});
+	} else {
+		return _elm_lang$core$Maybe$Nothing;
+	}
+};
+var _user$project$DeterminePackageLocation$getPackageUsernameDir = function (_p1) {
+	var _p2 = _p1;
+	return _ucode$elm_path$Path_Posix$joinPath(
+		{
+			ctor: '::',
+			_0: './elm-stuff/packages/',
+			_1: {
+				ctor: '::',
+				_0: _p2._0,
+				_1: {
+					ctor: '::',
+					_0: _p2._1,
+					_1: {ctor: '[]'}
+				}
+			}
+		});
+};
+var _user$project$DeterminePackageLocation$getFilenamesInDir = _elm_lang$core$Native_Platform.outgoingPort(
+	'getFilenamesInDir',
+	function (v) {
+		return {path: v.path, scope: null};
+	});
+var _user$project$DeterminePackageLocation$init = function (packageInfo) {
+	var cmds = A2(
+		_elm_lang$core$List$filterMap,
+		_elm_lang$core$Basics$identity,
+		A2(
+			_elm_lang$core$List$map,
+			function (_p3) {
+				var _p4 = _p3;
+				return A2(
+					_elm_lang$core$Maybe$map,
+					function (_p5) {
+						var _p6 = _p5;
+						return _user$project$DeterminePackageLocation$getFilenamesInDir(
+							{
+								path: _user$project$DeterminePackageLocation$getPackageUsernameDir(
+									{ctor: '_Tuple2', _0: _p6._0, _1: _p6._1}),
+								scope: {ctor: '_Tuple0'}
+							});
+					},
+					_user$project$DeterminePackageLocation$splitPackageName(_p4.name));
+			},
+			packageInfo.dependencies));
+	return A2(
+		_elm_lang$core$Platform_Cmd_ops['!'],
+		{ctor: '_Tuple0'},
+		cmds);
+};
+var _user$project$DeterminePackageLocation$getFilenamesInDirResult = _elm_lang$core$Native_Platform.incomingPort(
+	'getFilenamesInDirResult',
+	A2(
+		_elm_lang$core$Json_Decode$andThen,
+		function (filenames) {
+			return A2(
+				_elm_lang$core$Json_Decode$andThen,
+				function (scope) {
+					return _elm_lang$core$Json_Decode$succeed(
+						{filenames: filenames, scope: scope});
+				},
+				A2(
+					_elm_lang$core$Json_Decode$field,
+					'scope',
+					_elm_lang$core$Json_Decode$null(
+						{ctor: '_Tuple0'})));
+		},
+		A2(
+			_elm_lang$core$Json_Decode$field,
+			'filenames',
+			_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string))));
+var _user$project$DeterminePackageLocation$GetFilenamesInDirResultR = F2(
+	function (a, b) {
+		return {filenames: a, scope: b};
+	});
+var _user$project$DeterminePackageLocation$GetFilenamesInDirResult = function (a) {
+	return {ctor: 'GetFilenamesInDirResult', _0: a};
+};
+var _user$project$DeterminePackageLocation$subscriptions = _user$project$DeterminePackageLocation$getFilenamesInDirResult(_user$project$DeterminePackageLocation$GetFilenamesInDirResult);
+
 var _user$project$Types$ImportMethod = F2(
 	function (a, b) {
 		return {alias: a, exposedNames: b};
@@ -10203,12 +10968,10 @@ var _user$project$FindModulesToParse$getAllExternalNames = function (blocks) {
 var _user$project$FindModulesToParse$getModulesToParse = function (blocks) {
 	var reversedImports = _elm_lang$core$List$reverse(
 		_user$project$FindModulesToParse$filterByImports(blocks));
-	var _p5 = A2(_elm_lang$core$Debug$log, 'reversedImports', reversedImports);
 	var externalNames = A2(
 		_elm_lang$core$List$map,
 		_user$project$ImportStatement$rawNameToQualifiedName,
 		_user$project$FindModulesToParse$getAllExternalNames(blocks));
-	var _p6 = A2(_elm_lang$core$Debug$log, 'externalNames', externalNames);
 	return _elm_lang$core$Set$toList(
 		_elm_lang$core$Set$fromList(
 			A2(
@@ -10376,358 +11139,13 @@ var _user$project$Helpers$qualifiedNameToPath = function (name) {
 					A2(_elm_lang$core$String$split, '.', name)))));
 };
 
-var _user$project$Utils$resultAndMap = _elm_lang$core$Result$map2(
-	F2(
-		function (x, y) {
-			return x(y);
-		}));
-
-var _user$project$PackageInfo_Version$compare = F2(
-	function (left, right) {
-		return (!_elm_lang$core$Native_Utils.eq(left.major, right.major)) ? A2(_elm_lang$core$Basics$compare, left.major, right.major) : ((!_elm_lang$core$Native_Utils.eq(left.minor, right.minor)) ? A2(_elm_lang$core$Basics$compare, left.minor, right.minor) : A2(_elm_lang$core$Basics$compare, left.patch, right.patch));
-	});
-var _user$project$PackageInfo_Version$toString = function (_p0) {
-	var _p1 = _p0;
-	return A2(
-		_elm_lang$core$String$join,
-		'.',
-		A2(
-			_elm_lang$core$List$map,
-			_elm_lang$core$Basics$toString,
-			{
-				ctor: '::',
-				_0: _p1.major,
-				_1: {
-					ctor: '::',
-					_0: _p1.minor,
-					_1: {
-						ctor: '::',
-						_0: _p1.patch,
-						_1: {ctor: '[]'}
-					}
-				}
-			}));
-};
-var _user$project$PackageInfo_Version$encoder = function (_p2) {
-	return _elm_lang$core$Json_Encode$string(
-		_user$project$PackageInfo_Version$toString(_p2));
-};
-var _user$project$PackageInfo_Version$parseSegment = function (versionType) {
-	return function (_p3) {
-		return A2(
-			_elm_lang$core$Result$mapError,
-			_elm_lang$core$Basics$always(
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					'Unparseable ',
-					A2(_elm_lang$core$Basics_ops['++'], versionType, ' component'))),
-			A2(
-				_elm_lang$core$Result$andThen,
-				_elm_lang$core$String$toInt,
-				A2(
-					_elm_lang$core$Result$fromMaybe,
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						'Missing ',
-						A2(_elm_lang$core$Basics_ops['++'], versionType, ' version component')),
-					_p3)));
-	};
-};
-var _user$project$PackageInfo_Version$Version = F3(
-	function (a, b, c) {
-		return {major: a, minor: b, patch: c};
-	});
-var _user$project$PackageInfo_Version$fromString = function (input) {
-	var split = A2(_elm_lang$core$String$split, '.', input);
-	var major = A2(
-		_user$project$PackageInfo_Version$parseSegment,
-		'major',
-		_elm_lang$core$List$head(split));
-	var minor = A2(
-		_user$project$PackageInfo_Version$parseSegment,
-		'minor',
-		_elm_lang$core$List$head(
-			A2(_elm_lang$core$List$drop, 1, split)));
-	var patch = A2(
-		_user$project$PackageInfo_Version$parseSegment,
-		'patch',
-		_elm_lang$core$List$head(
-			A2(_elm_lang$core$List$drop, 2, split)));
-	return A2(
-		_user$project$Utils$resultAndMap,
-		A2(
-			_user$project$Utils$resultAndMap,
-			A2(
-				_user$project$Utils$resultAndMap,
-				_elm_lang$core$Result$Ok(_user$project$PackageInfo_Version$Version),
-				major),
-			minor),
-		patch);
-};
-var _user$project$PackageInfo_Version$decoder = A2(
-	_elm_lang$core$Json_Decode$andThen,
-	function (result) {
-		var _p4 = result;
-		if (_p4.ctor === 'Ok') {
-			return _elm_lang$core$Json_Decode$succeed(_p4._0);
-		} else {
-			return _elm_lang$core$Json_Decode$fail(_p4._0);
-		}
-	},
-	A2(_elm_lang$core$Json_Decode$map, _user$project$PackageInfo_Version$fromString, _elm_lang$core$Json_Decode$string));
-
-var _user$project$PackageInfo_VersionRange$contains = F2(
-	function (version, _p0) {
-		var _p1 = _p0;
-		return (!_elm_lang$core$Native_Utils.eq(
-			A2(_user$project$PackageInfo_Version$compare, version, _p1.minimum),
-			_elm_lang$core$Basics$LT)) && _elm_lang$core$Native_Utils.eq(
-			A2(_user$project$PackageInfo_Version$compare, version, _p1.maximum),
-			_elm_lang$core$Basics$LT);
-	});
-var _user$project$PackageInfo_VersionRange$toString = function (_p2) {
-	var _p3 = _p2;
-	return A2(
-		_elm_lang$core$Basics_ops['++'],
-		_user$project$PackageInfo_Version$toString(_p3.minimum),
-		A2(
-			_elm_lang$core$Basics_ops['++'],
-			' <= v < ',
-			_user$project$PackageInfo_Version$toString(_p3.maximum)));
-};
-var _user$project$PackageInfo_VersionRange$encoder = function (_p4) {
-	return _elm_lang$core$Json_Encode$string(
-		_user$project$PackageInfo_VersionRange$toString(_p4));
-};
-var _user$project$PackageInfo_VersionRange$parseSegment = function (side) {
-	return function (_p5) {
-		return A2(
-			_elm_lang$core$Result$mapError,
-			function (e) {
-				return A2(
-					_elm_lang$core$Basics_ops['++'],
-					'Unparseable ',
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						side,
-						A2(_elm_lang$core$Basics_ops['++'], ' constraint: ', e)));
-			},
-			A2(
-				_elm_lang$core$Result$andThen,
-				_user$project$PackageInfo_Version$fromString,
-				A2(
-					_elm_lang$core$Result$fromMaybe,
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						'Missing ',
-						A2(_elm_lang$core$Basics_ops['++'], side, ' constraint')),
-					_p5)));
-	};
-};
-var _user$project$PackageInfo_VersionRange$splitRegex = _elm_lang$core$Regex$regex('\\s*<=\\s*v\\s*<\\s*');
-var _user$project$PackageInfo_VersionRange$VersionRange = F2(
-	function (a, b) {
-		return {minimum: a, maximum: b};
-	});
-var _user$project$PackageInfo_VersionRange$enclosing = function (version) {
-	var nextMajor = A3(_user$project$PackageInfo_Version$Version, version.major + 1, 0, 0);
-	return A2(_user$project$PackageInfo_VersionRange$VersionRange, version, nextMajor);
-};
-var _user$project$PackageInfo_VersionRange$fromString = function (input) {
-	var split = A3(
-		_elm_lang$core$Regex$split,
-		_elm_lang$core$Regex$AtMost(1),
-		_user$project$PackageInfo_VersionRange$splitRegex,
-		input);
-	var min = A2(
-		_user$project$PackageInfo_VersionRange$parseSegment,
-		'lefthand',
-		_elm_lang$core$List$head(split));
-	var max = A2(
-		_user$project$PackageInfo_VersionRange$parseSegment,
-		'righthand',
-		_elm_lang$core$List$head(
-			A2(_elm_lang$core$List$drop, 1, split)));
-	return A2(
-		_user$project$Utils$resultAndMap,
-		A2(
-			_user$project$Utils$resultAndMap,
-			_elm_lang$core$Result$Ok(_user$project$PackageInfo_VersionRange$VersionRange),
-			min),
-		max);
-};
-var _user$project$PackageInfo_VersionRange$decoder = A2(
-	_elm_lang$core$Json_Decode$andThen,
-	function (result) {
-		var _p6 = result;
-		if (_p6.ctor === 'Ok') {
-			return _elm_lang$core$Json_Decode$succeed(_p6._0);
-		} else {
-			return _elm_lang$core$Json_Decode$fail(_p6._0);
-		}
-	},
-	A2(_elm_lang$core$Json_Decode$map, _user$project$PackageInfo_VersionRange$fromString, _elm_lang$core$Json_Decode$string));
-
-var _user$project$PackageInfo$dependenciesEncoder = function (deps) {
-	return _elm_lang$core$Json_Encode$object(
-		A2(
-			_elm_lang$core$List$map,
-			function (dep) {
-				return {
-					ctor: '_Tuple2',
-					_0: dep.name,
-					_1: _user$project$PackageInfo_VersionRange$encoder(dep.versionRange)
-				};
-			},
-			deps));
-};
-var _user$project$PackageInfo$encoder = function (packageInfo) {
-	return _elm_lang$core$Json_Encode$object(
-		{
-			ctor: '::',
-			_0: {
-				ctor: '_Tuple2',
-				_0: 'version',
-				_1: _user$project$PackageInfo_Version$encoder(packageInfo.version)
-			},
-			_1: {
-				ctor: '::',
-				_0: {
-					ctor: '_Tuple2',
-					_0: 'summary',
-					_1: _elm_lang$core$Json_Encode$string(packageInfo.summary)
-				},
-				_1: {
-					ctor: '::',
-					_0: {
-						ctor: '_Tuple2',
-						_0: 'repository',
-						_1: _elm_lang$core$Json_Encode$string(packageInfo.repository)
-					},
-					_1: {
-						ctor: '::',
-						_0: {
-							ctor: '_Tuple2',
-							_0: 'license',
-							_1: _elm_lang$core$Json_Encode$string(packageInfo.license)
-						},
-						_1: {
-							ctor: '::',
-							_0: {
-								ctor: '_Tuple2',
-								_0: 'source-directories',
-								_1: _elm_lang$core$Json_Encode$list(
-									A2(_elm_lang$core$List$map, _elm_lang$core$Json_Encode$string, packageInfo.sourceDirectories))
-							},
-							_1: {
-								ctor: '::',
-								_0: {
-									ctor: '_Tuple2',
-									_0: 'exposed-modules',
-									_1: _elm_lang$core$Json_Encode$list(
-										A2(_elm_lang$core$List$map, _elm_lang$core$Json_Encode$string, packageInfo.exposedModules))
-								},
-								_1: {
-									ctor: '::',
-									_0: {
-										ctor: '_Tuple2',
-										_0: 'dependencies',
-										_1: _user$project$PackageInfo$dependenciesEncoder(packageInfo.dependencies)
-									},
-									_1: {
-										ctor: '::',
-										_0: {
-											ctor: '_Tuple2',
-											_0: 'elm-version',
-											_1: _user$project$PackageInfo_VersionRange$encoder(packageInfo.elmVersion)
-										},
-										_1: {
-											ctor: '::',
-											_0: {
-												ctor: '_Tuple2',
-												_0: 'native-modules',
-												_1: _elm_lang$core$Json_Encode$bool(packageInfo.nativeModules)
-											},
-											_1: {ctor: '[]'}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		});
-};
-var _user$project$PackageInfo$Dependency = F2(
-	function (a, b) {
-		return {name: a, versionRange: b};
-	});
-var _user$project$PackageInfo$dependenciesDecoder = function () {
-	var mapPairs = function (list) {
-		return A2(
-			_elm_lang$core$List$map,
-			function (_p0) {
-				var _p1 = _p0;
-				return A2(_user$project$PackageInfo$Dependency, _p1._0, _p1._1);
-			},
-			list);
-	};
-	return A2(
-		_elm_lang$core$Json_Decode$map,
-		mapPairs,
-		_elm_lang$core$Json_Decode$keyValuePairs(_user$project$PackageInfo_VersionRange$decoder));
-}();
-var _user$project$PackageInfo$PackageInfo = F9(
-	function (a, b, c, d, e, f, g, h, i) {
-		return {version: a, summary: b, repository: c, license: d, sourceDirectories: e, exposedModules: f, dependencies: g, elmVersion: h, nativeModules: i};
-	});
-var _user$project$PackageInfo$decoder = A4(
-	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$optional,
-	'native-modules',
-	_elm_lang$core$Json_Decode$bool,
-	false,
-	A3(
-		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-		'elm-version',
-		_user$project$PackageInfo_VersionRange$decoder,
-		A3(
-			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-			'dependencies',
-			_user$project$PackageInfo$dependenciesDecoder,
-			A3(
-				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-				'exposed-modules',
-				_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string),
-				A3(
-					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-					'source-directories',
-					_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string),
-					A3(
-						_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-						'license',
-						_elm_lang$core$Json_Decode$string,
-						A3(
-							_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-							'repository',
-							_elm_lang$core$Json_Decode$string,
-							A3(
-								_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-								'summary',
-								_elm_lang$core$Json_Decode$string,
-								A3(
-									_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-									'version',
-									_user$project$PackageInfo_Version$decoder,
-									_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$PackageInfo$PackageInfo))))))))));
-
-var _user$project$ReadSourceFilesProgress$update = F2(
+var _user$project$ReadSourceFiles$update = F2(
 	function (msg, model) {
 		var _p0 = msg;
 		var _p1 = A2(_elm_lang$core$Debug$log, '', _p0._0);
 		return model;
 	});
-var _user$project$ReadSourceFilesProgress$haveNotExhaustedAllOptions = function (dirStatuses) {
+var _user$project$ReadSourceFiles$haveNotExhaustedAllOptions = function (dirStatuses) {
 	return _elm_lang$core$List$head(
 		A2(
 			_elm_lang$core$List$filterMap,
@@ -10744,7 +11162,7 @@ var _user$project$ReadSourceFilesProgress$haveNotExhaustedAllOptions = function 
 				},
 				dirStatuses)));
 };
-var _user$project$ReadSourceFilesProgress$atLeastOneSuccess = function (dirStatuses) {
+var _user$project$ReadSourceFiles$atLeastOneSuccess = function (dirStatuses) {
 	return _elm_lang$core$List$head(
 		A2(
 			_elm_lang$core$List$filterMap,
@@ -10761,7 +11179,15 @@ var _user$project$ReadSourceFilesProgress$atLeastOneSuccess = function (dirStatu
 				},
 				dirStatuses)));
 };
-var _user$project$ReadSourceFilesProgress$readElmModuleResult = _elm_lang$core$Native_Platform.incomingPort(
+var _user$project$ReadSourceFiles$readElmModule = _elm_lang$core$Native_Platform.outgoingPort(
+	'readElmModule',
+	function (v) {
+		return {
+			path: v.path,
+			scope: {path: v.scope.path, dir: v.scope.dir, moduleName: v.scope.moduleName}
+		};
+	});
+var _user$project$ReadSourceFiles$readElmModuleResult = _elm_lang$core$Native_Platform.incomingPort(
 	'readElmModuleResult',
 	A2(
 		_elm_lang$core$Json_Decode$andThen,
@@ -10806,33 +11232,29 @@ var _user$project$ReadSourceFilesProgress$readElmModuleResult = _elm_lang$core$N
 						_1: {ctor: '[]'}
 					}
 				}))));
-var _user$project$ReadSourceFilesProgress$readElmModule = _elm_lang$core$Native_Platform.outgoingPort(
-	'readElmModule',
-	function (v) {
-		return {
-			path: v.path,
-			scope: {path: v.scope.path, dir: v.scope.dir, moduleName: v.scope.moduleName}
-		};
-	});
-var _user$project$ReadSourceFilesProgress$ReadElmModuleScope = F3(
+var _user$project$ReadSourceFiles$ReadElmModuleScope = F3(
 	function (a, b, c) {
 		return {path: a, dir: b, moduleName: c};
 	});
-var _user$project$ReadSourceFilesProgress$ReadElmModuleResultR = F2(
+var _user$project$ReadSourceFiles$ReadElmModuleResultR = F2(
 	function (a, b) {
 		return {contents: a, scope: b};
 	});
-var _user$project$ReadSourceFilesProgress$DirFail = {ctor: 'DirFail'};
-var _user$project$ReadSourceFilesProgress$DirSuccess = {ctor: 'DirSuccess'};
-var _user$project$ReadSourceFilesProgress$DirNotOpenedYet = {ctor: 'DirNotOpenedYet'};
-var _user$project$ReadSourceFilesProgress$HaveNotExhaustedAllOptions = function (a) {
+var _user$project$ReadSourceFiles$GetFilenamesInDirResultR = F2(
+	function (a, b) {
+		return {filenames: a, scope: b};
+	});
+var _user$project$ReadSourceFiles$DirFail = {ctor: 'DirFail'};
+var _user$project$ReadSourceFiles$DirSuccess = {ctor: 'DirSuccess'};
+var _user$project$ReadSourceFiles$DirNotOpenedYet = {ctor: 'DirNotOpenedYet'};
+var _user$project$ReadSourceFiles$HaveNotExhaustedAllOptions = function (a) {
 	return {ctor: 'HaveNotExhaustedAllOptions', _0: a};
 };
-var _user$project$ReadSourceFilesProgress$TotalFail = {ctor: 'TotalFail'};
-var _user$project$ReadSourceFilesProgress$Success = function (a) {
+var _user$project$ReadSourceFiles$TotalFail = {ctor: 'TotalFail'};
+var _user$project$ReadSourceFiles$Success = function (a) {
 	return {ctor: 'Success', _0: a};
 };
-var _user$project$ReadSourceFilesProgress$moduleStatus = F2(
+var _user$project$ReadSourceFiles$moduleStatus = F2(
 	function (model, moduleName) {
 		var dirStatuses = A2(
 			_elm_lang$core$Maybe$withDefault,
@@ -10841,24 +11263,24 @@ var _user$project$ReadSourceFilesProgress$moduleStatus = F2(
 		if (_elm_lang$core$Native_Utils.eq(
 			dirStatuses,
 			{ctor: '[]'})) {
-			return _user$project$ReadSourceFilesProgress$TotalFail;
+			return _user$project$ReadSourceFiles$TotalFail;
 		} else {
-			var _p4 = _user$project$ReadSourceFilesProgress$atLeastOneSuccess(dirStatuses);
+			var _p4 = _user$project$ReadSourceFiles$atLeastOneSuccess(dirStatuses);
 			if (_p4.ctor === 'Just') {
-				return _user$project$ReadSourceFilesProgress$Success(
+				return _user$project$ReadSourceFiles$Success(
 					{dirName: _p4._0});
 			} else {
-				var _p5 = _user$project$ReadSourceFilesProgress$haveNotExhaustedAllOptions(dirStatuses);
+				var _p5 = _user$project$ReadSourceFiles$haveNotExhaustedAllOptions(dirStatuses);
 				if (_p5.ctor === 'Just') {
-					return _user$project$ReadSourceFilesProgress$HaveNotExhaustedAllOptions(
+					return _user$project$ReadSourceFiles$HaveNotExhaustedAllOptions(
 						{nextDirName: _p5._0});
 				} else {
-					return _user$project$ReadSourceFilesProgress$TotalFail;
+					return _user$project$ReadSourceFiles$TotalFail;
 				}
 			}
 		}
 	});
-var _user$project$ReadSourceFilesProgress$moduleStatuses = function (model) {
+var _user$project$ReadSourceFiles$moduleStatuses = function (model) {
 	return A2(
 		_elm_lang$core$List$map,
 		function (_p6) {
@@ -10867,43 +11289,40 @@ var _user$project$ReadSourceFilesProgress$moduleStatuses = function (model) {
 			return {
 				ctor: '_Tuple2',
 				_0: _p8,
-				_1: A2(_user$project$ReadSourceFilesProgress$moduleStatus, model, _p8)
+				_1: A2(_user$project$ReadSourceFiles$moduleStatus, model, _p8)
 			};
 		},
 		_elm_lang$core$Dict$toList(model));
 };
-var _user$project$ReadSourceFilesProgress$getCmd = function (model) {
+var _user$project$ReadSourceFiles$getNextCmd = function (model) {
 	return _elm_lang$core$Platform_Cmd$batch(
 		A2(
-			_elm_lang$core$Debug$log,
-			'cmds',
-			A2(
-				_elm_lang$core$List$map,
-				function (_p9) {
-					var _p10 = _p9;
-					var _p13 = _p10._0;
-					var _p11 = _p10._1;
-					if (_p11.ctor === 'HaveNotExhaustedAllOptions') {
-						var _p12 = _p11._0.nextDirName;
-						var path = A2(
+			_elm_lang$core$List$map,
+			function (_p9) {
+				var _p10 = _p9;
+				var _p13 = _p10._0;
+				var _p11 = _p10._1;
+				if (_p11.ctor === 'HaveNotExhaustedAllOptions') {
+					var _p12 = _p11._0.nextDirName;
+					var path = A2(
+						_elm_lang$core$Basics_ops['++'],
+						_p12,
+						A2(
 							_elm_lang$core$Basics_ops['++'],
-							_p12,
-							A2(
-								_elm_lang$core$Basics_ops['++'],
-								'/',
-								_user$project$Helpers$qualifiedNameToPath(_p13)));
-						return _user$project$ReadSourceFilesProgress$readElmModule(
-							{
-								path: path,
-								scope: {path: path, dir: _p12, moduleName: _p13}
-							});
-					} else {
-						return _elm_lang$core$Platform_Cmd$none;
-					}
-				},
-				_user$project$ReadSourceFilesProgress$moduleStatuses(model))));
+							'/',
+							_user$project$Helpers$qualifiedNameToPath(_p13)));
+					return _user$project$ReadSourceFiles$readElmModule(
+						{
+							path: path,
+							scope: {path: path, dir: _p12, moduleName: _p13}
+						});
+				} else {
+					return _elm_lang$core$Platform_Cmd$none;
+				}
+			},
+			_user$project$ReadSourceFiles$moduleStatuses(model)));
 };
-var _user$project$ReadSourceFilesProgress$init = F2(
+var _user$project$ReadSourceFiles$init = F2(
 	function (moduleNames, dirNames) {
 		var model = _elm_lang$core$Dict$fromList(
 			A2(
@@ -10915,7 +11334,7 @@ var _user$project$ReadSourceFilesProgress$init = F2(
 						_1: A2(
 							_elm_lang$core$List$map,
 							function (dirName) {
-								return {dirName: dirName, status: _user$project$ReadSourceFilesProgress$DirNotOpenedYet};
+								return {dirName: dirName, status: _user$project$ReadSourceFiles$DirNotOpenedYet};
 							},
 							dirNames)
 					};
@@ -10926,14 +11345,14 @@ var _user$project$ReadSourceFilesProgress$init = F2(
 			model,
 			{
 				ctor: '::',
-				_0: _user$project$ReadSourceFilesProgress$getCmd(model),
+				_0: _user$project$ReadSourceFiles$getNextCmd(model),
 				_1: {ctor: '[]'}
 			});
 	});
-var _user$project$ReadSourceFilesProgress$ReadElmModuleResult = function (a) {
+var _user$project$ReadSourceFiles$ReadElmModuleResult = function (a) {
 	return {ctor: 'ReadElmModuleResult', _0: a};
 };
-var _user$project$ReadSourceFilesProgress$subscriptions = _user$project$ReadSourceFilesProgress$readElmModuleResult(_user$project$ReadSourceFilesProgress$ReadElmModuleResult);
+var _user$project$ReadSourceFiles$subscriptions = _user$project$ReadSourceFiles$readElmModuleResult(_user$project$ReadSourceFiles$ReadElmModuleResult);
 
 var _user$project$Main$delayMsg = F2(
 	function (time, msg) {
@@ -10951,7 +11370,7 @@ var _user$project$Main$exitApp = _elm_lang$core$Native_Platform.outgoingPort(
 	});
 var _user$project$Main$update = F2(
 	function (msg, model) {
-		var _p1 = msg;
+		var _p1 = A2(_elm_lang$core$Debug$log, 'msg', msg);
 		switch (_p1.ctor) {
 			case 'Stop':
 				return A2(
@@ -10971,14 +11390,20 @@ var _user$project$Main$update = F2(
 						_0: _user$project$Main$exitApp(-1),
 						_1: {ctor: '[]'}
 					});
-			default:
+			case 'ReadSourceFilesMsg':
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
 					_elm_lang$core$Native_Utils.update(
 						model,
 						{
-							readSourceFilesProgress: A2(_user$project$ReadSourceFilesProgress$update, _p1._0, model.readSourceFilesProgress)
+							readSourceFilesProgress: A2(_user$project$ReadSourceFiles$update, _p1._0, model.readSourceFilesProgress)
 						}),
+					{ctor: '[]'});
+			default:
+				var _p2 = A2(_elm_lang$core$Debug$log, 'dplsMsg', _p1._0);
+				return A2(
+					_elm_lang$core$Platform_Cmd_ops['!'],
+					model,
 					{ctor: '[]'});
 		}
 	});
@@ -10994,39 +11419,44 @@ var _user$project$Main$Model = F3(
 	function (a, b, c) {
 		return {packageInfo: a, readSourceFilesProgress: b, sourceFiles: c};
 	});
-var _user$project$Main$ReadSourceFilesProgressMsg = function (a) {
-	return {ctor: 'ReadSourceFilesProgressMsg', _0: a};
+var _user$project$Main$DeterminePackageLocationMsg = function (a) {
+	return {ctor: 'DeterminePackageLocationMsg', _0: a};
 };
-var _user$project$Main$init = function (_p2) {
-	var _p3 = _p2;
-	var packageInfoResult = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p3.elmPackageContents);
-	var _p4 = packageInfoResult;
-	if (_p4.ctor === 'Ok') {
-		var _p7 = _p4._0;
-		var srcDirs = _p7.sourceDirectories;
+var _user$project$Main$init = function (_p3) {
+	var _p4 = _p3;
+	var packageInfoResult = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p4.elmPackageContents);
+	var _p5 = packageInfoResult;
+	if (_p5.ctor === 'Ok') {
+		var _p8 = _p5._0;
+		var srcDirs = _p8.sourceDirectories;
 		var modulesToParse = _user$project$FindModulesToParse$getModulesToParse(
-			_user$project$FirstPass$parseModule(_p3.viewModuleContents));
-		var _p5 = A2(_elm_lang$core$Debug$log, 'files to parse', modulesToParse);
-		var _p6 = A2(_user$project$ReadSourceFilesProgress$init, modulesToParse, srcDirs);
+			_user$project$FirstPass$parseModule(_p4.viewModuleContents));
+		var _p6 = A2(_user$project$ReadSourceFiles$init, modulesToParse, srcDirs);
 		var readSourceFilesProgress = _p6._0;
 		var readSourceFilesProgressCmd = _p6._1;
+		var _p7 = _user$project$DeterminePackageLocation$init(_p8);
+		var determinePackageLocationModel = _p7._0;
+		var determinePackageLocationCmd = _p7._1;
 		return A2(
 			_elm_lang$core$Platform_Cmd_ops['!'],
-			{packageInfo: _p7, readSourceFilesProgress: readSourceFilesProgress, sourceFiles: _elm_lang$core$Dict$empty},
+			{packageInfo: _p8, readSourceFilesProgress: readSourceFilesProgress, sourceFiles: _elm_lang$core$Dict$empty},
 			{
 				ctor: '::',
-				_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ReadSourceFilesProgressMsg, readSourceFilesProgressCmd),
+				_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$DeterminePackageLocationMsg, determinePackageLocationCmd),
 				_1: {ctor: '[]'}
 			});
 	} else {
-		var err2 = A2(_elm_lang$core$Basics_ops['++'], 'Invalid elm-package.json.\n\n ', _p4._0);
+		var err2 = A2(_elm_lang$core$Basics_ops['++'], 'Invalid elm-package.json.\n\n ', _p5._0);
 		return _elm_lang$core$Native_Utils.crash(
 			'Main',
 			{
-				start: {line: 106, column: 21},
-				end: {line: 106, column: 32}
+				start: {line: 112, column: 21},
+				end: {line: 112, column: 32}
 			})(err2);
 	}
+};
+var _user$project$Main$ReadSourceFilesMsg = function (a) {
+	return {ctor: 'ReadSourceFilesMsg', _0: a};
 };
 var _user$project$Main$Abort = {ctor: 'Abort'};
 var _user$project$Main$subscriptions = function (model) {
@@ -11037,8 +11467,12 @@ var _user$project$Main$subscriptions = function (model) {
 				_elm_lang$core$Basics$always(_user$project$Main$Abort)),
 			_1: {
 				ctor: '::',
-				_0: A2(_elm_lang$core$Platform_Sub$map, _user$project$Main$ReadSourceFilesProgressMsg, _user$project$ReadSourceFilesProgress$subscriptions),
-				_1: {ctor: '[]'}
+				_0: A2(_elm_lang$core$Platform_Sub$map, _user$project$Main$ReadSourceFilesMsg, _user$project$ReadSourceFiles$subscriptions),
+				_1: {
+					ctor: '::',
+					_0: A2(_elm_lang$core$Platform_Sub$map, _user$project$Main$DeterminePackageLocationMsg, _user$project$DeterminePackageLocation$subscriptions),
+					_1: {ctor: '[]'}
+				}
 			}
 		});
 };

@@ -28,17 +28,38 @@ type alias ReadElmModuleScope =
     { path : String, dir : String, moduleName : String }
 
 
+type Msg
+    = ReadElmModuleResult ReadElmModuleResultR
+
+
 type alias ReadElmModuleResultR =
     { contents : Maybe String
     , scope : ReadElmModuleScope
     }
 
 
-type Msg
-    = ReadElmModuleResult ReadElmModuleResultR
+type alias GetFilenamesInDirResultR =
+    { filenames : Maybe (List String)
+    , scope : ReadElmModuleScope
+    }
+
+
+type alias GetFilenamesInDirResultScope =
+    ()
+
+
+port readElmModule :
+    { path : String
+    , scope : ReadElmModuleScope
+    }
+    -> Cmd msg
 
 
 port readElmModuleResult : (ReadElmModuleResultR -> msg) -> Sub msg
+
+
+
+-- port getFilenamesInDirReturned : (? -> msg) -> Sub msg
 
 
 init : List String -> List String -> ( Model, Cmd Msg )
@@ -59,11 +80,11 @@ init moduleNames dirNames =
                 |> Dict.fromList
             )
     in
-        model ! [ getCmd model ]
+        model ! [ getNextCmd model ]
 
 
-getCmd : Model -> Cmd msg
-getCmd model =
+getNextCmd : Model -> Cmd msg
+getNextCmd model =
     moduleStatuses model
         |> List.map
             (\( moduleName, status ) ->
@@ -87,7 +108,7 @@ getCmd model =
                     _ ->
                         Cmd.none
             )
-        |> Debug.log "cmds"
+        -- |> Debug.log "cmds"
         |> Cmd.batch
 
 
@@ -169,10 +190,3 @@ update msg model =
                     Debug.log "" readElmModuleResultR
             in
                 model
-
-
-port readElmModule :
-    { path : String
-    , scope : ReadElmModuleScope
-    }
-    -> Cmd msg

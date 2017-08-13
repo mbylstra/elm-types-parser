@@ -26,11 +26,10 @@ getModulesToParse blocks =
 
         -- _ =
         --     Debug.log "blocks" blocks
-        _ =
-            Debug.log "externalNames" externalNames
-
-        _ =
-            Debug.log "reversedImports" reversedImports
+        -- _ =
+        --     Debug.log "externalNames" externalNames
+        -- _ =
+        --     Debug.log "reversedImports" reversedImports
     in
         externalNames
             |> List.concatMap
