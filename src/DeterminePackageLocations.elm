@@ -83,7 +83,7 @@ getPackageUsernameDir ( username, repo ) =
 
 getPackageDir : ( String, String ) -> String -> String
 getPackageDir ( username, repo ) version =
-    joinPath [ getPackageUsernameDir ( username, repo ), version ]
+    joinPath [ getPackageUsernameDir ( username, repo ), version, "src" ]
 
 
 splitPackageName : String -> ( String, String )

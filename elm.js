@@ -10020,7 +10020,11 @@ var _user$project$DeterminePackageLocations$getPackageDir = F2(
 				_1: {
 					ctor: '::',
 					_0: version,
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: 'src',
+						_1: {ctor: '[]'}
+					}
 				}
 			});
 	});
@@ -11626,42 +11630,55 @@ var _user$project$ReadSourceFiles$update = F2(
 		var _p37 = false;
 		var _p38 = A2(_elm_lang$core$Debug$log, '\n\nmodel\n', model);
 		var _p39 = msg;
-		var _p43 = _p39._0.scope;
-		var _p42 = _p39._0.contents;
+		var _p46 = _p39._0.scope;
+		var _p45 = _p39._0.contents;
 		var newModel = A3(
 			_elm_lang$core$Dict$update,
-			_p43.moduleName,
-			_elm_lang$core$Maybe$map(
-				function (moduleStatus) {
-					var _p40 = (!_elm_community$maybe_extra$Maybe_Extra$isJust(
-						A2(_elm_lang$core$Dict$get, _p43.dir, moduleStatus.dirAttempts))) ? _elm_lang$core$Native_Utils.crash(
+			_p46.moduleName,
+			function (maybeExistingValue) {
+				var _p40 = maybeExistingValue;
+				if (_p40.ctor === 'Just') {
+					var _p42 = _p40._0;
+					var _p41 = (!_elm_community$maybe_extra$Maybe_Extra$isJust(
+						A2(_elm_lang$core$Dict$get, _p46.dir, _p42.dirAttempts))) ? _elm_lang$core$Native_Utils.crash(
 						'ReadSourceFiles',
 						{
-							start: {line: 315, column: 57},
-							end: {line: 315, column: 68}
+							start: {line: 316, column: 61},
+							end: {line: 316, column: 72}
 						})(
 						A2(
 							_elm_lang$core$Basics_ops['++'],
 							'could not find ',
 							A2(
 								_elm_lang$core$Basics_ops['++'],
-								_p43.dir,
-								A2(_elm_lang$core$Basics_ops['++'], ' for ', _p43.moduleName)))) : {ctor: '_Tuple0'};
-					return _elm_lang$core$Native_Utils.update(
-						moduleStatus,
+								_p46.dir,
+								A2(_elm_lang$core$Basics_ops['++'], ' for ', _p46.moduleName)))) : {ctor: '_Tuple0'};
+					return _elm_lang$core$Maybe$Just(
+						_elm_lang$core$Native_Utils.update(
+							_p42,
+							{
+								dirAttempts: A3(
+									_elm_lang$core$Dict$update,
+									_p46.dir,
+									_user$project$ReadSourceFiles$updateDirAttempt(_p45),
+									_p42.dirAttempts),
+								sourceCode: _p45
+							}));
+				} else {
+					return _elm_lang$core$Native_Utils.crashCase(
+						'ReadSourceFiles',
 						{
-							dirAttempts: A3(
-								_elm_lang$core$Dict$update,
-								_p43.dir,
-								_user$project$ReadSourceFiles$updateDirAttempt(_p42),
-								moduleStatus.dirAttempts),
-							sourceCode: _p42
-						});
-				}),
+							start: {line: 311, column: 41},
+							end: {line: 331, column: 109}
+						},
+						_p40)(
+						A2(_elm_lang$core$Basics_ops['++'], 'could not update module ', _p46.moduleName));
+				}
+			},
 			model);
-		var _p41 = _user$project$ReadSourceFiles$getNextCmds(newModel);
-		var model3 = _p41._0;
-		var cmds = _p41._1;
+		var _p44 = _user$project$ReadSourceFiles$getNextCmds(newModel);
+		var model3 = _p44._0;
+		var cmds = _p44._1;
 		var finished = A2(
 			_elm_lang$core$Debug$log,
 			'\n\n\nresult ********************\n\n',
@@ -11670,9 +11687,9 @@ var _user$project$ReadSourceFiles$update = F2(
 	});
 var _user$project$ReadSourceFiles$DirNotAttemptedYet = {ctor: 'DirNotAttemptedYet'};
 var _user$project$ReadSourceFiles$reallyInit = F2(
-	function (_p44, model) {
-		var _p45 = _p44;
-		var _p48 = _p45.dirNames;
+	function (_p47, model) {
+		var _p48 = _p47;
+		var _p51 = _p48.dirNames;
 		var newModel = _elm_lang$core$Dict$fromList(
 			A2(
 				_elm_lang$core$List$map,
@@ -11689,16 +11706,16 @@ var _user$project$ReadSourceFiles$reallyInit = F2(
 											function (v0, v1) {
 												return {ctor: '_Tuple2', _0: v0, _1: v1};
 											}))(_user$project$ReadSourceFiles$DirNotAttemptedYet),
-									_p48)),
+									_p51)),
 							sourceCode: _elm_lang$core$Maybe$Nothing
 						}
 					};
 				},
-				_p45.moduleNames));
-		var _p46 = _user$project$ReadSourceFiles$getNextCmds(newModel);
-		var model3 = _p46._0;
-		var cmds = _p46._1;
-		var _p47 = A2(_elm_lang$core$Debug$log, 'dirNames', _p48);
+				_p48.moduleNames));
+		var _p49 = _user$project$ReadSourceFiles$getNextCmds(newModel);
+		var model3 = _p49._0;
+		var cmds = _p49._1;
+		var _p50 = A2(_elm_lang$core$Debug$log, 'dirNames', _p51);
 		return A2(_elm_lang$core$Platform_Cmd_ops['!'], model3, cmds);
 	});
 var _user$project$ReadSourceFiles$ReadElmModuleResult = function (a) {
