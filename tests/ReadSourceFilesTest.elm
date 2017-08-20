@@ -100,25 +100,31 @@ suite =
                           , { sourceCode = Nothing
                             , dirAttempts =
                                 Dict.fromList
-                                    [ ( "dir1", DirFail )
-                                    , ( "dir2", InFlight )
-                                    ]
-                            }
-                          )
-                        , ( "module2"
-                          , { sourceCode = Nothing
-                            , dirAttempts =
-                                Dict.fromList
-                                    [ ( "dir3", DirNotAttemptedYet )
-                                    , ( "dir4", DirNotAttemptedYet )
+                                    [ ( "dir1", DirNotAttemptedYet )
                                     ]
                             }
                           )
                         ]
                             |> Dict.fromList
+
+                    result =
+                        getNextCmds model
                 in
-                    -- there should just be one for DirNotAttemptedYet
-                    getNextCmds model
-                        |> List.length
-                        |> Expect.equal 1
+                    result
+                        |> Expect.all
+                            [ Tuple.first
+                                >> Expect.equal
+                                    ([ ( "module1"
+                                       , { sourceCode = Nothing
+                                         , dirAttempts =
+                                            Dict.fromList
+                                                [ ( "dir1", InFlight )
+                                                ]
+                                         }
+                                       )
+                                     ]
+                                        |> Dict.fromList
+                                    )
+                            , Tuple.second >> List.length >> Expect.equal 1
+                            ]
         ]

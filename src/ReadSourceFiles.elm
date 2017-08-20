@@ -2,6 +2,7 @@ port module ReadSourceFiles exposing (..)
 
 import Dict exposing (Dict)
 import Helpers exposing (qualifiedNameToPath)
+import Maybe.Extra exposing (isJust)
 
 
 type alias Model =
@@ -111,40 +112,81 @@ reallyInit { moduleNames, dirNames } model =
 
         -- _ =
         --     Debug.log "\n\nreadSourceFiles newModel\n\n" newModel
-        cmd =
+        ( model3, cmds ) =
             getNextCmds newModel
     in
-        newModel ! (getNextCmds newModel)
+        model3 ! cmds
 
 
-getNextCmds : Model -> List (Cmd msg)
+getNextCmds : Model -> ( Model, List (Cmd Msg) )
 getNextCmds model =
-    moduleStatuses model
-        |> List.map
-            (\( moduleName, status ) ->
-                case status of
-                    HaveNotExhaustedAllOptions { nextDirName } ->
-                        let
-                            path =
-                                nextDirName
-                                    ++ "/"
-                                    ++ (qualifiedNameToPath moduleName)
-                        in
-                            Just
-                                (readElmModule
-                                    { path = path
-                                    , scope =
+    model
+        |> Dict.toList
+        |> List.foldl
+            (\( moduleName, { sourceCode, dirAttempts } as moduleStatus ) { accModuleStatuses, accCmds } ->
+                if isJust sourceCode then
+                    { accModuleStatuses = ( moduleName, moduleStatus ) :: accModuleStatuses
+                    , accCmds = accCmds
+                    }
+                else
+                    let
+                        ( newDirAttempts, cmds ) =
+                            getNextCmdsForDirAttempts moduleName dirAttempts
+                    in
+                        { accModuleStatuses = ( moduleName, { sourceCode = Nothing, dirAttempts = newDirAttempts } ) :: accModuleStatuses
+                        , accCmds = cmds ++ accCmds
+                        }
+            )
+            { accModuleStatuses = [], accCmds = [] }
+        |> (\{ accModuleStatuses, accCmds } ->
+                ( accModuleStatuses |> Dict.fromList
+                , accCmds
+                )
+           )
+
+
+getNextCmdsForDirAttempts : String -> DirAttempts -> ( DirAttempts, List (Cmd Msg) )
+getNextCmdsForDirAttempts moduleName originalDirAttempts =
+    originalDirAttempts
+        |> Dict.toList
+        |> List.foldl
+            (\( dirName, dirAttempt ) { dirAttempts, maybeCmds } ->
+                let
+                    path : String
+                    path =
+                        dirName
+                            ++ "/"
+                            ++ (qualifiedNameToPath moduleName)
+
+                    ( newDirAttempt, maybeCmd ) =
+                        case dirAttempt of
+                            DirNotAttemptedYet ->
+                                ( ( dirName, InFlight )
+                                , Just
+                                    (readElmModule
                                         { path = path
-                                        , dir = nextDirName
-                                        , moduleName = moduleName
+                                        , scope =
+                                            { path = path
+                                            , dir = dirName
+                                            , moduleName = moduleName
+                                            }
                                         }
-                                    }
+                                    )
                                 )
 
-                    _ ->
-                        Nothing
+                            _ ->
+                                ( ( moduleName, dirAttempt ), Nothing )
+                in
+                    { dirAttempts = newDirAttempt :: dirAttempts
+                    , maybeCmds = maybeCmd :: maybeCmds
+                    }
             )
-        |> List.filterMap identity
+            { dirAttempts = [], maybeCmds = [] }
+        |> (\{ dirAttempts, maybeCmds } ->
+                ( dirAttempts |> Dict.fromList
+                , maybeCmds |> List.filterMap identity
+                )
+           )
 
 
 getResult : Model -> Maybe (Dict String String)
@@ -281,8 +323,11 @@ update msg model =
 
                     finished =
                         Debug.log "result" (getResult newModel)
+
+                    ( model3, cmds ) =
+                        getNextCmds newModel
                 in
-                    newModel ! (getNextCmds newModel)
+                    model3 ! cmds
 
 
 updateDirAttempt : Maybe String -> Maybe DirAttempt -> Maybe DirAttempt
