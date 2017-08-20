@@ -110,9 +110,8 @@ update msg model =
 
         ReadSourceFilesMsg rsfpMsg ->
             let
-                _ =
-                    Debug.log "ReadSourceFilesMsg" True
-
+                -- _ =
+                --     Debug.log "ReadSourceFilesMsg" True
                 ( readSourceFiles, readSourceFilesCmd ) =
                     ReadSourceFiles.update
                         rsfpMsg

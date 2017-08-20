@@ -9,6 +9,10 @@ type alias Model =
     Dict ModuleName ModuleStatus
 
 
+type alias ModuleName =
+    String
+
+
 type alias ModuleStatus =
     { sourceCode : Maybe String
     , dirAttempts : Dict String DirAttempt
@@ -16,7 +20,11 @@ type alias ModuleStatus =
 
 
 type alias DirAttempts =
-    Dict String DirAttempt
+    Dict DirPath DirAttempt
+
+
+type alias DirPath =
+    String
 
 
 
@@ -26,21 +34,11 @@ type alias DirAttempts =
 -- )
 
 
-type alias ModuleName =
-    String
-
-
 type DirAttempt
     = DirNotAttemptedYet
     | InFlight
     | DirSuccess
     | DirFail
-
-
-type OverallStatus
-    = Success { dirName : String }
-    | TotalFail
-    | HaveNotExhaustedAllOptions { nextDirName : String }
 
 
 type alias ReadElmModuleScope =
@@ -89,6 +87,9 @@ init =
 reallyInit : { moduleNames : List String, dirNames : List String } -> Model -> ( Model, Cmd Msg )
 reallyInit { moduleNames, dirNames } model =
     let
+        _ =
+            Debug.log "dirNames" dirNames
+
         newModel =
             (moduleNames
                 |> List.map
@@ -125,7 +126,8 @@ getNextCmds model =
         |> List.foldl
             (\( moduleName, { sourceCode, dirAttempts } as moduleStatus ) { accModuleStatuses, accCmds } ->
                 if isJust sourceCode then
-                    { accModuleStatuses = ( moduleName, moduleStatus ) :: accModuleStatuses
+                    { accModuleStatuses =
+                        ( moduleName, moduleStatus ) :: accModuleStatuses
                     , accCmds = accCmds
                     }
                 else
@@ -133,7 +135,11 @@ getNextCmds model =
                         ( newDirAttempts, cmds ) =
                             getNextCmdsForDirAttempts moduleName dirAttempts
                     in
-                        { accModuleStatuses = ( moduleName, { sourceCode = Nothing, dirAttempts = newDirAttempts } ) :: accModuleStatuses
+                        { accModuleStatuses =
+                            ( moduleName
+                            , { sourceCode = Nothing, dirAttempts = newDirAttempts }
+                            )
+                                :: accModuleStatuses
                         , accCmds = cmds ++ accCmds
                         }
             )
@@ -152,6 +158,9 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
         |> List.foldl
             (\( dirName, dirAttempt ) { dirAttempts, maybeCmds } ->
                 let
+                    _ =
+                        Debug.log "dirName" dirName
+
                     path : String
                     path =
                         dirName
@@ -175,7 +184,10 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
                                 )
 
                             _ ->
-                                ( ( moduleName, dirAttempt ), Nothing )
+                                ( ( dirName, dirAttempt ), Nothing )
+
+                    _ =
+                        Debug.log "newDirAttempt" newDirAttempt
                 in
                     { dirAttempts = newDirAttempt :: dirAttempts
                     , maybeCmds = maybeCmd :: maybeCmds
@@ -189,7 +201,7 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
            )
 
 
-getResult : Model -> Maybe (Dict String String)
+getResult : Model -> Result Model (Dict String String)
 getResult model =
     if isFinished model then
         model
@@ -197,23 +209,25 @@ getResult model =
                 (\_ moduleStatus ->
                     moduleStatus.sourceCode |> Maybe.withDefault ""
                 )
-            |> Just
+            |> Ok
     else
-        Nothing
+        model
+            |> Dict.toList
+            |> List.filterMap
+                (\( moduleName, moduleStatus ) ->
+                    if isJust moduleStatus.sourceCode then
+                        Nothing
+                    else
+                        Just ( moduleName, moduleStatus )
+                )
+            |> Dict.fromList
+            |> Err
 
 
 isFinished : Model -> Bool
 isFinished model =
     moduleStatuses model
-        |> List.map
-            (\( moduleName, status ) ->
-                case status of
-                    Success _ ->
-                        True
-
-                    _ ->
-                        False
-            )
+        |> List.map Tuple.second
         |> List.all ((==) True)
 
 
@@ -222,34 +236,20 @@ subscriptions =
     readElmModuleResult ReadElmModuleResult
 
 
-moduleStatus : Model -> ModuleName -> OverallStatus
-moduleStatus model moduleName =
-    let
-        dirAttempts =
-            Dict.get moduleName model |> Maybe.map .dirAttempts |> Maybe.withDefault Dict.empty
-    in
-        if dirAttempts == Dict.empty then
-            TotalFail
-        else
-            case atLeastOneSuccess dirAttempts of
-                Just dirName ->
-                    Success { dirName = dirName }
-
-                Nothing ->
-                    case haveNotExhaustedAllOptions dirAttempts of
-                        Just nextDirName ->
-                            HaveNotExhaustedAllOptions { nextDirName = nextDirName }
-
-                        Nothing ->
-                            TotalFail
+isModuleFinished : Model -> ModuleName -> Bool
+isModuleFinished model moduleName =
+    Dict.get moduleName model
+        |> Maybe.map .sourceCode
+        |> Maybe.withDefault Nothing
+        |> isJust
 
 
-moduleStatuses : Model -> List ( String, OverallStatus )
+moduleStatuses : Model -> List ( String, Bool )
 moduleStatuses model =
     model
         |> Dict.toList
         |> List.map
-            (\( moduleName, dirAttempts ) -> ( moduleName, moduleStatus model moduleName ))
+            (\( moduleName, dirAttempts ) -> ( moduleName, isModuleFinished model moduleName ))
 
 
 atLeastOneSuccess : DirAttempts -> Maybe String
@@ -289,53 +289,64 @@ haveNotExhaustedAllOptions dirAttempts =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-        -- _ = Debug.log "\n\nmodel\n" model
         _ =
-            Debug.log "ReadSoureFiles.update" True
+            Debug.log "\n\nmodel\n" model
 
+        -- _ =
+        --     Debug.log "ReadSoureFiles.update" True
         _ =
             False
     in
         case msg of
             ReadElmModuleResult { contents, scope } ->
                 let
-                    _ =
-                        Debug.log "scope" scope
-
+                    -- _ =
+                    --     Debug.log "scope" scope
                     newModel : Model
                     newModel =
                         model
                             |> (Dict.update
                                     scope.moduleName
-                                    (Maybe.map
-                                        (\moduleStatus ->
-                                            { moduleStatus
-                                                | dirAttempts =
-                                                    moduleStatus.dirAttempts
-                                                        |> Dict.update
-                                                            scope.dir
-                                                            (updateDirAttempt contents)
-                                                , sourceCode = contents
-                                            }
-                                        )
+                                    (\maybeExistingValue ->
+                                        case maybeExistingValue of
+                                            Just moduleStatus ->
+                                                let
+                                                    _ =
+                                                        if not <| isJust <| Dict.get scope.dir moduleStatus.dirAttempts then
+                                                            Debug.crash ("could not find " ++ scope.dir ++ " for " ++ scope.moduleName)
+                                                        else
+                                                            ()
+                                                in
+                                                    { moduleStatus
+                                                        | dirAttempts =
+                                                            moduleStatus.dirAttempts
+                                                                |> Dict.update
+                                                                    scope.dir
+                                                                    (updateDirAttempt contents)
+                                                        , sourceCode = contents
+                                                    }
+                                                        |> Just
+
+                                            Nothing ->
+                                                Debug.crash ("could not update module " ++ scope.moduleName)
                                     )
                                )
 
-                    finished =
-                        Debug.log "result" (getResult newModel)
-
                     ( model3, cmds ) =
                         getNextCmds newModel
+
+                    finished =
+                        Debug.log "\n\n\nresult ********************\n\n" (getResult model3)
                 in
                     model3 ! cmds
 
 
 updateDirAttempt : Maybe String -> Maybe DirAttempt -> Maybe DirAttempt
 updateDirAttempt maybeSourceCode maybeDirAttempt =
-    maybeDirAttempt
+    (Debug.log "maybeDirAttempt" maybeDirAttempt)
         |> Maybe.map
             (\_ ->
-                case (Debug.log "maybeSourceCode" maybeSourceCode) of
+                case maybeSourceCode of
                     Just sourceCode ->
                         DirSuccess
 
