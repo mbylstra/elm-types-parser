@@ -11449,7 +11449,148 @@ var _user$project$ReadSourceFiles$updateDirAttempt = F2(
 			},
 			maybeDirAttempt);
 	});
+var _user$project$ReadSourceFiles$InFlight = {ctor: 'InFlight'};
+var _user$project$ReadSourceFiles$getNextCmdsForDirAttempts = F2(
+	function (moduleName, originalDirAttempts) {
+		return function (_p8) {
+			var _p9 = _p8;
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Dict$fromList(_p9.dirAttempts),
+				_1: A2(_elm_lang$core$List$filterMap, _elm_lang$core$Basics$identity, _p9.maybeCmds)
+			};
+		}(
+			A3(
+				_elm_lang$core$List$foldl,
+				F2(
+					function (_p11, _p10) {
+						var _p12 = _p11;
+						var _p17 = _p12._0;
+						var _p16 = _p12._1;
+						var _p13 = _p10;
+						var path = A2(
+							_elm_lang$core$Basics_ops['++'],
+							_p17,
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								'/',
+								_user$project$Helpers$qualifiedNameToPath(moduleName)));
+						var _p14 = function () {
+							var _p15 = _p16;
+							if (_p15.ctor === 'DirNotAttemptedYet') {
+								return {
+									ctor: '_Tuple2',
+									_0: {ctor: '_Tuple2', _0: _p17, _1: _user$project$ReadSourceFiles$InFlight},
+									_1: _elm_lang$core$Maybe$Just(
+										_user$project$ReadSourceFiles$readElmModule(
+											{
+												path: path,
+												scope: {path: path, dir: _p17, moduleName: moduleName}
+											}))
+								};
+							} else {
+								return {
+									ctor: '_Tuple2',
+									_0: {ctor: '_Tuple2', _0: moduleName, _1: _p16},
+									_1: _elm_lang$core$Maybe$Nothing
+								};
+							}
+						}();
+						var newDirAttempt = _p14._0;
+						var maybeCmd = _p14._1;
+						return {
+							dirAttempts: {ctor: '::', _0: newDirAttempt, _1: _p13.dirAttempts},
+							maybeCmds: {ctor: '::', _0: maybeCmd, _1: _p13.maybeCmds}
+						};
+					}),
+				{
+					dirAttempts: {ctor: '[]'},
+					maybeCmds: {ctor: '[]'}
+				},
+				_elm_lang$core$Dict$toList(originalDirAttempts)));
+	});
+var _user$project$ReadSourceFiles$getNextCmds = function (model) {
+	return function (_p18) {
+		var _p19 = _p18;
+		return {
+			ctor: '_Tuple2',
+			_0: _elm_lang$core$Dict$fromList(_p19.accModuleStatuses),
+			_1: _p19.accCmds
+		};
+	}(
+		A3(
+			_elm_lang$core$List$foldl,
+			F2(
+				function (_p21, _p20) {
+					var _p22 = _p21;
+					var _p27 = _p22._0;
+					var _p23 = _p20;
+					var _p26 = _p23.accModuleStatuses;
+					var _p25 = _p23.accCmds;
+					if (_elm_community$maybe_extra$Maybe_Extra$isJust(_p22._1.sourceCode)) {
+						return {
+							accModuleStatuses: {
+								ctor: '::',
+								_0: {ctor: '_Tuple2', _0: _p27, _1: _p22._1},
+								_1: _p26
+							},
+							accCmds: _p25
+						};
+					} else {
+						var _p24 = A2(_user$project$ReadSourceFiles$getNextCmdsForDirAttempts, _p27, _p22._1.dirAttempts);
+						var newDirAttempts = _p24._0;
+						var cmds = _p24._1;
+						return {
+							accModuleStatuses: {
+								ctor: '::',
+								_0: {
+									ctor: '_Tuple2',
+									_0: _p27,
+									_1: {sourceCode: _elm_lang$core$Maybe$Nothing, dirAttempts: newDirAttempts}
+								},
+								_1: _p26
+							},
+							accCmds: A2(_elm_lang$core$Basics_ops['++'], cmds, _p25)
+						};
+					}
+				}),
+			{
+				accModuleStatuses: {ctor: '[]'},
+				accCmds: {ctor: '[]'}
+			},
+			_elm_lang$core$Dict$toList(model)));
+};
 var _user$project$ReadSourceFiles$DirNotAttemptedYet = {ctor: 'DirNotAttemptedYet'};
+var _user$project$ReadSourceFiles$reallyInit = F2(
+	function (_p28, model) {
+		var _p29 = _p28;
+		var newModel = _elm_lang$core$Dict$fromList(
+			A2(
+				_elm_lang$core$List$map,
+				function (moduleName) {
+					return {
+						ctor: '_Tuple2',
+						_0: moduleName,
+						_1: {
+							dirAttempts: _elm_lang$core$Dict$fromList(
+								A2(
+									_elm_lang$core$List$map,
+									_elm_lang$core$Basics$flip(
+										F2(
+											function (v0, v1) {
+												return {ctor: '_Tuple2', _0: v0, _1: v1};
+											}))(_user$project$ReadSourceFiles$DirNotAttemptedYet),
+									_p29.dirNames)),
+							sourceCode: _elm_lang$core$Maybe$Nothing
+						}
+					};
+				},
+				_p29.moduleNames));
+		var _p30 = _user$project$ReadSourceFiles$getNextCmds(newModel);
+		var model3 = _p30._0;
+		var cmds = _p30._1;
+		return A2(_elm_lang$core$Platform_Cmd_ops['!'], model3, cmds);
+	});
 var _user$project$ReadSourceFiles$HaveNotExhaustedAllOptions = function (a) {
 	return {ctor: 'HaveNotExhaustedAllOptions', _0: a};
 };
@@ -11471,15 +11612,15 @@ var _user$project$ReadSourceFiles$moduleStatus = F2(
 		if (_elm_lang$core$Native_Utils.eq(dirAttempts, _elm_lang$core$Dict$empty)) {
 			return _user$project$ReadSourceFiles$TotalFail;
 		} else {
-			var _p8 = _user$project$ReadSourceFiles$atLeastOneSuccess(dirAttempts);
-			if (_p8.ctor === 'Just') {
+			var _p31 = _user$project$ReadSourceFiles$atLeastOneSuccess(dirAttempts);
+			if (_p31.ctor === 'Just') {
 				return _user$project$ReadSourceFiles$Success(
-					{dirName: _p8._0});
+					{dirName: _p31._0});
 			} else {
-				var _p9 = _user$project$ReadSourceFiles$haveNotExhaustedAllOptions(dirAttempts);
-				if (_p9.ctor === 'Just') {
+				var _p32 = _user$project$ReadSourceFiles$haveNotExhaustedAllOptions(dirAttempts);
+				if (_p32.ctor === 'Just') {
 					return _user$project$ReadSourceFiles$HaveNotExhaustedAllOptions(
-						{nextDirName: _p9._0});
+						{nextDirName: _p32._0});
 				} else {
 					return _user$project$ReadSourceFiles$TotalFail;
 				}
@@ -11489,84 +11630,17 @@ var _user$project$ReadSourceFiles$moduleStatus = F2(
 var _user$project$ReadSourceFiles$moduleStatuses = function (model) {
 	return A2(
 		_elm_lang$core$List$map,
-		function (_p10) {
-			var _p11 = _p10;
-			var _p12 = _p11._0;
+		function (_p33) {
+			var _p34 = _p33;
+			var _p35 = _p34._0;
 			return {
 				ctor: '_Tuple2',
-				_0: _p12,
-				_1: A2(_user$project$ReadSourceFiles$moduleStatus, model, _p12)
+				_0: _p35,
+				_1: A2(_user$project$ReadSourceFiles$moduleStatus, model, _p35)
 			};
 		},
 		_elm_lang$core$Dict$toList(model));
 };
-var _user$project$ReadSourceFiles$getNextCmd = function (model) {
-	var cmds = A2(
-		_elm_lang$core$List$map,
-		function (_p13) {
-			var _p14 = _p13;
-			var _p17 = _p14._0;
-			var _p15 = _p14._1;
-			if (_p15.ctor === 'HaveNotExhaustedAllOptions') {
-				var _p16 = _p15._0.nextDirName;
-				var path = A2(
-					_elm_lang$core$Basics_ops['++'],
-					_p16,
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						'/',
-						_user$project$Helpers$qualifiedNameToPath(_p17)));
-				return _user$project$ReadSourceFiles$readElmModule(
-					{
-						path: path,
-						scope: {path: path, dir: _p16, moduleName: _p17}
-					});
-			} else {
-				return _elm_lang$core$Platform_Cmd$none;
-			}
-		},
-		_user$project$ReadSourceFiles$moduleStatuses(model));
-	var _p18 = A2(
-		_elm_lang$core$Debug$log,
-		'cmd length',
-		_elm_lang$core$List$length(cmds));
-	return _elm_lang$core$Platform_Cmd$batch(cmds);
-};
-var _user$project$ReadSourceFiles$reallyInit = F2(
-	function (_p19, model) {
-		var _p20 = _p19;
-		var newModel = _elm_lang$core$Dict$fromList(
-			A2(
-				_elm_lang$core$List$map,
-				function (moduleName) {
-					return {
-						ctor: '_Tuple2',
-						_0: moduleName,
-						_1: {
-							dirAttempts: _elm_lang$core$Dict$fromList(
-								A2(
-									_elm_lang$core$List$map,
-									_elm_lang$core$Basics$flip(
-										F2(
-											function (v0, v1) {
-												return {ctor: '_Tuple2', _0: v0, _1: v1};
-											}))(_user$project$ReadSourceFiles$DirNotAttemptedYet),
-									_p20.dirNames)),
-							sourceCode: _elm_lang$core$Maybe$Nothing
-						}
-					};
-				},
-				_p20.moduleNames));
-		var cmd = _user$project$ReadSourceFiles$getNextCmd(newModel);
-		return A2(
-			_elm_lang$core$Platform_Cmd_ops['!'],
-			newModel,
-			{
-				ctor: '::',
-				_0: cmd,
-				_1: {ctor: '[]'}
-			});
-	});
 var _user$project$ReadSourceFiles$isFinished = function (model) {
 	return A2(
 		_elm_lang$core$List$all,
@@ -11576,10 +11650,10 @@ var _user$project$ReadSourceFiles$isFinished = function (model) {
 			})(true),
 		A2(
 			_elm_lang$core$List$map,
-			function (_p21) {
-				var _p22 = _p21;
-				var _p23 = _p22._1;
-				if (_p23.ctor === 'Success') {
+			function (_p36) {
+				var _p37 = _p36;
+				var _p38 = _p37._1;
+				if (_p38.ctor === 'Success') {
 					return true;
 				} else {
 					return false;
@@ -11592,21 +11666,21 @@ var _user$project$ReadSourceFiles$getResult = function (model) {
 		A2(
 			_elm_lang$core$Dict$map,
 			F2(
-				function (_p24, moduleStatus) {
+				function (_p39, moduleStatus) {
 					return A2(_elm_lang$core$Maybe$withDefault, '', moduleStatus.sourceCode);
 				}),
 			model)) : _elm_lang$core$Maybe$Nothing;
 };
 var _user$project$ReadSourceFiles$update = F2(
 	function (msg, model) {
-		var _p25 = false;
-		var _p26 = A2(_elm_lang$core$Debug$log, 'ReadSoureFiles.update', true);
-		var _p27 = msg;
-		var _p30 = _p27._0.scope;
-		var _p29 = _p27._0.contents;
+		var _p40 = false;
+		var _p41 = A2(_elm_lang$core$Debug$log, 'ReadSoureFiles.update', true);
+		var _p42 = msg;
+		var _p46 = _p42._0.scope;
+		var _p45 = _p42._0.contents;
 		var newModel = A3(
 			_elm_lang$core$Dict$update,
-			_p30.moduleName,
+			_p46.moduleName,
 			_elm_lang$core$Maybe$map(
 				function (moduleStatus) {
 					return _elm_lang$core$Native_Utils.update(
@@ -11614,10 +11688,10 @@ var _user$project$ReadSourceFiles$update = F2(
 						{
 							dirAttempts: A3(
 								_elm_lang$core$Dict$update,
-								_p30.dir,
-								_user$project$ReadSourceFiles$updateDirAttempt(_p29),
+								_p46.dir,
+								_user$project$ReadSourceFiles$updateDirAttempt(_p45),
 								moduleStatus.dirAttempts),
-							sourceCode: _p29
+							sourceCode: _p45
 						});
 				}),
 			model);
@@ -11625,15 +11699,11 @@ var _user$project$ReadSourceFiles$update = F2(
 			_elm_lang$core$Debug$log,
 			'result',
 			_user$project$ReadSourceFiles$getResult(newModel));
-		var _p28 = A2(_elm_lang$core$Debug$log, 'scope', _p30);
-		return A2(
-			_elm_lang$core$Platform_Cmd_ops['!'],
-			newModel,
-			{
-				ctor: '::',
-				_0: _user$project$ReadSourceFiles$getNextCmd(newModel),
-				_1: {ctor: '[]'}
-			});
+		var _p43 = _user$project$ReadSourceFiles$getNextCmds(newModel);
+		var model3 = _p43._0;
+		var cmds = _p43._1;
+		var _p44 = A2(_elm_lang$core$Debug$log, 'scope', _p46);
+		return A2(_elm_lang$core$Platform_Cmd_ops['!'], model3, cmds);
 	});
 var _user$project$ReadSourceFiles$ReadElmModuleResult = function (a) {
 	return {ctor: 'ReadElmModuleResult', _0: a};

@@ -11,6 +11,7 @@ import ReadSourceFiles
         , haveNotExhaustedAllOptions
         , moduleStatus
         , getNextCmds
+        , getResult
         )
 import Test exposing (..)
 
@@ -27,7 +28,7 @@ suite =
                             , dirAttempts = Dict.fromList [ ( "dir1", DirNotAttemptedYet ) ]
                             }
                           )
-                        , ( "module1"
+                        , ( "module2"
                           , { sourceCode = Nothing
                             , dirAttempts = Dict.fromList [ ( "dir1", DirNotAttemptedYet ) ]
                             }
@@ -127,4 +128,34 @@ suite =
                                     )
                             , Tuple.second >> List.length >> Expect.equal 1
                             ]
+        , test "getResult with Nothing result" <|
+            \_ ->
+                let
+                    model =
+                        [ ( "module1"
+                          , { sourceCode = Nothing
+                            , dirAttempts = Dict.fromList [ ( "dir1", DirNotAttemptedYet ) ]
+                            }
+                          )
+                        ]
+                            |> Dict.fromList
+                in
+                    getResult model
+                        |> Expect.equal
+                            Nothing
+        , test "getResult with a result" <|
+            \_ ->
+                let
+                    model =
+                        [ ( "module1"
+                          , { sourceCode = Just "x = 1"
+                            , dirAttempts = Dict.fromList [ ( "dir1", DirSuccess ) ]
+                            }
+                          )
+                        ]
+                            |> Dict.fromList
+                in
+                    getResult model
+                        |> Expect.equal
+                            (Just <| Dict.fromList [ ( "module1", "x = 1" ) ])
         ]
