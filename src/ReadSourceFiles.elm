@@ -31,6 +31,7 @@ type alias ModuleName =
 
 type DirAttempt
     = DirNotAttemptedYet
+    | InFlight
     | DirSuccess
     | DirFail
 
@@ -111,43 +112,39 @@ reallyInit { moduleNames, dirNames } model =
         -- _ =
         --     Debug.log "\n\nreadSourceFiles newModel\n\n" newModel
         cmd =
-            getNextCmd newModel
+            getNextCmds newModel
     in
-        newModel ! [ cmd ]
+        newModel ! (getNextCmds newModel)
 
 
-getNextCmd : Model -> Cmd msg
-getNextCmd model =
-    let
-        cmds =
-            moduleStatuses model
-                |> List.map
-                    (\( moduleName, status ) ->
-                        case status of
-                            HaveNotExhaustedAllOptions { nextDirName } ->
-                                let
-                                    path =
-                                        nextDirName
-                                            ++ "/"
-                                            ++ (qualifiedNameToPath moduleName)
-                                in
-                                    readElmModule
+getNextCmds : Model -> List (Cmd msg)
+getNextCmds model =
+    moduleStatuses model
+        |> List.map
+            (\( moduleName, status ) ->
+                case status of
+                    HaveNotExhaustedAllOptions { nextDirName } ->
+                        let
+                            path =
+                                nextDirName
+                                    ++ "/"
+                                    ++ (qualifiedNameToPath moduleName)
+                        in
+                            Just
+                                (readElmModule
+                                    { path = path
+                                    , scope =
                                         { path = path
-                                        , scope =
-                                            { path = path
-                                            , dir = nextDirName
-                                            , moduleName = moduleName
-                                            }
+                                        , dir = nextDirName
+                                        , moduleName = moduleName
                                         }
+                                    }
+                                )
 
-                            _ ->
-                                Cmd.none
-                    )
-
-        _ =
-            Debug.log "cmd length" (List.length cmds)
-    in
-        Cmd.batch cmds
+                    _ ->
+                        Nothing
+            )
+        |> List.filterMap identity
 
 
 getResult : Model -> Maybe (Dict String String)
@@ -285,7 +282,7 @@ update msg model =
                     finished =
                         Debug.log "result" (getResult newModel)
                 in
-                    newModel ! [ getNextCmd newModel ]
+                    newModel ! (getNextCmds newModel)
 
 
 updateDirAttempt : Maybe String -> Maybe DirAttempt -> Maybe DirAttempt

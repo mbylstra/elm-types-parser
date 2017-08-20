@@ -1,9 +1,18 @@
 module ReadSourceFilesTest exposing (..)
 
-import ReadSourceFiles exposing (..)
-import Expect exposing (Expectation, equalSets)
-import Test exposing (..)
 import Dict
+import Expect exposing (Expectation, equalSets)
+import ReadSourceFiles
+    exposing
+        ( DirAttempt(DirFail, DirNotAttemptedYet, DirSuccess, InFlight)
+        , OverallStatus(HaveNotExhaustedAllOptions, Success, TotalFail)
+        , Model
+        , atLeastOneSuccess
+        , haveNotExhaustedAllOptions
+        , moduleStatus
+        , getNextCmds
+        )
+import Test exposing (..)
 
 
 suite : Test
@@ -14,6 +23,11 @@ suite =
                 let
                     model =
                         [ ( "module1"
+                          , { sourceCode = Nothing
+                            , dirAttempts = Dict.fromList [ ( "dir1", DirNotAttemptedYet ) ]
+                            }
+                          )
+                        , ( "module1"
                           , { sourceCode = Nothing
                             , dirAttempts = Dict.fromList [ ( "dir1", DirNotAttemptedYet ) ]
                             }
@@ -77,4 +91,34 @@ suite =
                 )
                     |> haveNotExhaustedAllOptions
                     |> Expect.equal (Just "dir2")
+        , test "getNextCmds" <|
+            \_ ->
+                let
+                    model : Model
+                    model =
+                        [ ( "module1"
+                          , { sourceCode = Nothing
+                            , dirAttempts =
+                                Dict.fromList
+                                    [ ( "dir1", DirFail )
+                                    , ( "dir2", InFlight )
+                                    ]
+                            }
+                          )
+                        , ( "module2"
+                          , { sourceCode = Nothing
+                            , dirAttempts =
+                                Dict.fromList
+                                    [ ( "dir3", DirNotAttemptedYet )
+                                    , ( "dir4", DirNotAttemptedYet )
+                                    ]
+                            }
+                          )
+                        ]
+                            |> Dict.fromList
+                in
+                    -- there should just be one for DirNotAttemptedYet
+                    getNextCmds model
+                        |> List.length
+                        |> Expect.equal 1
         ]
