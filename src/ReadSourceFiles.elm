@@ -5,15 +5,32 @@ import Helpers exposing (qualifiedNameToPath)
 
 
 type alias Model =
-    Dict ModuleName (List { dirName : String, status : DirStatus })
+    Dict ModuleName ModuleStatus
+
+
+type alias ModuleStatus =
+    { sourceCode : Maybe String
+    , dirAttempts : Dict String DirAttempt
+    }
+
+
+type alias DirAttempts =
+    Dict String DirAttempt
+
+
+
+-- Int
+-- { source : Maybe String
+-- -- ,
+-- )
 
 
 type alias ModuleName =
     String
 
 
-type DirStatus
-    = DirNotOpenedYet
+type DirAttempt
+    = DirNotAttemptedYet
     | DirSuccess
     | DirFail
 
@@ -62,54 +79,103 @@ port readElmModuleResult : (ReadElmModuleResultR -> msg) -> Sub msg
 -- port getFilenamesInDirReturned : (? -> msg) -> Sub msg
 
 
-init : List String -> List String -> ( Model, Cmd Msg )
-init moduleNames dirNames =
+init : Model
+init =
+    Dict.empty
+
+
+reallyInit : { moduleNames : List String, dirNames : List String } -> Model -> ( Model, Cmd Msg )
+reallyInit { moduleNames, dirNames } model =
     let
-        model =
+        newModel =
             (moduleNames
                 |> List.map
                     (\moduleName ->
                         ( moduleName
-                        , dirNames
-                            |> List.map
-                                (\dirName ->
-                                    { dirName = dirName, status = DirNotOpenedYet }
-                                )
+                        , { dirAttempts =
+                                dirNames
+                                    |> List.map
+                                        (((,) |> flip) DirNotAttemptedYet)
+                                    |> Dict.fromList
+
+                          -- (\dirName ->
+                          --     { dirName = dirName, status = DirNotAttemptedYet }
+                          -- )
+                          , sourceCode = Nothing
+                          }
                         )
                     )
                 |> Dict.fromList
             )
+
+        -- _ =
+        --     Debug.log "\n\nreadSourceFiles newModel\n\n" newModel
+        cmd =
+            getNextCmd newModel
     in
-        model ! [ getNextCmd model ]
+        newModel ! [ cmd ]
 
 
 getNextCmd : Model -> Cmd msg
 getNextCmd model =
+    let
+        cmds =
+            moduleStatuses model
+                |> List.map
+                    (\( moduleName, status ) ->
+                        case status of
+                            HaveNotExhaustedAllOptions { nextDirName } ->
+                                let
+                                    path =
+                                        nextDirName
+                                            ++ "/"
+                                            ++ (qualifiedNameToPath moduleName)
+                                in
+                                    readElmModule
+                                        { path = path
+                                        , scope =
+                                            { path = path
+                                            , dir = nextDirName
+                                            , moduleName = moduleName
+                                            }
+                                        }
+
+                            _ ->
+                                Cmd.none
+                    )
+
+        _ =
+            Debug.log "cmd length" (List.length cmds)
+    in
+        Cmd.batch cmds
+
+
+getResult : Model -> Maybe (Dict String String)
+getResult model =
+    if isFinished model then
+        model
+            |> Dict.map
+                (\_ moduleStatus ->
+                    moduleStatus.sourceCode |> Maybe.withDefault ""
+                )
+            |> Just
+    else
+        Nothing
+
+
+isFinished : Model -> Bool
+isFinished model =
     moduleStatuses model
         |> List.map
             (\( moduleName, status ) ->
                 case status of
-                    HaveNotExhaustedAllOptions { nextDirName } ->
-                        let
-                            path =
-                                nextDirName
-                                    ++ "/"
-                                    ++ (qualifiedNameToPath moduleName)
-                        in
-                            readElmModule
-                                { path = path
-                                , scope =
-                                    { path = path
-                                    , dir = nextDirName
-                                    , moduleName = moduleName
-                                    }
-                                }
+                    Success _ ->
+                        True
 
                     _ ->
-                        Cmd.none
+                        False
             )
-        -- |> Debug.log "cmds"
-        |> Cmd.batch
+        |> List.all ((==) True)
 
 
 subscriptions : Sub Msg
@@ -120,18 +186,18 @@ subscriptions =
 moduleStatus : Model -> ModuleName -> OverallStatus
 moduleStatus model moduleName =
     let
-        dirStatuses =
-            Dict.get moduleName model |> Maybe.withDefault []
+        dirAttempts =
+            Dict.get moduleName model |> Maybe.map .dirAttempts |> Maybe.withDefault Dict.empty
     in
-        if dirStatuses == [] then
+        if dirAttempts == Dict.empty then
             TotalFail
         else
-            case atLeastOneSuccess dirStatuses of
+            case atLeastOneSuccess dirAttempts of
                 Just dirName ->
                     Success { dirName = dirName }
 
                 Nothing ->
-                    case haveNotExhaustedAllOptions dirStatuses of
+                    case haveNotExhaustedAllOptions dirAttempts of
                         Just nextDirName ->
                             HaveNotExhaustedAllOptions { nextDirName = nextDirName }
 
@@ -144,17 +210,18 @@ moduleStatuses model =
     model
         |> Dict.toList
         |> List.map
-            (\( moduleName, dirStatuses ) -> ( moduleName, moduleStatus model moduleName ))
+            (\( moduleName, dirAttempts ) -> ( moduleName, moduleStatus model moduleName ))
 
 
-atLeastOneSuccess : List { dirName : String, status : DirStatus } -> Maybe String
-atLeastOneSuccess dirStatuses =
-    dirStatuses
+atLeastOneSuccess : DirAttempts -> Maybe String
+atLeastOneSuccess dirAttempts =
+    dirAttempts
+        |> Dict.toList
         |> List.map
-            (\item ->
-                case item.status of
+            (\( dir, attempt ) ->
+                case attempt of
                     DirSuccess ->
-                        Just item.dirName
+                        Just dir
 
                     _ ->
                         Nothing
@@ -163,16 +230,15 @@ atLeastOneSuccess dirStatuses =
         |> List.head
 
 
-haveNotExhaustedAllOptions :
-    List { dirName : String, status : DirStatus }
-    -> Maybe String
-haveNotExhaustedAllOptions dirStatuses =
-    dirStatuses
+haveNotExhaustedAllOptions : DirAttempts -> Maybe String
+haveNotExhaustedAllOptions dirAttempts =
+    dirAttempts
+        |> Dict.toList
         |> List.map
-            (\item ->
-                case item.status of
-                    DirNotOpenedYet ->
-                        Just item.dirName
+            (\( dir, attempt ) ->
+                case attempt of
+                    DirNotAttemptedYet ->
+                        Just dir
 
                     _ ->
                         Nothing
@@ -181,12 +247,56 @@ haveNotExhaustedAllOptions dirStatuses =
         |> List.head
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        ReadElmModuleResult readElmModuleResultR ->
-            let
-                _ =
-                    Debug.log "" readElmModuleResultR
-            in
-                model
+    let
+        -- _ = Debug.log "\n\nmodel\n" model
+        _ =
+            Debug.log "ReadSoureFiles.update" True
+
+        _ =
+            False
+    in
+        case msg of
+            ReadElmModuleResult { contents, scope } ->
+                let
+                    _ =
+                        Debug.log "scope" scope
+
+                    newModel : Model
+                    newModel =
+                        model
+                            |> (Dict.update
+                                    scope.moduleName
+                                    (Maybe.map
+                                        (\moduleStatus ->
+                                            { moduleStatus
+                                                | dirAttempts =
+                                                    moduleStatus.dirAttempts
+                                                        |> Dict.update
+                                                            scope.dir
+                                                            (updateDirAttempt contents)
+                                                , sourceCode = contents
+                                            }
+                                        )
+                                    )
+                               )
+
+                    finished =
+                        Debug.log "result" (getResult newModel)
+                in
+                    newModel ! [ getNextCmd newModel ]
+
+
+updateDirAttempt : Maybe String -> Maybe DirAttempt -> Maybe DirAttempt
+updateDirAttempt maybeSourceCode maybeDirAttempt =
+    maybeDirAttempt
+        |> Maybe.map
+            (\_ ->
+                case (Debug.log "maybeSourceCode" maybeSourceCode) of
+                    Just sourceCode ->
+                        DirSuccess
+
+                    Nothing ->
+                        DirFail
+            )

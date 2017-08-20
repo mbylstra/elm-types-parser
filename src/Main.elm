@@ -25,7 +25,7 @@ port externalStop : (() -> msg) -> Sub msg
 
 type alias Flags =
     { elmPackageContents : String
-    , viewModuleContents : String
+    , subjectSourceCode : String
     }
 
 
@@ -48,9 +48,11 @@ type alias ModuleName =
 
 type alias Model =
     { packageInfo : PackageInfo
-    , readSourceFilesProgress : ReadSourceFiles.Model
+    , readSourceFiles : ReadSourceFiles.Model
     , determinePackageLocations : DeterminePackageLocations.Model
+    , packageDirs : Maybe (List String)
     , sourceFiles : Dict ModuleName SourceCode
+    , subjectSourceCode : String
     }
 
 
@@ -62,7 +64,7 @@ type Msg
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { elmPackageContents, viewModuleContents } =
+init { elmPackageContents, subjectSourceCode } =
     let
         packageInfoResult : Result String PackageInfo
         packageInfoResult =
@@ -73,39 +75,18 @@ init { elmPackageContents, viewModuleContents } =
                 let
                     ( determinePackageLocationsModel, determinePackageLocationsCmd ) =
                         DeterminePackageLocations.init packageInfo
-
-                    modulesToParse : List String
-                    modulesToParse =
-                        viewModuleContents
-                            |> parseModule
-                            |> getModulesToParse
-
-                    -- path = TODO get full path, dir, name
-                    -- _ =
-                    --     Debug.log "files to parse" modulesToParse
-                    srcDirs =
-                        packageInfo.sourceDirectories
-
-                    -- paths =
-                    --     modulesToParse |> List.map qualifiedNameToPath
-                    ( readSourceFilesProgress, readSourceFilesProgressCmd ) =
-                        ReadSourceFiles.init modulesToParse srcDirs
-
-                    -- _ =
-                    --     Debug.log "paths" paths
                 in
-                    { packageInfo = packageInfo
-                    , readSourceFilesProgress = readSourceFilesProgress
+                    { subjectSourceCode = subjectSourceCode
+                    , packageInfo = packageInfo
+                    , readSourceFiles = ReadSourceFiles.init
                     , sourceFiles = Dict.empty
                     , determinePackageLocations = determinePackageLocationsModel
+                    , packageDirs = Nothing
                     }
-                        -- ! [ readSourceFilesProgressCmd
-                        --         |> Cmd.map ReadSourceFilesMsg
                         ! [ determinePackageLocationsCmd
                                 |> Cmd.map DeterminePackageLocationsMsg
                           ]
 
-            -- we need to figure out what inital commands we need based on the current state (same as after an update)
             Err err ->
                 let
                     err2 =
@@ -116,7 +97,11 @@ init { elmPackageContents, viewModuleContents } =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case Debug.log "msg" msg of
+    -- let
+    --     _ =
+    --         Debug.log "\n\nmodel.readSourceFiles\n" model.readSourceFiles
+    -- in
+    case msg of
         Stop ->
             model ! [ exitApp 0 ]
 
@@ -124,31 +109,61 @@ update msg model =
             model ! [ exitApp -1 ]
 
         ReadSourceFilesMsg rsfpMsg ->
-            { model
-                | readSourceFilesProgress =
+            let
+                _ =
+                    Debug.log "ReadSourceFilesMsg" True
+
+                ( readSourceFiles, readSourceFilesCmd ) =
                     ReadSourceFiles.update
                         rsfpMsg
-                        model.readSourceFilesProgress
-            }
-                ! []
+                        model.readSourceFiles
+
+                newModel =
+                    { model | readSourceFiles = readSourceFiles }
+
+                -- _ =
+                --     Debug.log "\n\nnewModel\n" newModel
+            in
+                newModel ! [ readSourceFilesCmd |> Cmd.map ReadSourceFilesMsg ]
 
         DeterminePackageLocationsMsg dplMsg ->
             let
-                _ =
-                    Debug.log "dplsMsg" dplMsg
+                ( determinePackageLocations, maybePackageLocations ) =
+                    DeterminePackageLocations.update dplMsg model.determinePackageLocations
+
+                modulesToParse =
+                    model.subjectSourceCode
+                        |> parseModule
+                        |> getModulesToParse
+
+                ( readSourceFiles, readSourceFilesCmd ) =
+                    case maybePackageLocations of
+                        Just packageLocations ->
+                            ReadSourceFiles.reallyInit
+                                { dirNames = packageLocations ++ model.packageInfo.sourceDirectories
+                                , moduleNames = modulesToParse
+                                }
+                                model.readSourceFiles
+
+                        Nothing ->
+                            ( model.readSourceFiles, Cmd.none )
             in
-                { model | determinePackageLocations = DeterminePackageLocations.update dplMsg model.determinePackageLocations } ! []
+                { model
+                    | determinePackageLocations = determinePackageLocations
+                    , packageDirs = maybePackageLocations
+                    , readSourceFiles = readSourceFiles
+                }
+                    ! [ readSourceFilesCmd |> Cmd.map ReadSourceFilesMsg ]
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ externalStop <| always Abort
-
-        -- , ReadSourceFiles.subscriptions
-        --     |> Sub.map ReadSourceFilesMsg
-        -- , DeterminePackageLocation.subscriptions
-        --     |> Sub.map DeterminePackageLocationMsg
+        , ReadSourceFiles.subscriptions
+            |> Sub.map ReadSourceFilesMsg
+        , DeterminePackageLocations.subscriptions
+            |> Sub.map DeterminePackageLocationsMsg
         ]
 
 

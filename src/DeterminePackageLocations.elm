@@ -5,6 +5,7 @@ import PackageInfo exposing (PackageInfo)
 import PackageInfo.Version as Version exposing (Version)
 import PackageInfo.VersionRange exposing (VersionRange)
 import Path.Posix as Path exposing (joinPath)
+import Maybe.Extra exposing (isJust)
 
 
 -- type alias Model =
@@ -24,7 +25,7 @@ type alias GetFilenamesInDirResultR =
 
 
 type alias GetFilenamesInDirResultScope =
-    { package : ( String, String )
+    { package_ : ( String, String )
     , versionRange : VersionRange
     }
 
@@ -65,9 +66,12 @@ init packageInfo =
                     (\package ->
                         getFilenamesInDir
                             { path = getPackageUsernameDir package.package
-                            , scope = package
+                            , scope = { package_ = package.package, versionRange = package.versionRange }
                             }
                     )
+
+        -- _ =
+        --     Debug.log "cmds" cmds
     in
         model ! cmds
 
@@ -97,21 +101,38 @@ subscriptions =
     getFilenamesInDirResult GetFilenamesInDirResult
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Maybe (List String) )
 update msg model =
-    case msg of
-        GetFilenamesInDirResult { filenames, scope } ->
-            case getMostRecentValidVersion scope.versionRange filenames of
-                Just version ->
-                    let
-                        dir =
-                            getPackageDir scope.package (Version.toString version)
-                    in
-                        model
-                            |> Dict.insert scope.package (Just dir)
+    let
+        newModel =
+            case msg of
+                GetFilenamesInDirResult { filenames, scope } ->
+                    case (Debug.log "version" getMostRecentValidVersion scope.versionRange filenames) of
+                        Just version ->
+                            let
+                                dir =
+                                    getPackageDir scope.package_ (Version.toString version)
+                            in
+                                model
+                                    |> Dict.insert scope.package_ (Just dir)
 
-                Nothing ->
-                    model
+                        Nothing ->
+                            model
+
+        outValue =
+            if finished newModel then
+                Dict.values newModel
+                    |> List.filterMap identity
+                    |> Just
+            else
+                Nothing
+    in
+        ( newModel, outValue )
+
+
+finished : Model -> Bool
+finished model =
+    (Debug.log "model" model) |> Dict.values |> List.all isJust
 
 
 getMostRecentValidVersion : VersionRange -> List String -> Maybe Version
@@ -143,7 +164,7 @@ getMostRecentValidVersion versionRange versionStrings =
 
 inRange : VersionRange -> Version -> Bool
 inRange { minimum, maximum } version =
-    versionLT minimum version && versionGTE maximum version
+    versionGTE version minimum && versionLT version maximum
 
 
 versionLT : Version -> Version -> Bool

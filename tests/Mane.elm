@@ -8,13 +8,139 @@ import ElmTypesParser
         , parseTypeConstructors
         , someWhitespace
         )
-import Types exposing (..)
+import Types exposing (Type(..))
+
+
+-- import ElmTypesParser exposing (tipe)
+
 import Expect exposing (Expectation, equalSets)
 import Parser exposing (Parser, (|.), (|=))
-import DataGeneration exposing (generateData)
-import FirstPass exposing (..)
+
+
+-- import Parser.LanguageKit as LanguageKit
+-- import Char
+
 import Result.Extra exposing (isErr)
 import Test exposing (..)
+
+
+generateData : Type -> String
+generateData tipe =
+    case tipe of
+        Var varName ->
+            "()"
+
+        Lambda leftTipe rightTipe ->
+            let
+                left =
+                    generateData leftTipe
+            in
+                case rightTipe of
+                    Lambda _ _ ->
+                        left ++ " " ++ (generateData rightTipe)
+
+                    _ ->
+                        left
+
+        Tuple tipes ->
+            "("
+                ++ (tipes |> List.map generateData |> String.join ", ")
+                ++ ")"
+
+        Type typeName _ ->
+            case typeName of
+                "Int" ->
+                    "1"
+
+                "String" ->
+                    "\"a\""
+
+                "Bool" ->
+                    "True"
+
+                "Float" ->
+                    "1.0"
+
+                _ ->
+                    Debug.crash "unknown type"
+
+        Record fields _ ->
+            let
+                generateFieldData ( name, tipe ) =
+                    name ++ " = " ++ (generateData tipe)
+            in
+                "{"
+                    ++ (fields
+                            |> List.map generateFieldData
+                            |> String.join ", "
+                       )
+                    ++ "}"
+
+
+splitIntoBlocks : String -> List String
+splitIntoBlocks elmCode =
+    case elmCode |> String.lines of
+        [] ->
+            []
+
+        line :: [] ->
+            [ line ]
+
+        line :: lines ->
+            lines
+                |> List.foldl
+                    (\line { blocks, currBlock } ->
+                        if (line |> String.startsWith " ") then
+                            { blocks = blocks
+                            , currBlock = currBlock ++ "\n" ++ line
+                            }
+                        else
+                            { blocks = blocks ++ [ currBlock ]
+                            , currBlock = line
+                            }
+                    )
+                    { blocks = [], currBlock = line }
+                |> \{ blocks, currBlock } ->
+                    blocks ++ [ currBlock ]
+
+
+type Block
+    = EmptyLines
+    | ImportStatement
+    | ModuleStatement
+    | TypeAliasDefinition
+    | TypeDefinition
+    | TypeAnnotation
+    | FunctionDefinition
+    | Unknown
+
+
+type RawBlocks
+    = List (List String)
+
+
+classifyBlock : String -> Block
+classifyBlock s =
+    if s |> String.startsWith "module" then
+        ModuleStatement
+    else if s |> String.startsWith "import" then
+        ImportStatement
+    else if s |> String.startsWith "type alias" then
+        TypeAliasDefinition
+    else if s |> String.startsWith "type" then
+        TypeDefinition
+    else if s |> String.contains "=" then
+        FunctionDefinition
+    else if s |> String.contains ":" then
+        TypeAnnotation
+    else
+        EmptyLines
+
+
+classifyBlocks : List String -> List ( Block, String )
+classifyBlocks strings =
+    strings
+        |> List.map (\string -> ( classifyBlock string, string ))
 
 
 suite : Test
@@ -32,7 +158,7 @@ suite =
         -- , test "complex one" <|
         --     \_ ->
         --         "(Int -> a) -> { x : Int, y : { z : String }}"
-        --             |> ElmTypesParser.parseTipe
+        --             |> ElmTypesParser.parse
         --             |> toString
         --             |> Expect.equal "asdasd"
         , test "generateData" <|
@@ -106,11 +232,11 @@ suite =
         --             |> List.map classifyBlock
         --             |> Expect.equal
         --                 [ ModuleStatement, ImportStatement, TypeAnnotation, FunctionDefinition ]
-        , test "parse type alias" <|
-            \_ ->
-                "type alias Id = Int"
-                    |> parseTypeAlias
-                    |> Expect.equal (Ok ( "Id", Type "Int" [] ))
+        -- , test "parse type alias" <|
+        --     \_ ->
+        --         "type alias Id = Int"
+        --             |> parseTypeAlias
+        --             |> Expect.equal (Ok ( "Id", Type "Int" [] ))
         , test "typeConstructor: takes no args" <|
             \_ ->
                 "TypeA"

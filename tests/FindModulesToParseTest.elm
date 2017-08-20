@@ -1,8 +1,8 @@
-module FindFilesToParseTest exposing (..)
+module FindModulesToParseTest exposing (..)
 
 import Expect exposing (Expectation, equalSets)
 import Test exposing (..)
-import FindFilesToParse exposing (getAllExternalNames, handleTypeName, getFilesToParse)
+import FindModulesToParse exposing (getAllExternalNames, handleTypeName, getModulesToParse)
 import FirstPass exposing (parseModule)
 
 
@@ -49,7 +49,7 @@ suite =
                         (Just
                             "ModuleB.Foo"
                         )
-        , test "getFilesToParse" <|
+        , test "getModulesToParse" <|
             \_ ->
                 ([ "import A exposing (Bar)"
                  , "import B.C"
@@ -59,7 +59,7 @@ suite =
                     |> String.join "\n"
                 )
                     |> parseModule
-                    |> getFilesToParse
+                    |> getModulesToParse
                     |> Expect.equal
                         [ "A", "B.C", "C.D" ]
         ]

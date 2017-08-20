@@ -1,3 +1,6 @@
+#!/usr/bin/env node
+
+
 // compile your app with:
 //		elm make YourApp.elm --output elm.js
 // run your app with:
@@ -7,15 +10,15 @@ const fs = require('fs');
 const path = require('path');
 
 
-const elmViewModule = process.argv[2];
-if (typeof(elmViewModule) == "undefined") {
+const subjectSourceCodePath = process.argv[2];
+if (typeof(subjectSourceCodePath) == "undefined") {
 	console.log("You need to supply the path to an Elm module. It should have at least one view function in it.");
 	process.exit(1);
 }
 
 const elmFlags = {
 	elmPackageContents: fs.readFileSync('elm-package.json', "utf-8"),
-  viewModuleContents: fs.readFileSync(elmViewModule, "utf-8"),
+  subjectSourceCode: fs.readFileSync(subjectSourceCodePath, "utf-8"),
 }
 
 
@@ -34,9 +37,8 @@ ports.exitApp.subscribe(exitCode => {
 });
 
 ports.readElmModule.subscribe(data => {
-	console.log('read elm module');
-
 	fs.readFile(data.path, 'utf8', (err, contents) => {
+		// console.log('path', data.path);
 	  if (err) {
 			ports.readElmModuleResult.send({ scope: data.scope, contents: null});
 		} else {
@@ -46,14 +48,14 @@ ports.readElmModule.subscribe(data => {
 });
 
 ports.getFilenamesInDir.subscribe(function getFilenamesInDir(data) {
-	console.log('data', data);
+	// console.log('data', data);
 	const scope = data.scope;
 	const path = data.path;
 	fs.readdir(path, (err, files) => {
 			if (err) {
 				ports.getFilenamesInDirResult.send({filenames: [], scope: scope});
 			} else {
-				console.log('success');
+				// console.log('success');
 				ports.getFilenamesInDirResult.send({filenames: files, scope: scope});
 			}
 	});

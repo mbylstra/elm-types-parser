@@ -9934,65 +9934,173 @@ var _user$project$PackageInfo$decoder = A4(
 									_user$project$PackageInfo_Version$decoder,
 									_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$PackageInfo$PackageInfo))))))))));
 
-var _user$project$DeterminePackageLocation$splitPackageName = function (packageName) {
-	var _p0 = A2(_elm_lang$core$String$split, '/', packageName);
-	if (((_p0.ctor === '::') && (_p0._1.ctor === '::')) && (_p0._1._1.ctor === '[]')) {
-		return _elm_lang$core$Maybe$Just(
-			{ctor: '_Tuple2', _0: _p0._0, _1: _p0._1._0});
+var _user$project$DeterminePackageLocations$versionLT = F2(
+	function (a, b) {
+		var _p0 = A2(_user$project$PackageInfo_Version$compare, a, b);
+		if (_p0.ctor === 'LT') {
+			return true;
+		} else {
+			return false;
+		}
+	});
+var _user$project$DeterminePackageLocations$versionGTE = F2(
+	function (a, b) {
+		return !A2(_user$project$DeterminePackageLocations$versionLT, a, b);
+	});
+var _user$project$DeterminePackageLocations$inRange = F2(
+	function (_p1, version) {
+		var _p2 = _p1;
+		return A2(_user$project$DeterminePackageLocations$versionGTE, version, _p2.minimum) && A2(_user$project$DeterminePackageLocations$versionLT, version, _p2.maximum);
+	});
+var _user$project$DeterminePackageLocations$getMostRecentValidVersion = F2(
+	function (versionRange, versionStrings) {
+		var versions = A2(
+			_elm_lang$core$List$map,
+			function (_p3) {
+				return A2(
+					_elm_lang$core$Result$withDefault,
+					A3(_user$project$PackageInfo_Version$Version, 0, 0, 0),
+					_user$project$PackageInfo_Version$fromString(_p3));
+			},
+			versionStrings);
+		return A3(
+			_elm_lang$core$List$foldl,
+			F2(
+				function (version, prev) {
+					var _p4 = A2(_user$project$DeterminePackageLocations$inRange, versionRange, version);
+					if (_p4 === true) {
+						return _elm_lang$core$Maybe$Just(version);
+					} else {
+						return prev;
+					}
+				}),
+			_elm_lang$core$Maybe$Nothing,
+			_elm_lang$core$List$reverse(versions));
+	});
+var _user$project$DeterminePackageLocations$finished = function (model) {
+	return A2(
+		_elm_lang$core$List$all,
+		_elm_community$maybe_extra$Maybe_Extra$isJust,
+		_elm_lang$core$Dict$values(
+			A2(_elm_lang$core$Debug$log, 'model', model)));
+};
+var _user$project$DeterminePackageLocations$splitPackageName = function (packageName) {
+	var _p5 = A2(_elm_lang$core$String$split, '/', packageName);
+	if (((_p5.ctor === '::') && (_p5._1.ctor === '::')) && (_p5._1._1.ctor === '[]')) {
+		return {ctor: '_Tuple2', _0: _p5._0, _1: _p5._1._0};
 	} else {
-		return _elm_lang$core$Maybe$Nothing;
+		return {ctor: '_Tuple2', _0: '', _1: ''};
 	}
 };
-var _user$project$DeterminePackageLocation$getPackageUsernameDir = function (_p1) {
-	var _p2 = _p1;
+var _user$project$DeterminePackageLocations$getPackageUsernameDir = function (_p6) {
+	var _p7 = _p6;
 	return _ucode$elm_path$Path_Posix$joinPath(
 		{
 			ctor: '::',
 			_0: './elm-stuff/packages/',
 			_1: {
 				ctor: '::',
-				_0: _p2._0,
+				_0: _p7._0,
 				_1: {
 					ctor: '::',
-					_0: _p2._1,
+					_0: _p7._1,
 					_1: {ctor: '[]'}
 				}
 			}
 		});
 };
-var _user$project$DeterminePackageLocation$getFilenamesInDir = _elm_lang$core$Native_Platform.outgoingPort(
+var _user$project$DeterminePackageLocations$getPackageDir = F2(
+	function (_p8, version) {
+		var _p9 = _p8;
+		return _ucode$elm_path$Path_Posix$joinPath(
+			{
+				ctor: '::',
+				_0: _user$project$DeterminePackageLocations$getPackageUsernameDir(
+					{ctor: '_Tuple2', _0: _p9._0, _1: _p9._1}),
+				_1: {
+					ctor: '::',
+					_0: version,
+					_1: {ctor: '[]'}
+				}
+			});
+	});
+var _user$project$DeterminePackageLocations$update = F2(
+	function (msg, model) {
+		var newModel = function () {
+			var _p10 = msg;
+			var _p12 = _p10._0.scope;
+			var _p11 = A4(_elm_lang$core$Debug$log, 'version', _user$project$DeterminePackageLocations$getMostRecentValidVersion, _p12.versionRange, _p10._0.filenames);
+			if (_p11.ctor === 'Just') {
+				var dir = A2(
+					_user$project$DeterminePackageLocations$getPackageDir,
+					_p12.package_,
+					_user$project$PackageInfo_Version$toString(_p11._0));
+				return A3(
+					_elm_lang$core$Dict$insert,
+					_p12.package_,
+					_elm_lang$core$Maybe$Just(dir),
+					model);
+			} else {
+				return model;
+			}
+		}();
+		var outValue = _user$project$DeterminePackageLocations$finished(newModel) ? _elm_lang$core$Maybe$Just(
+			A2(
+				_elm_lang$core$List$filterMap,
+				_elm_lang$core$Basics$identity,
+				_elm_lang$core$Dict$values(newModel))) : _elm_lang$core$Maybe$Nothing;
+		return {ctor: '_Tuple2', _0: newModel, _1: outValue};
+	});
+var _user$project$DeterminePackageLocations$getFilenamesInDir = _elm_lang$core$Native_Platform.outgoingPort(
 	'getFilenamesInDir',
 	function (v) {
-		return {path: v.path, scope: null};
+		return {
+			path: v.path,
+			scope: {
+				package_: [v.scope.package_._0, v.scope.package_._1],
+				versionRange: {
+					minimum: {major: v.scope.versionRange.minimum.major, minor: v.scope.versionRange.minimum.minor, patch: v.scope.versionRange.minimum.patch},
+					maximum: {major: v.scope.versionRange.maximum.major, minor: v.scope.versionRange.maximum.minor, patch: v.scope.versionRange.maximum.patch}
+				}
+			}
+		};
 	});
-var _user$project$DeterminePackageLocation$init = function (packageInfo) {
-	var cmds = A2(
-		_elm_lang$core$List$filterMap,
-		_elm_lang$core$Basics$identity,
+var _user$project$DeterminePackageLocations$init = function (packageInfo) {
+	var packages = A2(
+		_elm_lang$core$List$map,
+		function (_p13) {
+			var _p14 = _p13;
+			return {
+				$package: _user$project$DeterminePackageLocations$splitPackageName(_p14.name),
+				versionRange: _p14.versionRange
+			};
+		},
+		packageInfo.dependencies);
+	var model = _elm_lang$core$Dict$fromList(
 		A2(
 			_elm_lang$core$List$map,
-			function (_p3) {
-				var _p4 = _p3;
-				return A2(
-					_elm_lang$core$Maybe$map,
-					function (_p5) {
-						var _p6 = _p5;
-						return _user$project$DeterminePackageLocation$getFilenamesInDir(
-							{
-								path: _user$project$DeterminePackageLocation$getPackageUsernameDir(
-									{ctor: '_Tuple2', _0: _p6._0, _1: _p6._1}),
-								scope: {ctor: '_Tuple0'}
-							});
-					},
-					_user$project$DeterminePackageLocation$splitPackageName(_p4.name));
+			function (_p15) {
+				return function ($package) {
+					return {ctor: '_Tuple2', _0: $package, _1: _elm_lang$core$Maybe$Nothing};
+				}(
+					function (_) {
+						return _.$package;
+					}(_p15));
 			},
-			packageInfo.dependencies));
-	return A2(
-		_elm_lang$core$Platform_Cmd_ops['!'],
-		{ctor: '_Tuple0'},
-		cmds);
+			packages));
+	var cmds = A2(
+		_elm_lang$core$List$map,
+		function ($package) {
+			return _user$project$DeterminePackageLocations$getFilenamesInDir(
+				{
+					path: _user$project$DeterminePackageLocations$getPackageUsernameDir($package.$package),
+					scope: {package_: $package.$package, versionRange: $package.versionRange}
+				});
+		},
+		packages);
+	return A2(_elm_lang$core$Platform_Cmd_ops['!'], model, cmds);
 };
-var _user$project$DeterminePackageLocation$getFilenamesInDirResult = _elm_lang$core$Native_Platform.incomingPort(
+var _user$project$DeterminePackageLocations$getFilenamesInDirResult = _elm_lang$core$Native_Platform.incomingPort(
 	'getFilenamesInDirResult',
 	A2(
 		_elm_lang$core$Json_Decode$andThen,
@@ -10006,21 +10114,101 @@ var _user$project$DeterminePackageLocation$getFilenamesInDirResult = _elm_lang$c
 				A2(
 					_elm_lang$core$Json_Decode$field,
 					'scope',
-					_elm_lang$core$Json_Decode$null(
-						{ctor: '_Tuple0'})));
+					A2(
+						_elm_lang$core$Json_Decode$andThen,
+						function (package_) {
+							return A2(
+								_elm_lang$core$Json_Decode$andThen,
+								function (versionRange) {
+									return _elm_lang$core$Json_Decode$succeed(
+										{package_: package_, versionRange: versionRange});
+								},
+								A2(
+									_elm_lang$core$Json_Decode$field,
+									'versionRange',
+									A2(
+										_elm_lang$core$Json_Decode$andThen,
+										function (minimum) {
+											return A2(
+												_elm_lang$core$Json_Decode$andThen,
+												function (maximum) {
+													return _elm_lang$core$Json_Decode$succeed(
+														{minimum: minimum, maximum: maximum});
+												},
+												A2(
+													_elm_lang$core$Json_Decode$field,
+													'maximum',
+													A2(
+														_elm_lang$core$Json_Decode$andThen,
+														function (major) {
+															return A2(
+																_elm_lang$core$Json_Decode$andThen,
+																function (minor) {
+																	return A2(
+																		_elm_lang$core$Json_Decode$andThen,
+																		function (patch) {
+																			return _elm_lang$core$Json_Decode$succeed(
+																				{major: major, minor: minor, patch: patch});
+																		},
+																		A2(_elm_lang$core$Json_Decode$field, 'patch', _elm_lang$core$Json_Decode$int));
+																},
+																A2(_elm_lang$core$Json_Decode$field, 'minor', _elm_lang$core$Json_Decode$int));
+														},
+														A2(_elm_lang$core$Json_Decode$field, 'major', _elm_lang$core$Json_Decode$int))));
+										},
+										A2(
+											_elm_lang$core$Json_Decode$field,
+											'minimum',
+											A2(
+												_elm_lang$core$Json_Decode$andThen,
+												function (major) {
+													return A2(
+														_elm_lang$core$Json_Decode$andThen,
+														function (minor) {
+															return A2(
+																_elm_lang$core$Json_Decode$andThen,
+																function (patch) {
+																	return _elm_lang$core$Json_Decode$succeed(
+																		{major: major, minor: minor, patch: patch});
+																},
+																A2(_elm_lang$core$Json_Decode$field, 'patch', _elm_lang$core$Json_Decode$int));
+														},
+														A2(_elm_lang$core$Json_Decode$field, 'minor', _elm_lang$core$Json_Decode$int));
+												},
+												A2(_elm_lang$core$Json_Decode$field, 'major', _elm_lang$core$Json_Decode$int))))));
+						},
+						A2(
+							_elm_lang$core$Json_Decode$field,
+							'package_',
+							A2(
+								_elm_lang$core$Json_Decode$andThen,
+								function (x0) {
+									return A2(
+										_elm_lang$core$Json_Decode$andThen,
+										function (x1) {
+											return _elm_lang$core$Json_Decode$succeed(
+												{ctor: '_Tuple2', _0: x0, _1: x1});
+										},
+										A2(_elm_lang$core$Json_Decode$index, 1, _elm_lang$core$Json_Decode$string));
+								},
+								A2(_elm_lang$core$Json_Decode$index, 0, _elm_lang$core$Json_Decode$string))))));
 		},
 		A2(
 			_elm_lang$core$Json_Decode$field,
 			'filenames',
 			_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string))));
-var _user$project$DeterminePackageLocation$GetFilenamesInDirResultR = F2(
+var _user$project$DeterminePackageLocations$GetFilenamesInDirResultR = F2(
 	function (a, b) {
 		return {filenames: a, scope: b};
 	});
-var _user$project$DeterminePackageLocation$GetFilenamesInDirResult = function (a) {
+var _user$project$DeterminePackageLocations$GetFilenamesInDirResultScope = F2(
+	function (a, b) {
+		return {package_: a, versionRange: b};
+	});
+var _user$project$DeterminePackageLocations$GetFilenamesInDirResult = function (a) {
 	return {ctor: 'GetFilenamesInDirResult', _0: a};
 };
-var _user$project$DeterminePackageLocation$subscriptions = _user$project$DeterminePackageLocation$getFilenamesInDirResult(_user$project$DeterminePackageLocation$GetFilenamesInDirResult);
+var _user$project$DeterminePackageLocations$subscriptions = _user$project$DeterminePackageLocations$getFilenamesInDirResult(_user$project$DeterminePackageLocations$GetFilenamesInDirResult);
 
 var _user$project$Types$ImportMethod = F2(
 	function (a, b) {
@@ -11139,46 +11327,43 @@ var _user$project$Helpers$qualifiedNameToPath = function (name) {
 					A2(_elm_lang$core$String$split, '.', name)))));
 };
 
-var _user$project$ReadSourceFiles$update = F2(
-	function (msg, model) {
-		var _p0 = msg;
-		var _p1 = A2(_elm_lang$core$Debug$log, '', _p0._0);
-		return model;
-	});
-var _user$project$ReadSourceFiles$haveNotExhaustedAllOptions = function (dirStatuses) {
+var _user$project$ReadSourceFiles$haveNotExhaustedAllOptions = function (dirAttempts) {
 	return _elm_lang$core$List$head(
 		A2(
 			_elm_lang$core$List$filterMap,
 			_elm_lang$core$Basics$identity,
 			A2(
 				_elm_lang$core$List$map,
-				function (item) {
-					var _p2 = item.status;
-					if (_p2.ctor === 'DirNotOpenedYet') {
-						return _elm_lang$core$Maybe$Just(item.dirName);
+				function (_p0) {
+					var _p1 = _p0;
+					var _p2 = _p1._1;
+					if (_p2.ctor === 'DirNotAttemptedYet') {
+						return _elm_lang$core$Maybe$Just(_p1._0);
 					} else {
 						return _elm_lang$core$Maybe$Nothing;
 					}
 				},
-				dirStatuses)));
+				_elm_lang$core$Dict$toList(dirAttempts))));
 };
-var _user$project$ReadSourceFiles$atLeastOneSuccess = function (dirStatuses) {
+var _user$project$ReadSourceFiles$atLeastOneSuccess = function (dirAttempts) {
 	return _elm_lang$core$List$head(
 		A2(
 			_elm_lang$core$List$filterMap,
 			_elm_lang$core$Basics$identity,
 			A2(
 				_elm_lang$core$List$map,
-				function (item) {
-					var _p3 = item.status;
-					if (_p3.ctor === 'DirSuccess') {
-						return _elm_lang$core$Maybe$Just(item.dirName);
+				function (_p3) {
+					var _p4 = _p3;
+					var _p5 = _p4._1;
+					if (_p5.ctor === 'DirSuccess') {
+						return _elm_lang$core$Maybe$Just(_p4._0);
 					} else {
 						return _elm_lang$core$Maybe$Nothing;
 					}
 				},
-				dirStatuses)));
+				_elm_lang$core$Dict$toList(dirAttempts))));
 };
+var _user$project$ReadSourceFiles$init = _elm_lang$core$Dict$empty;
 var _user$project$ReadSourceFiles$readElmModule = _elm_lang$core$Native_Platform.outgoingPort(
 	'readElmModule',
 	function (v) {
@@ -11232,6 +11417,10 @@ var _user$project$ReadSourceFiles$readElmModuleResult = _elm_lang$core$Native_Pl
 						_1: {ctor: '[]'}
 					}
 				}))));
+var _user$project$ReadSourceFiles$ModuleStatus = F2(
+	function (a, b) {
+		return {sourceCode: a, dirAttempts: b};
+	});
 var _user$project$ReadSourceFiles$ReadElmModuleScope = F3(
 	function (a, b, c) {
 		return {path: a, dir: b, moduleName: c};
@@ -11246,7 +11435,21 @@ var _user$project$ReadSourceFiles$GetFilenamesInDirResultR = F2(
 	});
 var _user$project$ReadSourceFiles$DirFail = {ctor: 'DirFail'};
 var _user$project$ReadSourceFiles$DirSuccess = {ctor: 'DirSuccess'};
-var _user$project$ReadSourceFiles$DirNotOpenedYet = {ctor: 'DirNotOpenedYet'};
+var _user$project$ReadSourceFiles$updateDirAttempt = F2(
+	function (maybeSourceCode, maybeDirAttempt) {
+		return A2(
+			_elm_lang$core$Maybe$map,
+			function (_p6) {
+				var _p7 = A2(_elm_lang$core$Debug$log, 'maybeSourceCode', maybeSourceCode);
+				if (_p7.ctor === 'Just') {
+					return _user$project$ReadSourceFiles$DirSuccess;
+				} else {
+					return _user$project$ReadSourceFiles$DirFail;
+				}
+			},
+			maybeDirAttempt);
+	});
+var _user$project$ReadSourceFiles$DirNotAttemptedYet = {ctor: 'DirNotAttemptedYet'};
 var _user$project$ReadSourceFiles$HaveNotExhaustedAllOptions = function (a) {
 	return {ctor: 'HaveNotExhaustedAllOptions', _0: a};
 };
@@ -11256,24 +11459,27 @@ var _user$project$ReadSourceFiles$Success = function (a) {
 };
 var _user$project$ReadSourceFiles$moduleStatus = F2(
 	function (model, moduleName) {
-		var dirStatuses = A2(
+		var dirAttempts = A2(
 			_elm_lang$core$Maybe$withDefault,
-			{ctor: '[]'},
-			A2(_elm_lang$core$Dict$get, moduleName, model));
-		if (_elm_lang$core$Native_Utils.eq(
-			dirStatuses,
-			{ctor: '[]'})) {
+			_elm_lang$core$Dict$empty,
+			A2(
+				_elm_lang$core$Maybe$map,
+				function (_) {
+					return _.dirAttempts;
+				},
+				A2(_elm_lang$core$Dict$get, moduleName, model)));
+		if (_elm_lang$core$Native_Utils.eq(dirAttempts, _elm_lang$core$Dict$empty)) {
 			return _user$project$ReadSourceFiles$TotalFail;
 		} else {
-			var _p4 = _user$project$ReadSourceFiles$atLeastOneSuccess(dirStatuses);
-			if (_p4.ctor === 'Just') {
+			var _p8 = _user$project$ReadSourceFiles$atLeastOneSuccess(dirAttempts);
+			if (_p8.ctor === 'Just') {
 				return _user$project$ReadSourceFiles$Success(
-					{dirName: _p4._0});
+					{dirName: _p8._0});
 			} else {
-				var _p5 = _user$project$ReadSourceFiles$haveNotExhaustedAllOptions(dirStatuses);
-				if (_p5.ctor === 'Just') {
+				var _p9 = _user$project$ReadSourceFiles$haveNotExhaustedAllOptions(dirAttempts);
+				if (_p9.ctor === 'Just') {
 					return _user$project$ReadSourceFiles$HaveNotExhaustedAllOptions(
-						{nextDirName: _p5._0});
+						{nextDirName: _p9._0});
 				} else {
 					return _user$project$ReadSourceFiles$TotalFail;
 				}
@@ -11283,69 +11489,149 @@ var _user$project$ReadSourceFiles$moduleStatus = F2(
 var _user$project$ReadSourceFiles$moduleStatuses = function (model) {
 	return A2(
 		_elm_lang$core$List$map,
-		function (_p6) {
-			var _p7 = _p6;
-			var _p8 = _p7._0;
+		function (_p10) {
+			var _p11 = _p10;
+			var _p12 = _p11._0;
 			return {
 				ctor: '_Tuple2',
-				_0: _p8,
-				_1: A2(_user$project$ReadSourceFiles$moduleStatus, model, _p8)
+				_0: _p12,
+				_1: A2(_user$project$ReadSourceFiles$moduleStatus, model, _p12)
 			};
 		},
 		_elm_lang$core$Dict$toList(model));
 };
 var _user$project$ReadSourceFiles$getNextCmd = function (model) {
-	return _elm_lang$core$Platform_Cmd$batch(
-		A2(
-			_elm_lang$core$List$map,
-			function (_p9) {
-				var _p10 = _p9;
-				var _p13 = _p10._0;
-				var _p11 = _p10._1;
-				if (_p11.ctor === 'HaveNotExhaustedAllOptions') {
-					var _p12 = _p11._0.nextDirName;
-					var path = A2(
+	var cmds = A2(
+		_elm_lang$core$List$map,
+		function (_p13) {
+			var _p14 = _p13;
+			var _p17 = _p14._0;
+			var _p15 = _p14._1;
+			if (_p15.ctor === 'HaveNotExhaustedAllOptions') {
+				var _p16 = _p15._0.nextDirName;
+				var path = A2(
+					_elm_lang$core$Basics_ops['++'],
+					_p16,
+					A2(
 						_elm_lang$core$Basics_ops['++'],
-						_p12,
-						A2(
-							_elm_lang$core$Basics_ops['++'],
-							'/',
-							_user$project$Helpers$qualifiedNameToPath(_p13)));
-					return _user$project$ReadSourceFiles$readElmModule(
-						{
-							path: path,
-							scope: {path: path, dir: _p12, moduleName: _p13}
-						});
-				} else {
-					return _elm_lang$core$Platform_Cmd$none;
-				}
-			},
-			_user$project$ReadSourceFiles$moduleStatuses(model)));
+						'/',
+						_user$project$Helpers$qualifiedNameToPath(_p17)));
+				return _user$project$ReadSourceFiles$readElmModule(
+					{
+						path: path,
+						scope: {path: path, dir: _p16, moduleName: _p17}
+					});
+			} else {
+				return _elm_lang$core$Platform_Cmd$none;
+			}
+		},
+		_user$project$ReadSourceFiles$moduleStatuses(model));
+	var _p18 = A2(
+		_elm_lang$core$Debug$log,
+		'cmd length',
+		_elm_lang$core$List$length(cmds));
+	return _elm_lang$core$Platform_Cmd$batch(cmds);
 };
-var _user$project$ReadSourceFiles$init = F2(
-	function (moduleNames, dirNames) {
-		var model = _elm_lang$core$Dict$fromList(
+var _user$project$ReadSourceFiles$reallyInit = F2(
+	function (_p19, model) {
+		var _p20 = _p19;
+		var newModel = _elm_lang$core$Dict$fromList(
 			A2(
 				_elm_lang$core$List$map,
 				function (moduleName) {
 					return {
 						ctor: '_Tuple2',
 						_0: moduleName,
-						_1: A2(
-							_elm_lang$core$List$map,
-							function (dirName) {
-								return {dirName: dirName, status: _user$project$ReadSourceFiles$DirNotOpenedYet};
-							},
-							dirNames)
+						_1: {
+							dirAttempts: _elm_lang$core$Dict$fromList(
+								A2(
+									_elm_lang$core$List$map,
+									_elm_lang$core$Basics$flip(
+										F2(
+											function (v0, v1) {
+												return {ctor: '_Tuple2', _0: v0, _1: v1};
+											}))(_user$project$ReadSourceFiles$DirNotAttemptedYet),
+									_p20.dirNames)),
+							sourceCode: _elm_lang$core$Maybe$Nothing
+						}
 					};
 				},
-				moduleNames));
+				_p20.moduleNames));
+		var cmd = _user$project$ReadSourceFiles$getNextCmd(newModel);
 		return A2(
 			_elm_lang$core$Platform_Cmd_ops['!'],
-			model,
+			newModel,
 			{
 				ctor: '::',
-				_0: _user$project$ReadSourceFiles$getNextCmd(model),
+				_0: cmd,
+				_1: {ctor: '[]'}
+			});
+	});
+var _user$project$ReadSourceFiles$isFinished = function (model) {
+	return A2(
+		_elm_lang$core$List$all,
+		F2(
+			function (x, y) {
+				return _elm_lang$core$Native_Utils.eq(x, y);
+			})(true),
+		A2(
+			_elm_lang$core$List$map,
+			function (_p21) {
+				var _p22 = _p21;
+				var _p23 = _p22._1;
+				if (_p23.ctor === 'Success') {
+					return true;
+				} else {
+					return false;
+				}
+			},
+			_user$project$ReadSourceFiles$moduleStatuses(model)));
+};
+var _user$project$ReadSourceFiles$getResult = function (model) {
+	return _user$project$ReadSourceFiles$isFinished(model) ? _elm_lang$core$Maybe$Just(
+		A2(
+			_elm_lang$core$Dict$map,
+			F2(
+				function (_p24, moduleStatus) {
+					return A2(_elm_lang$core$Maybe$withDefault, '', moduleStatus.sourceCode);
+				}),
+			model)) : _elm_lang$core$Maybe$Nothing;
+};
+var _user$project$ReadSourceFiles$update = F2(
+	function (msg, model) {
+		var _p25 = false;
+		var _p26 = A2(_elm_lang$core$Debug$log, 'ReadSoureFiles.update', true);
+		var _p27 = msg;
+		var _p30 = _p27._0.scope;
+		var _p29 = _p27._0.contents;
+		var newModel = A3(
+			_elm_lang$core$Dict$update,
+			_p30.moduleName,
+			_elm_lang$core$Maybe$map(
+				function (moduleStatus) {
+					return _elm_lang$core$Native_Utils.update(
+						moduleStatus,
+						{
+							dirAttempts: A3(
+								_elm_lang$core$Dict$update,
+								_p30.dir,
+								_user$project$ReadSourceFiles$updateDirAttempt(_p29),
+								moduleStatus.dirAttempts),
+							sourceCode: _p29
+						});
+				}),
+			model);
+		var finished = A2(
+			_elm_lang$core$Debug$log,
+			'result',
+			_user$project$ReadSourceFiles$getResult(newModel));
+		var _p28 = A2(_elm_lang$core$Debug$log, 'scope', _p30);
+		return A2(
+			_elm_lang$core$Platform_Cmd_ops['!'],
+			newModel,
+			{
+				ctor: '::',
+				_0: _user$project$ReadSourceFiles$getNextCmd(newModel),
 				_1: {ctor: '[]'}
 			});
 	});
@@ -11368,10 +11654,55 @@ var _user$project$Main$exitApp = _elm_lang$core$Native_Platform.outgoingPort(
 	function (v) {
 		return v;
 	});
+var _user$project$Main$externalStop = _elm_lang$core$Native_Platform.incomingPort(
+	'externalStop',
+	_elm_lang$core$Json_Decode$null(
+		{ctor: '_Tuple0'}));
+var _user$project$Main$Flags = F2(
+	function (a, b) {
+		return {elmPackageContents: a, subjectSourceCode: b};
+	});
+var _user$project$Main$Model = F6(
+	function (a, b, c, d, e, f) {
+		return {packageInfo: a, readSourceFiles: b, determinePackageLocations: c, packageDirs: d, sourceFiles: e, subjectSourceCode: f};
+	});
+var _user$project$Main$DeterminePackageLocationsMsg = function (a) {
+	return {ctor: 'DeterminePackageLocationsMsg', _0: a};
+};
+var _user$project$Main$init = function (_p1) {
+	var _p2 = _p1;
+	var packageInfoResult = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p2.elmPackageContents);
+	var _p3 = packageInfoResult;
+	if (_p3.ctor === 'Ok') {
+		var _p5 = _p3._0;
+		var _p4 = _user$project$DeterminePackageLocations$init(_p5);
+		var determinePackageLocationsModel = _p4._0;
+		var determinePackageLocationsCmd = _p4._1;
+		return A2(
+			_elm_lang$core$Platform_Cmd_ops['!'],
+			{subjectSourceCode: _p2.subjectSourceCode, packageInfo: _p5, readSourceFiles: _user$project$ReadSourceFiles$init, sourceFiles: _elm_lang$core$Dict$empty, determinePackageLocations: determinePackageLocationsModel, packageDirs: _elm_lang$core$Maybe$Nothing},
+			{
+				ctor: '::',
+				_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$DeterminePackageLocationsMsg, determinePackageLocationsCmd),
+				_1: {ctor: '[]'}
+			});
+	} else {
+		var err2 = A2(_elm_lang$core$Basics_ops['++'], 'Invalid elm-package.json.\n\n ', _p3._0);
+		return _elm_lang$core$Native_Utils.crash(
+			'Main',
+			{
+				start: {line: 95, column: 21},
+				end: {line: 95, column: 32}
+			})(err2);
+	}
+};
+var _user$project$Main$ReadSourceFilesMsg = function (a) {
+	return {ctor: 'ReadSourceFilesMsg', _0: a};
+};
 var _user$project$Main$update = F2(
 	function (msg, model) {
-		var _p1 = A2(_elm_lang$core$Debug$log, 'msg', msg);
-		switch (_p1.ctor) {
+		var _p6 = msg;
+		switch (_p6.ctor) {
 			case 'Stop':
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
@@ -11391,73 +11722,55 @@ var _user$project$Main$update = F2(
 						_1: {ctor: '[]'}
 					});
 			case 'ReadSourceFilesMsg':
+				var _p7 = A2(_user$project$ReadSourceFiles$update, _p6._0, model.readSourceFiles);
+				var readSourceFiles = _p7._0;
+				var readSourceFilesCmd = _p7._1;
+				var newModel = _elm_lang$core$Native_Utils.update(
+					model,
+					{readSourceFiles: readSourceFiles});
+				var _p8 = A2(_elm_lang$core$Debug$log, 'ReadSourceFilesMsg', true);
+				return A2(
+					_elm_lang$core$Platform_Cmd_ops['!'],
+					newModel,
+					{
+						ctor: '::',
+						_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ReadSourceFilesMsg, readSourceFilesCmd),
+						_1: {ctor: '[]'}
+					});
+			default:
+				var modulesToParse = _user$project$FindModulesToParse$getModulesToParse(
+					_user$project$FirstPass$parseModule(model.subjectSourceCode));
+				var _p9 = A2(_user$project$DeterminePackageLocations$update, _p6._0, model.determinePackageLocations);
+				var determinePackageLocations = _p9._0;
+				var maybePackageLocations = _p9._1;
+				var _p10 = function () {
+					var _p11 = maybePackageLocations;
+					if (_p11.ctor === 'Just') {
+						return A2(
+							_user$project$ReadSourceFiles$reallyInit,
+							{
+								dirNames: A2(_elm_lang$core$Basics_ops['++'], _p11._0, model.packageInfo.sourceDirectories),
+								moduleNames: modulesToParse
+							},
+							model.readSourceFiles);
+					} else {
+						return {ctor: '_Tuple2', _0: model.readSourceFiles, _1: _elm_lang$core$Platform_Cmd$none};
+					}
+				}();
+				var readSourceFiles = _p10._0;
+				var readSourceFilesCmd = _p10._1;
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
 					_elm_lang$core$Native_Utils.update(
 						model,
-						{
-							readSourceFilesProgress: A2(_user$project$ReadSourceFiles$update, _p1._0, model.readSourceFilesProgress)
-						}),
-					{ctor: '[]'});
-			default:
-				var _p2 = A2(_elm_lang$core$Debug$log, 'dplsMsg', _p1._0);
-				return A2(
-					_elm_lang$core$Platform_Cmd_ops['!'],
-					model,
-					{ctor: '[]'});
+						{determinePackageLocations: determinePackageLocations, packageDirs: maybePackageLocations, readSourceFiles: readSourceFiles}),
+					{
+						ctor: '::',
+						_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ReadSourceFilesMsg, readSourceFilesCmd),
+						_1: {ctor: '[]'}
+					});
 		}
 	});
-var _user$project$Main$externalStop = _elm_lang$core$Native_Platform.incomingPort(
-	'externalStop',
-	_elm_lang$core$Json_Decode$null(
-		{ctor: '_Tuple0'}));
-var _user$project$Main$Flags = F2(
-	function (a, b) {
-		return {elmPackageContents: a, viewModuleContents: b};
-	});
-var _user$project$Main$Model = F3(
-	function (a, b, c) {
-		return {packageInfo: a, readSourceFilesProgress: b, sourceFiles: c};
-	});
-var _user$project$Main$DeterminePackageLocationMsg = function (a) {
-	return {ctor: 'DeterminePackageLocationMsg', _0: a};
-};
-var _user$project$Main$init = function (_p3) {
-	var _p4 = _p3;
-	var packageInfoResult = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p4.elmPackageContents);
-	var _p5 = packageInfoResult;
-	if (_p5.ctor === 'Ok') {
-		var _p8 = _p5._0;
-		var srcDirs = _p8.sourceDirectories;
-		var modulesToParse = _user$project$FindModulesToParse$getModulesToParse(
-			_user$project$FirstPass$parseModule(_p4.viewModuleContents));
-		var _p6 = A2(_user$project$ReadSourceFiles$init, modulesToParse, srcDirs);
-		var readSourceFilesProgress = _p6._0;
-		var readSourceFilesProgressCmd = _p6._1;
-		var _p7 = _user$project$DeterminePackageLocation$init(_p8);
-		var determinePackageLocationModel = _p7._0;
-		var determinePackageLocationCmd = _p7._1;
-		return A2(
-			_elm_lang$core$Platform_Cmd_ops['!'],
-			{packageInfo: _p8, readSourceFilesProgress: readSourceFilesProgress, sourceFiles: _elm_lang$core$Dict$empty},
-			{
-				ctor: '::',
-				_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$DeterminePackageLocationMsg, determinePackageLocationCmd),
-				_1: {ctor: '[]'}
-			});
-	} else {
-		var err2 = A2(_elm_lang$core$Basics_ops['++'], 'Invalid elm-package.json.\n\n ', _p5._0);
-		return _elm_lang$core$Native_Utils.crash(
-			'Main',
-			{
-				start: {line: 112, column: 21},
-				end: {line: 112, column: 32}
-			})(err2);
-	}
-};
-var _user$project$Main$ReadSourceFilesMsg = function (a) {
-	return {ctor: 'ReadSourceFilesMsg', _0: a};
-};
 var _user$project$Main$Abort = {ctor: 'Abort'};
 var _user$project$Main$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$batch(
@@ -11470,7 +11783,7 @@ var _user$project$Main$subscriptions = function (model) {
 				_0: A2(_elm_lang$core$Platform_Sub$map, _user$project$Main$ReadSourceFilesMsg, _user$project$ReadSourceFiles$subscriptions),
 				_1: {
 					ctor: '::',
-					_0: A2(_elm_lang$core$Platform_Sub$map, _user$project$Main$DeterminePackageLocationMsg, _user$project$DeterminePackageLocation$subscriptions),
+					_0: A2(_elm_lang$core$Platform_Sub$map, _user$project$Main$DeterminePackageLocationsMsg, _user$project$DeterminePackageLocations$subscriptions),
 					_1: {ctor: '[]'}
 				}
 			}
@@ -11483,11 +11796,11 @@ var _user$project$Main$main = _elm_lang$core$Platform$programWithFlags(
 		function (elmPackageContents) {
 			return A2(
 				_elm_lang$core$Json_Decode$andThen,
-				function (viewModuleContents) {
+				function (subjectSourceCode) {
 					return _elm_lang$core$Json_Decode$succeed(
-						{elmPackageContents: elmPackageContents, viewModuleContents: viewModuleContents});
+						{elmPackageContents: elmPackageContents, subjectSourceCode: subjectSourceCode});
 				},
-				A2(_elm_lang$core$Json_Decode$field, 'viewModuleContents', _elm_lang$core$Json_Decode$string));
+				A2(_elm_lang$core$Json_Decode$field, 'subjectSourceCode', _elm_lang$core$Json_Decode$string));
 		},
 		A2(_elm_lang$core$Json_Decode$field, 'elmPackageContents', _elm_lang$core$Json_Decode$string)));
 var _user$project$Main$Stop = {ctor: 'Stop'};
