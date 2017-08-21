@@ -98,7 +98,7 @@ parseBlock rawBlock =
 
         TypeDefinition string ->
             parseUnion string
-                |> Result.map Union
+                |> Result.map UnionBlock
 
         TypeAnnotationBlock string ->
             parseTypeAnnotation string
