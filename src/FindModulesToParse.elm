@@ -14,6 +14,9 @@ import Set exposing (Set)
 import ImportStatement exposing (rawNameToQualifiedName, isExplicitlyInImport)
 
 
+-- So instead of this, it could return a dict of moduleName: type
+
+
 getModulesToParse : List Block -> List String
 getModulesToParse blocks =
     let
@@ -50,9 +53,12 @@ getAllExternalNames blocks =
         blocks
             |> filterTypeExpressions
             |> List.concatMap (getExternalNames localNames)
-            -- remove duplicates
-            |> Set.fromList
-            |> Set.toList
+            |> removeDuplicates
+
+
+removeDuplicates : List comparable -> List comparable
+removeDuplicates l =
+    l |> Set.fromList |> Set.toList
 
 
 filterByImports : List Block -> List UserImport
