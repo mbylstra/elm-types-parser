@@ -2,11 +2,12 @@ module FindModulesToParse exposing (..)
 
 import Types
     exposing
-        ( Block(TypeAnnotation, TypeAliasDefinition, UnionBlock, UserImport)
-        , Type(Var, Lambda, Tuple, Type, Record, UnionDefinition)
+        ( Block(TypeAnnotation, TypeAliasDefinition, Union, UserImport)
+        , Type(Var, Lambda, Tuple, Type, Record)
         , TypeAnnotation
         , TypeAliasDefinition
         , UserImport
+        , Union
         )
 import Maybe.Extra exposing (unwrap)
 import Set exposing (Set)
@@ -84,7 +85,7 @@ filterTypeExpressions =
                 TypeAliasDefinition ( _, tipe ) ->
                     [ tipe ]
 
-                UnionBlock ( _, typeConstructors ) ->
+                Union ( _, typeConstructors ) ->
                     typeConstructors
                         |> List.concatMap (Tuple.second)
 
@@ -106,7 +107,7 @@ getLocalNames blocks =
                     TypeAliasDefinition ( name, _ ) ->
                         Just name
 
-                    UnionBlock ( name, _ ) ->
+                    Union ( name, _ ) ->
                         Just name
 
                     _ ->
@@ -134,9 +135,6 @@ getExternalNames localNames tipe =
         Record fields _ ->
             fields
                 |> List.concatMap (Tuple.second >> (getExternalNames localNames))
-
-        UnionDefinition _ ->
-            []
 
 
 coreTypes : List String

@@ -76,9 +76,6 @@ generateData tipe =
                        )
                     ++ "}"
 
-        UnionDefinition _ ->
-            Debug.crash "Union type generation is not supported yet"
-
 
 splitIntoBlocks : String -> List String
 splitIntoBlocks elmCode =

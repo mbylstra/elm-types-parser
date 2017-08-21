@@ -3,7 +3,7 @@ module Types exposing (..)
 
 type Block
     = TypeAliasDefinition TypeAliasDefinition
-    | UnionBlock Union
+    | Union Union
     | UserImport UserImport
     | TypeAnnotation TypeAnnotation
     | IgnoreBlock
@@ -15,11 +15,6 @@ type Type
     | Tuple (List Type)
     | Type String (List Type)
     | Record (List ( String, Type )) (Maybe String)
-    | UnionDefinition Union
-
-
-
--- | Union Union
 
 
 type alias TypeConstructor =
