@@ -63,7 +63,7 @@ getExternalNames ({ viewFunctions, typeAliases, unionTypes } as model) =
             viewFunctions |> Dict.values |> List.concatMap getNames
     in
         allNames
-            |> List.filter (isLocalName model >> not)
+            |> List.filter (isExternalName model)
 
 
 getViewFunctions : List Block -> Dict Name Type
@@ -114,11 +114,16 @@ getUnionTypes blocks =
         |> Dict.fromList
 
 
-isLocalName : Model -> String -> Bool
-isLocalName model name =
-    Dict.member name model.unionTypes
-        || Dict.member name model.typeAliases
-        || Dict.member name model.viewFunctions
+isExternalName : Model -> String -> Bool
+isExternalName model name =
+    if String.contains "." name then
+        True
+    else
+        not <|
+            (Dict.member name model.unionTypes
+                || Dict.member name model.typeAliases
+                || Dict.member name model.viewFunctions
+            )
 
 
 getNames : Type -> List String
