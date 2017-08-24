@@ -127,6 +127,17 @@ listing xs =
 --     importMethodn
 
 
+{-| Convert a string such as Json.Decode.field to a structure such as
+{ name = "field"
+, modulePath = ["Json", "Decode" ]
+}
+
+Note that this does not do any resolution to figure out the full path based
+on import statements.
+Eg: "field" will just be converted to { name = "field", modulePath = [] } even
+if there is import Json.Decode exposing (field)
+
+-}
 rawNameToQualifiedName : String -> QualifiedName
 rawNameToQualifiedName rawName =
     rawName

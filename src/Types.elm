@@ -26,7 +26,11 @@ type alias TypeConstructorArgs =
 
 
 type alias Union =
-    ( String, List TypeConstructor )
+    ( String, UnionDefinition )
+
+
+type alias UnionDefinition =
+    List TypeConstructor
 
 
 type alias TypeAliasDefinition =
