@@ -1,7 +1,7 @@
 port module Main exposing (..)
 
 import Dict exposing (Dict)
-import FindModulesToParse exposing (getModulesToParse)
+import DetermineWhichModulesToLoad
 import FirstPass exposing (parseModule)
 import Json.Decode
 import PackageInfo exposing (PackageInfo)
@@ -130,17 +130,18 @@ update msg model =
                 ( determinePackageLocations, maybePackageLocations ) =
                     DeterminePackageLocations.update dplMsg model.determinePackageLocations
 
-                modulesToParse =
+                modulesToLoad =
                     model.subjectSourceCode
                         |> parseModule
-                        |> getModulesToParse
+                        |> DetermineWhichModulesToLoad.doIt
+                        |> .modulesToLoad
 
                 ( readSourceFiles, readSourceFilesCmd ) =
                     case maybePackageLocations of
                         Just packageLocations ->
                             ReadSourceFiles.reallyInit
                                 { dirNames = packageLocations ++ model.packageInfo.sourceDirectories
-                                , moduleNames = modulesToParse
+                                , moduleNames = modulesToLoad
                                 }
                                 model.readSourceFiles
 
