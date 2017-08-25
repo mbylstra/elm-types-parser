@@ -1,13 +1,11 @@
 module DetermineWhichModulesToLoadTest exposing (..)
 
+import DetermineWhichModulesToLoad exposing (doIt, getExternalNames, handleTypeName)
+import Dict
 import Expect exposing (Expectation, equalSets)
+import FirstPass exposing (parseModule)
 import Test exposing (..)
-import DetermineWhichModulesToLoad
-    exposing
-        ( getExternalNames
-        , handleTypeName
-        , doIt
-        )
+import Types exposing (Type(Type, Lambda))
 
 
 -- import FirstPass exposing (parseModule)
@@ -35,7 +33,7 @@ suite =
                     |> getExternalNames
                     |> Expect.equal
                         []
-        , test "an external alias" <|
+        , test "an external type alias" <|
             \_ ->
                 let
                     viewFunction =
@@ -48,37 +46,55 @@ suite =
                         |> getExternalNames
                         |> Expect.equal
                             [ "SomeAlias" ]
+        , test "local type alias" <|
+            \_ ->
+                let
+                    viewFunction =
+                        ( "view", Lambda (Type "SomeAlias" []) (Type "Html" []) )
 
-        -- , test "lambda" <|
-        --     \_ ->
-        --         ([ "type alias Alias = ModuleA.Foo"
-        --          , "func : Alias -> C.D"
-        --          ]
-        --             |> String.join "\n"
-        --         )
-        --             |> parseModule
-        --             |> getExternalNames
-        --             |> Expect.equal
-        --                 [ "C.D", "ModuleA.Foo" ]
-        -- , test "handleTypeName" <|
-        --     \_ ->
-        --         "ModuleB.Foo"
-        --             |> handleTypeName []
-        --             |> Expect.equal
-        --                 (Just
-        --                     "ModuleB.Foo"
-        --                 )
-        -- , test "getModulesToParse" <|
-        --     \_ ->
-        --         ([ "import A exposing (Bar)"
-        --          , "import B.C"
-        --          , "import C.D as D"
-        --          , "func : B.C.Foo -> Bar -> Int -> D.Baz"
-        --          ]
-        --             |> String.join "\n"
-        --         )
-        --             |> parseModule
-        --             |> doIt
-        --             |> Expect.equal
-        --                 [ "A", "B.C", "C.D" ]
+                    typeAlias =
+                        ( "SomeAlias", (Type "Int" []) )
+                in
+                    { viewFunctions = Dict.fromList <| [ viewFunction ]
+                    , typeAliases = Dict.fromList <| [ typeAlias ]
+                    , unionTypes = Dict.empty
+                    }
+                        |> getExternalNames
+                        |> Expect.equal
+                            []
+        , test "local union type" <|
+            \_ ->
+                let
+                    viewFunction =
+                        ( "view", Lambda (Type "SomeUnionType" []) (Type "Html" []) )
+
+                    unionType =
+                        ( "SomeUnionType"
+                        , [ ( "TypeConstructorA", [] )
+                          , ( "TypeConstructorB", [] )
+                          ]
+                        )
+                in
+                    { viewFunctions = Dict.fromList <| [ viewFunction ]
+                    , typeAliases = Dict.empty
+                    , unionTypes = Dict.fromList <| [ unionType ]
+                    }
+                        |> getExternalNames
+                        |> Expect.equal
+                            []
+        , test "getModulesToParse" <|
+            \_ ->
+                ([ "import A exposing (Foo)"
+                 , "import B.C"
+                 , "import C.D as D"
+                 , "import E"
+                 , "func : Foo -> A.Baz -> B.C.Baz -> D.Qux -> Html Msg"
+                 ]
+                    |> String.join "\n"
+                )
+                    |> parseModule
+                    |> doIt
+                    |> .modulesToLoad
+                    |> Expect.equal
+                        [ "A", "B.C", "C.D" ]
         ]

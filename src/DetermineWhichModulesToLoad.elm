@@ -20,14 +20,14 @@ type alias Name =
     String
 
 
-type alias Model =
+type alias State =
     { viewFunctions : Dict Name Type
     , typeAliases : Dict Name Type
     , unionTypes : Dict Name UnionDefinition
     }
 
 
-doIt : List Block -> { model : Model, unresolvedModules : List String }
+doIt : List Block -> { model : State, modulesToLoad : List String }
 doIt blocks =
     let
         model =
@@ -44,7 +44,7 @@ doIt blocks =
             filterByImports blocks |> List.reverse
     in
         { model = model
-        , unresolvedModules =
+        , modulesToLoad =
             externalNames
                 |> List.concatMap
                     (\qualifiedName ->
@@ -56,7 +56,7 @@ doIt blocks =
         }
 
 
-getExternalNames : Model -> List String
+getExternalNames : State -> List String
 getExternalNames ({ viewFunctions, typeAliases, unionTypes } as model) =
     let
         allNames =
@@ -114,7 +114,7 @@ getUnionTypes blocks =
         |> Dict.fromList
 
 
-isExternalName : Model -> String -> Bool
+isExternalName : State -> String -> Bool
 isExternalName model name =
     if String.contains "." name then
         True
@@ -179,7 +179,7 @@ getNamesHelper tipe =
 
 -- This turned out to be pointless as we don't actually need to substitute anything. Rather
 -- we just need to keep a lookup dict.
--- substituteTypes : Model -> Type -> { tipe : Type, pendingNames : List String }
+-- substituteTypes : State -> Type -> { tipe : Type, pendingNames : List String }
 -- substituteTypes model tipe =
 --     case tipe of
 --         Var _ ->
