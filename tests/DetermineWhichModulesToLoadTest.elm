@@ -27,8 +27,8 @@ suite =
         [ test "most basic" <|
             \_ ->
                 { viewFunctions = Dict.fromList <| [ ( "view", Type "Html" [] ) ]
-                , typeAliases = Dict.empty
-                , unionTypes = Dict.empty
+                , localTypeAliases = Dict.empty
+                , localUnionTypes = Dict.empty
                 }
                     |> getExternalNames
                     |> Expect.equal
@@ -40,8 +40,8 @@ suite =
                         ( "view", Lambda (Type "SomeAlias" []) (Type "Html" []) )
                 in
                     { viewFunctions = Dict.fromList <| [ viewFunction ]
-                    , typeAliases = Dict.empty
-                    , unionTypes = Dict.empty
+                    , localTypeAliases = Dict.empty
+                    , localUnionTypes = Dict.empty
                     }
                         |> getExternalNames
                         |> Expect.equal
@@ -56,8 +56,8 @@ suite =
                         ( "SomeAlias", (Type "Int" []) )
                 in
                     { viewFunctions = Dict.fromList <| [ viewFunction ]
-                    , typeAliases = Dict.fromList <| [ typeAlias ]
-                    , unionTypes = Dict.empty
+                    , localTypeAliases = Dict.fromList <| [ typeAlias ]
+                    , localUnionTypes = Dict.empty
                     }
                         |> getExternalNames
                         |> Expect.equal
@@ -76,8 +76,8 @@ suite =
                         )
                 in
                     { viewFunctions = Dict.fromList <| [ viewFunction ]
-                    , typeAliases = Dict.empty
-                    , unionTypes = Dict.fromList <| [ unionType ]
+                    , localTypeAliases = Dict.empty
+                    , localUnionTypes = Dict.fromList <| [ unionType ]
                     }
                         |> getExternalNames
                         |> Expect.equal

@@ -4,7 +4,7 @@ module Types exposing (..)
 type Block
     = TypeAliasDefinition TypeAliasDefinition
     | Union Union
-    | UserImport UserImport
+    | Import ImportStatement
     | TypeAnnotation TypeAnnotation
     | IgnoreBlock
 
@@ -37,31 +37,22 @@ type alias TypeAliasDefinition =
     ( String, Type )
 
 
-type alias UserImport =
-    ( RawName, ImportMethod )
+type alias ImportStatement =
+    { dottedModulePath : String
+    , maybeAlias : Maybe String
+    , exposedNames : Listing
+    }
 
 
 type alias TypeAnnotation =
     ( String, Type )
 
 
-type alias RawName =
+type alias FullModulePath =
     String
-
-
-type alias ImportMethod =
-    { alias : Maybe String
-    , exposedNames : Listing
-    }
 
 
 type alias Listing =
     { explicits : List String
     , open : Bool
-    }
-
-
-type alias QualifiedName =
-    { name : String
-    , modulePath : List String
     }

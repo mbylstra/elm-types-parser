@@ -3,7 +3,11 @@ module FirstPass exposing (..)
 import ElmTypesParser exposing (parseTypeAlias, parseTypeAnnotation, parseUnion)
 import ImportStatement exposing (importStatement, parseImportStatement)
 import Parser
-import Types exposing (Block(..))
+import Types
+    exposing
+        ( Block(Import, IgnoreBlock, TypeAliasDefinition, Union, TypeAnnotation)
+        , ImportStatement
+        )
 
 
 type RawBlocks
@@ -90,7 +94,7 @@ parseBlock rawBlock =
 
         ImportStatementBlock string ->
             parseImportStatement string
-                |> Result.map UserImport
+                |> Result.map Import
 
         TypeAliasDefinitionBlock string ->
             parseTypeAlias string

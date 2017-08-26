@@ -11559,14 +11559,12 @@ var _user$project$ReadSourceFiles$update = F2(
 		var _p44 = _user$project$ReadSourceFiles$getNextCmds(newModel);
 		var model3 = _p44._0;
 		var cmds = _p44._1;
-		var finished = A2(
-			_elm_lang$core$Debug$log,
-			'\n\n\nresult ********************\n\n',
-			A2(
-				_elm_lang$core$Result$map,
-				_elm_lang$core$Dict$keys,
-				_user$project$ReadSourceFiles$getResult(model3)));
-		return A2(_elm_lang$core$Platform_Cmd_ops['!'], model3, cmds);
+		var result = _user$project$ReadSourceFiles$getResult(model3);
+		return {
+			model: model3,
+			cmd: _elm_lang$core$Platform_Cmd$batch(cmds),
+			result: _elm_lang$core$Result$toMaybe(result)
+		};
 	});
 var _user$project$ReadSourceFiles$DirNotAttemptedYet = {ctor: 'DirNotAttemptedYet'};
 var _user$project$ReadSourceFiles$init = function (_p47) {
@@ -11696,18 +11694,17 @@ var _user$project$Main$update = F2(
 						_1: {ctor: '[]'}
 					});
 			default:
-				var _p8 = A2(_user$project$ReadSourceFiles$update, _p7._0, model.readSourceFiles);
-				var readSourceFiles = _p8._0;
-				var readSourceFilesCmd = _p8._1;
+				var readSourceFilesReturn = A2(_user$project$ReadSourceFiles$update, _p7._0, model.readSourceFiles);
 				var newModel = _elm_lang$core$Native_Utils.update(
 					model,
-					{readSourceFiles: readSourceFiles});
+					{readSourceFiles: readSourceFilesReturn.model});
+				var _p8 = A2(_elm_lang$core$Debug$log, '\n\n\nreturn:\n', readSourceFilesReturn.result);
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
 					newModel,
 					{
 						ctor: '::',
-						_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ReadSourceFilesMsg, readSourceFilesCmd),
+						_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ReadSourceFilesMsg, readSourceFilesReturn.cmd),
 						_1: {ctor: '[]'}
 					});
 		}

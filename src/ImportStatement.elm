@@ -1,29 +1,44 @@
 module ImportStatement exposing (..)
 
 import Parser exposing (Count(AtLeast), Parser, zeroOrMore, (|.), (|=))
-import ElmTypesParser exposing (qualifiedCapVar, whitespace, lowVar, capVar, someWhitespace)
-import Types exposing (..)
+import ElmTypesParser
+    exposing
+        ( qualifiedCapVar
+        , whitespace
+        , lowVar
+        , capVar
+        , someWhitespace
+        )
+import Types
+    exposing
+        ( ImportStatement
+        , Listing
+        )
 import List.Extra
 
 
-parseImportStatement : String -> Result Parser.Error UserImport
+type alias StructuredRawName =
+    { name : String
+    , modulePath : List String
+    }
+
+
+parseImportStatement : String -> Result Parser.Error ImportStatement
 parseImportStatement string =
     Parser.run importStatement string
 
 
-importStatement : Parser UserImport
+importStatement : Parser ImportStatement
 importStatement =
     Parser.succeed
-        (\name maybeAlias exposedNames ->
-            ( name, { alias = maybeAlias, exposedNames = exposedNames } )
-        )
+        ImportStatement
         |= importStatementName
         |= importAlias
         |= exposedNames
 
 
 
--- importStatement : Parser UserImport
+-- importStatement : Parser ImportStatement
 -- importStatement =
 --     Parser.succeed
 --         (\name exposedNames ->
@@ -119,11 +134,11 @@ listing xs =
 
 
 -- Lookup ----------------------------------------------------------------------
--- findModule : List UserImport -> QualifiedName -> String
+-- findModule : List ImportStatement -> QualifiedName -> String
 -- findModule imports { name, modulePath } =
 --     let
---         reversedImports = List.reverse imports
---         _findModule : UserImport ->
+--         reversedImportStatements = List.reverse imports
+--         _findModule : ImportStatement ->
 --     importMethodn
 
 
@@ -138,8 +153,8 @@ Eg: "field" will just be converted to { name = "field", modulePath = [] } even
 if there is import Json.Decode exposing (field)
 
 -}
-rawNameToQualifiedName : String -> QualifiedName
-rawNameToQualifiedName rawName =
+rawNameToStructured : String -> StructuredRawName
+rawNameToStructured rawName =
     rawName
         |> String.split "."
         |> List.reverse
@@ -148,41 +163,56 @@ rawNameToQualifiedName rawName =
         |> Maybe.withDefault { name = "", modulePath = [] }
 
 
-modulePathToString : List String -> String
-modulePathToString segments =
-    String.join "." segments
-
-
-isExplicitlyInImport : QualifiedName -> UserImport -> Maybe String
-isExplicitlyInImport { name, modulePath } ( rawName, { alias, exposedNames } ) =
+isExplicitlyInImportStatement :
+    String
+    -> ImportStatement
+    -> Maybe { rawDottedName : String, dottedModulePath : String, name : String }
+isExplicitlyInImportStatement rawDottedName { dottedModulePath, maybeAlias, exposedNames } =
     let
-        modulePathString =
-            modulePathToString modulePath
-    in
-        if modulePathString == rawName then
-            Just rawName
-        else
-            let
-                maybeName =
-                    case alias of
-                        Just theAlias ->
-                            if theAlias == modulePathString then
-                                Just rawName
-                            else
-                                Nothing
-
-                        Nothing ->
-                            Nothing
-            in
-                case maybeName of
+        return =
+            if rawNameDottedModulePath == dottedModulePath then
+                Just
+                    { rawDottedName = rawDottedName
+                    , dottedModulePath = dottedModulePath
+                    , name = structuredRawName.name
+                    }
+            else
+                case maybeAlias of
                     Just theAlias ->
-                        Just theAlias
+                        if theAlias == rawNameDottedModulePath then
+                            Just
+                                { rawDottedName = rawDottedName
+                                , dottedModulePath = dottedModulePath
+                                , name = structuredRawName.name
+                                }
+                        else
+                            handleAliasDoesntMatch
 
                     Nothing ->
-                        if modulePath == [] then
-                            if exposedNames.explicits |> List.member name then
-                                Just rawName
-                            else
-                                Nothing
-                        else
-                            Nothing
+                        handleAliasDoesntMatch
+
+        rawNameDottedModulePath =
+            (structuredRawName.modulePath |> toDottedPath)
+
+        structuredRawName =
+            rawNameToStructured rawDottedName
+
+        handleAliasDoesntMatch =
+            if structuredRawName.modulePath == [] then
+                if exposedNames.explicits |> List.member structuredRawName.name then
+                    Just
+                        { rawDottedName = rawDottedName
+                        , dottedModulePath = dottedModulePath
+                        , name = structuredRawName.name
+                        }
+                else
+                    Nothing
+            else
+                Nothing
+    in
+        return
+
+
+toDottedPath : List String -> String
+toDottedPath segments =
+    String.join "." segments

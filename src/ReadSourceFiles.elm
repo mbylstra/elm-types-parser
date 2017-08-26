@@ -281,7 +281,7 @@ haveNotExhaustedAllOptions dirAttempts =
         |> List.head
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> { model : Model, result : Maybe (Dict String String), cmd : Cmd Msg }
 update msg model =
     let
         _ =
@@ -330,10 +330,13 @@ update msg model =
                     ( model3, cmds ) =
                         getNextCmds newModel
 
-                    finished =
-                        Debug.log "\n\n\nresult ********************\n\n" (getResult model3 |> Result.map Dict.keys)
+                    result =
+                        getResult model3
+
+                    -- _ =
+                    --     Debug.log "RESULT ****************\n\n" (result |> Result.map Dict.keys)
                 in
-                    model3 ! cmds
+                    { model = model3, cmd = Cmd.batch cmds, result = result |> Result.toMaybe }
 
 
 updateDirAttempt : Maybe String -> Maybe DirAttempt -> Maybe DirAttempt

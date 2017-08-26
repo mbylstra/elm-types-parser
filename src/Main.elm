@@ -49,9 +49,8 @@ type alias ModuleName =
 
 
 type alias Model =
-    { packageInfo : PackageInfo
-    , sourceDirectories : List String
-    , readSourceFiles : ReadSourceFiles.Model
+    { sourceDirectories : List String
+    , readSourceFilesModel : ReadSourceFiles.Model
     , packageDirs : List String
 
     -- , sourceFiles : Dict ModuleName SourceCode
@@ -87,16 +86,15 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                             |> DetermineWhichModulesToLoad.doIt
                             |> .modulesToLoad
 
-                    ( readSourceFiles, readSourceFilesCmd ) =
+                    ( readSourceFilesModel, readSourceFilesCmd ) =
                         ReadSourceFiles.init
                             { dirNames = packageDirs ++ sourceDirectories
                             , moduleNames = modulesToLoad
                             }
                 in
                     { subjectSourceCode = subjectSourceCode
-                    , packageInfo = packageInfo
                     , sourceDirectories = sourceDirectories
-                    , readSourceFiles = readSourceFiles
+                    , readSourceFilesModel = readSourceFilesModel
                     , packageDirs = packageDirs
                     }
                         ! [ readSourceFilesCmd |> Cmd.map ReadSourceFilesMsg ]
@@ -120,15 +118,18 @@ update msg model =
 
         ReadSourceFilesMsg rsfpMsg ->
             let
-                ( readSourceFiles, readSourceFilesCmd ) =
+                readSourceFilesReturn =
                     ReadSourceFiles.update
                         rsfpMsg
-                        model.readSourceFiles
+                        model.readSourceFilesModel
 
                 newModel =
-                    { model | readSourceFiles = readSourceFiles }
+                    { model | readSourceFilesModel = readSourceFilesReturn.model }
+
+                _ =
+                    Debug.log "\n\n\nreturn:\n" readSourceFilesReturn.result
             in
-                newModel ! [ readSourceFilesCmd |> Cmd.map ReadSourceFilesMsg ]
+                newModel ! [ readSourceFilesReturn.cmd |> Cmd.map ReadSourceFilesMsg ]
 
 
 subscriptions : Model -> Sub Msg

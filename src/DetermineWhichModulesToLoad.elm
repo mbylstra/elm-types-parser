@@ -2,16 +2,23 @@ module DetermineWhichModulesToLoad exposing (..)
 
 import Types
     exposing
-        ( Block(TypeAnnotation, TypeAliasDefinition, Union, UserImport)
+        ( Block(TypeAnnotation, TypeAliasDefinition, Union, Import)
         , Type(Var, Lambda, Tuple, Type, Record)
         , TypeAnnotation
         , TypeAliasDefinition
-        , UserImport
+        , ImportStatement
         , Union
         , UnionDefinition
         )
 import Set exposing (Set)
-import ImportStatement exposing (rawNameToQualifiedName, isExplicitlyInImport)
+
+
+-- import ImportStatement
+--     exposing
+--         ( toDottedPath
+--         , isExplicitlyInImportStatement
+--         )
+
 import Dict exposing (Dict)
 import ViewFunctionDetector exposing (isViewFunction)
 
@@ -20,50 +27,131 @@ type alias Name =
     String
 
 
-type alias State =
-    { viewFunctions : Dict Name Type
-    , typeAliases : Dict Name Type
-    , unionTypes : Dict Name UnionDefinition
+
+-- what is the actual result we want?
+-- every view function
+---- every type alis or union type in the view function type definition
+-- a list of every union type or type definition used by the view functions
+-- for each one of these:
+----- is it defined locally or in another module? And if another module,
+
+
+type DefinitionLocation
+    = Local
+    | External String
+
+
+
+-- are we handling the case where a type alias references a module?
+---- I don't think we are!
+-- Also, we need to replace aliases with the actual thingo.
+
+
+type alias Info =
+    { viewFunctions : ViewFunctions
+    , localTypeAliases : LocalTypeAliases
+    , localUnionTypes : LocalUnionTypes
+    , usedTypeNames : List ( String, DefinitionLocation )
+    , importedNameAliases : Dict String String -- eg: "Decode.Decoder" => ("Json.Decode", "Decoder")
+    , modulesToLoad : List String
     }
 
 
-doIt : List Block -> { model : State, modulesToLoad : List String }
+type alias LocalUnionTypes =
+    Dict Name UnionDefinition
+
+
+type alias ViewFunctions =
+    Dict Name Type
+
+
+type alias LocalTypeAliases =
+    Dict Name Type
+
+
+doIt : List Block -> Info
+
+
+
+-- { model : Info, modulesToLoad : List String }
+
+
 doIt blocks =
     let
-        model =
-            { unionTypes = getUnionTypes blocks
-            , typeAliases = getTypeAliases blocks
-            , viewFunctions = getViewFunctions blocks
-            }
+        localUnionTypes =
+            getUnionTypes blocks
+
+        localTypeAliases =
+            getTypeAliases blocks
+
+        viewFunctions =
+            getViewFunctions blocks
+
+        usedTypeNames =
+            []
+
+        importedNameAliases =
+            Dict.empty
 
         externalNames =
-            getExternalNames model
-                |> List.map rawNameToQualifiedName
+            getExternalNames { viewFunctions = viewFunctions, localUnionTypes = localUnionTypes, localTypeAliases = localTypeAliases }
+
+        -- |> List.map rawNameToQualifiedName
+        imports =
+            filterByImports blocks
 
         reversedImports =
-            filterByImports blocks |> List.reverse
+            imports |> List.reverse
     in
-        { model = model
-        , modulesToLoad =
-            externalNames
-                |> List.concatMap
-                    (\qualifiedName ->
-                        reversedImports
-                            |> List.filterMap (isExplicitlyInImport qualifiedName)
-                    )
-                |> Set.fromList
-                |> Set.toList
+        { localUnionTypes = localUnionTypes
+        , localTypeAliases = localTypeAliases
+        , viewFunctions = viewFunctions
+        , usedTypeNames = usedTypeNames
+        , importedNameAliases = importedNameAliases
+        , modulesToLoad = []
+
+        -- externalNames
+        --     |> List.concatMap
+        --         (\qualifiedName ->
+        --             reversedImports
+        --                 |> List.filterMap (isExplicitlyInImportStatement qualifiedName)
+        --         )
+        --     |> Set.fromList
+        --     |> Set.toList
         }
 
 
-getExternalNames : State -> List String
-getExternalNames ({ viewFunctions, typeAliases, unionTypes } as model) =
+
+-- maybe take all the external names, check if it is in an "explicity import", but also return the fully
+-- qualified version of the import, so we can get a unique on that.
+
+
+getExternalNames :
+    { viewFunctions : ViewFunctions
+    , localTypeAliases : LocalTypeAliases
+    , localUnionTypes : LocalUnionTypes
+    }
+    -> List String
+getExternalNames ({ viewFunctions, localTypeAliases, localUnionTypes } as defs) =
     let
         allNames =
             viewFunctions |> Dict.values |> List.concatMap getNames
     in
         allNames
-            |> List.filter (isExternalName model)
+            |> List.filter (isExternalName defs)
+
+
+
+-- getTypeNameAliases : List String -> Dict String String
+-- getTypeNameAliases externalNames =
+--     externalNames
+--         |> List.concatMap
+--             (\qualifiedName ->
+--                 reversedImports
+--                     |> List.filterMap (isExplicitlyInImportStatement qualifiedName)
+--             )
+--         |> Set.fromList
+--         |> Set.toList
 
 
 getViewFunctions : List Block -> Dict Name Type
@@ -114,15 +202,21 @@ getUnionTypes blocks =
         |> Dict.fromList
 
 
-isExternalName : State -> String -> Bool
-isExternalName model name =
+isExternalName :
+    { viewFunctions : ViewFunctions
+    , localTypeAliases : LocalTypeAliases
+    , localUnionTypes : LocalUnionTypes
+    }
+    -> String
+    -> Bool
+isExternalName { localUnionTypes, localTypeAliases, viewFunctions } name =
     if String.contains "." name then
         True
     else
         not <|
-            (Dict.member name model.unionTypes
-                || Dict.member name model.typeAliases
-                || Dict.member name model.viewFunctions
+            (Dict.member name localUnionTypes
+                || Dict.member name localTypeAliases
+                || Dict.member name viewFunctions
             )
 
 
@@ -179,7 +273,7 @@ getNamesHelper tipe =
 
 -- This turned out to be pointless as we don't actually need to substitute anything. Rather
 -- we just need to keep a lookup dict.
--- substituteTypes : State -> Type -> { tipe : Type, pendingNames : List String }
+-- substituteTypes : Info -> Type -> { tipe : Type, pendingNames : List String }
 -- substituteTypes model tipe =
 --     case tipe of
 --         Var _ ->
@@ -267,12 +361,12 @@ removeDuplicates l =
     l |> Set.fromList |> Set.toList
 
 
-filterByImports : List Block -> List UserImport
+filterByImports : List Block -> List ImportStatement
 filterByImports =
     List.filterMap
         (\block ->
             case block of
-                UserImport userImport ->
+                Import userImport ->
                     Just userImport
 
                 _ ->
