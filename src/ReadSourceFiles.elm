@@ -79,13 +79,8 @@ port readElmModuleResult : (ReadElmModuleResultR -> msg) -> Sub msg
 -- port getFilenamesInDirReturned : (? -> msg) -> Sub msg
 
 
-init : Model
-init =
-    Dict.empty
-
-
-reallyInit : { moduleNames : List String, dirNames : List String } -> Model -> ( Model, Cmd Msg )
-reallyInit { moduleNames, dirNames } model =
+init : { moduleNames : List String, dirNames : List String } -> ( Model, Cmd Msg )
+init { moduleNames, dirNames } =
     let
         _ =
             Debug.log "dirNames" dirNames
@@ -336,7 +331,7 @@ update msg model =
                         getNextCmds newModel
 
                     finished =
-                        Debug.log "\n\n\nresult ********************\n\n" (getResult model3)
+                        Debug.log "\n\n\nresult ********************\n\n" (getResult model3 |> Result.map Dict.keys)
                 in
                     model3 ! cmds
 

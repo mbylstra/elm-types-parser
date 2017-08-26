@@ -1,4 +1,6 @@
 import Child exposing (Id)
+import Html exposing Html
 
-x : Id
-x = 2
+view : Id -> Html msg
+view x =
+    div [] []

@@ -19,6 +19,7 @@ if (typeof(subjectSourceCodePath) == "undefined") {
 const elmFlags = {
 	elmPackageContents: fs.readFileSync('elm-package.json', "utf-8"),
   subjectSourceCode: fs.readFileSync(subjectSourceCodePath, "utf-8"),
+	exactDependenciesContents: fs.readFileSync("elm-stuff/exact-dependencies.json", "utf-8"),
 }
 
 
@@ -44,20 +45,6 @@ ports.readElmModule.subscribe(data => {
 		} else {
 			ports.readElmModuleResult.send({ scope: data.scope, contents: contents});
 		}
-	});
-});
-
-ports.getFilenamesInDir.subscribe(function getFilenamesInDir(data) {
-	// console.log('data', data);
-	const scope = data.scope;
-	const path = data.path;
-	fs.readdir(path, (err, files) => {
-			if (err) {
-				ports.getFilenamesInDirResult.send({filenames: [], scope: scope});
-			} else {
-				// console.log('success');
-				ports.getFilenamesInDirResult.send({filenames: files, scope: scope});
-			}
 	});
 });
 
