@@ -23,6 +23,10 @@ type alias StructuredRawName =
     }
 
 
+type alias RawDottedName =
+    String
+
+
 parseImportStatement : String -> Result Parser.Error ImportStatement
 parseImportStatement string =
     Parser.run importStatement string
@@ -166,25 +170,27 @@ rawNameToStructured rawName =
 isExplicitlyInImportStatement :
     String
     -> ImportStatement
-    -> Maybe { rawDottedName : String, dottedModulePath : String, name : String }
+    -> Maybe ( RawDottedName, { dottedModulePath : String, name : String } )
 isExplicitlyInImportStatement rawDottedName { dottedModulePath, maybeAlias, exposedNames } =
     let
         return =
             if rawNameDottedModulePath == dottedModulePath then
                 Just
-                    { rawDottedName = rawDottedName
-                    , dottedModulePath = dottedModulePath
-                    , name = structuredRawName.name
-                    }
+                    ( rawDottedName
+                    , { dottedModulePath = dottedModulePath
+                      , name = structuredRawName.name
+                      }
+                    )
             else
                 case maybeAlias of
                     Just theAlias ->
                         if theAlias == rawNameDottedModulePath then
                             Just
-                                { rawDottedName = rawDottedName
-                                , dottedModulePath = dottedModulePath
-                                , name = structuredRawName.name
-                                }
+                                ( rawDottedName
+                                , { dottedModulePath = dottedModulePath
+                                  , name = structuredRawName.name
+                                  }
+                                )
                         else
                             handleAliasDoesntMatch
 
@@ -201,10 +207,11 @@ isExplicitlyInImportStatement rawDottedName { dottedModulePath, maybeAlias, expo
             if structuredRawName.modulePath == [] then
                 if exposedNames.explicits |> List.member structuredRawName.name then
                     Just
-                        { rawDottedName = rawDottedName
-                        , dottedModulePath = dottedModulePath
-                        , name = structuredRawName.name
-                        }
+                        ( rawDottedName
+                        , { dottedModulePath = dottedModulePath
+                          , name = structuredRawName.name
+                          }
+                        )
                 else
                     Nothing
             else

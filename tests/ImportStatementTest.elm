@@ -113,10 +113,11 @@ suite =
                 )
                     |> Expect.equal
                         (Just
-                            { rawDottedName = "Html.div"
-                            , dottedModulePath = "Html"
-                            , name = "div"
-                            }
+                            ( "Html.div"
+                            , { dottedModulePath = "Html"
+                              , name = "div"
+                              }
+                            )
                         )
         , test "isExplicityInImport subdir" <|
             \_ ->
@@ -129,10 +130,11 @@ suite =
                 )
                     |> Expect.equal
                         (Just
-                            { rawDottedName = "Json.Decode.string"
-                            , dottedModulePath = "Json.Decode"
-                            , name = "string"
-                            }
+                            ( "Json.Decode.string"
+                            , { dottedModulePath = "Json.Decode"
+                              , name = "string"
+                              }
+                            )
                         )
         , test "isExplicityInImport using alias" <|
             \_ ->
@@ -144,10 +146,11 @@ suite =
                     }
                     |> Expect.equal
                         (Just
-                            { rawDottedName = "Decode.string"
-                            , dottedModulePath = "Json.Decode"
-                            , name = "string"
-                            }
+                            ( "Decode.string"
+                            , { dottedModulePath = "Json.Decode"
+                              , name = "string"
+                              }
+                            )
                         )
         , test "isExplicityInImport using exposing" <|
             \_ ->
@@ -159,10 +162,11 @@ suite =
                     }
                     |> Expect.equal
                         (Just
-                            { rawDottedName = "string"
-                            , dottedModulePath = "Json.Decode"
-                            , name = "string"
-                            }
+                            ( "string"
+                            , { dottedModulePath = "Json.Decode"
+                              , name = "string"
+                              }
+                            )
                         )
         , test "isExplicityInImport B.C.Foo" <|
             \_ ->
@@ -174,10 +178,11 @@ suite =
                     }
                     |> Expect.equal
                         (Just
-                            { rawDottedName = "B.C.Foo"
-                            , dottedModulePath = "B.C"
-                            , name = "Foo"
-                            }
+                            ( "B.C.Foo"
+                            , { dottedModulePath = "B.C"
+                              , name = "Foo"
+                              }
+                            )
                         )
 
         -- , test "isExplicityInImport using exposing" <|

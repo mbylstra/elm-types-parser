@@ -93,8 +93,14 @@ suite =
                     |> String.join "\n"
                 )
                     |> parseModule
-                    |> doIt
-                    |> .modulesToLoad
+                    |> DetermineWhichModulesToLoad.doIt
+                    |> .externalNamesModuleInfo
                     |> Expect.equal
-                        [ "A", "B.C", "C.D" ]
+                        (Dict.fromList <|
+                            [ ( "Foo", { dottedModulePath = "A", name = "Foo" } )
+                            , ( "A.Baz", { dottedModulePath = "A", name = "Baz" } )
+                            , ( "B.C.Baz", { dottedModulePath = "B.C", name = "Baz" } )
+                            , ( "D.Qux", { dottedModulePath = "C.D", name = "Qux" } )
+                            ]
+                        )
         ]

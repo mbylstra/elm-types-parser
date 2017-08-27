@@ -11,14 +11,11 @@ import Types
         , UnionDefinition
         )
 import Set exposing (Set)
-
-
--- import ImportStatement
---     exposing
---         ( toDottedPath
---         , isExplicitlyInImportStatement
---         )
-
+import ImportStatement
+    exposing
+        ( toDottedPath
+        , isExplicitlyInImportStatement
+        )
 import Dict exposing (Dict)
 import ViewFunctionDetector exposing (isViewFunction)
 
@@ -52,9 +49,20 @@ type alias Info =
     , localTypeAliases : LocalTypeAliases
     , localUnionTypes : LocalUnionTypes
     , usedTypeNames : List ( String, DefinitionLocation )
-    , importedNameAliases : Dict String String -- eg: "Decode.Decoder" => ("Json.Decode", "Decoder")
-    , modulesToLoad : List String
+
+    -- , importedNameAliases : Dict String String -- eg: "Decode.Decoder" => ("Json.Decode", "Decoder")
+    , externalNamesModuleInfo : ExternalNamesModuleInfo
+
+    -- , modulesToLoad : List String
     }
+
+
+type alias ExternalNamesModuleInfo =
+    Dict RawDottedName { dottedModulePath : String, name : String }
+
+
+type alias RawDottedName =
+    String
 
 
 type alias LocalUnionTypes =
@@ -90,9 +98,6 @@ doIt blocks =
         usedTypeNames =
             []
 
-        importedNameAliases =
-            Dict.empty
-
         externalNames =
             getExternalNames { viewFunctions = viewFunctions, localUnionTypes = localUnionTypes, localTypeAliases = localTypeAliases }
 
@@ -107,9 +112,9 @@ doIt blocks =
         , localTypeAliases = localTypeAliases
         , viewFunctions = viewFunctions
         , usedTypeNames = usedTypeNames
-        , importedNameAliases = importedNameAliases
-        , modulesToLoad = []
+        , externalNamesModuleInfo = getExternalNamesModuleInfo externalNames imports
 
+        -- , modulesToLoad = []
         -- externalNames
         --     |> List.concatMap
         --         (\qualifiedName ->
@@ -119,6 +124,24 @@ doIt blocks =
         --     |> Set.fromList
         --     |> Set.toList
         }
+
+
+getExternalNamesModuleInfo :
+    List String
+    -> List ImportStatement
+    -> ExternalNamesModuleInfo
+getExternalNamesModuleInfo externalNames imports =
+    let
+        reversedImports =
+            imports |> List.reverse
+    in
+        externalNames
+            |> List.concatMap
+                (\externalName ->
+                    reversedImports
+                        |> List.filterMap (isExplicitlyInImportStatement externalName)
+                )
+            |> Dict.fromList
 
 
 
