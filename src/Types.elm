@@ -1,5 +1,7 @@
 module Types exposing (..)
 
+import Dict exposing (Dict)
+
 
 type Block
     = TypeAliasDefinition TypeAliasDefinition
@@ -56,3 +58,61 @@ type alias Listing =
     { explicits : List String
     , open : Bool
     }
+
+
+
+-- DetermineWhichModulesToLoad
+
+
+type alias ModuleInfo =
+    { viewFunctions : ViewFunctions
+    , localTypeAliases : LocalTypeAliases
+    , localUnionTypes : LocalUnionTypes
+
+    -- , usedTypeNames : List ( String, DefinitionLocation )
+    -- , importedNameAliases : Dict String String -- eg: "Decode.Decoder" => ("Json.Decode", "Decoder")
+    , externalNamesModuleInfo : ExternalNamesModuleInfo
+
+    -- , modulesToLoad : List String
+    }
+
+
+type DefinitionLocation
+    = Local
+    | External String
+
+
+type alias LocalUnionTypes =
+    Dict Name UnionDefinition
+
+
+type alias ViewFunctions =
+    Dict Name Type
+
+
+type alias LocalTypeAliases =
+    Dict Name Type
+
+
+type alias ExternalNamesModuleInfo =
+    Dict RawDottedName { dottedModulePath : String, name : String }
+
+
+type alias RawDottedName =
+    String
+
+
+type alias Name =
+    String
+
+
+type alias DottedModuleName =
+    String
+
+
+type alias SourceCode =
+    String
+
+
+type alias ModuleToSource =
+    Dict DottedModuleName SourceCode

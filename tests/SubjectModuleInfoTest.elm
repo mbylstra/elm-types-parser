@@ -1,24 +1,12 @@
-module DetermineWhichModulesToLoadTest exposing (..)
+module SubjectModuleInfoTest exposing (..)
 
-import DetermineWhichModulesToLoad exposing (doIt, getExternalNames, handleTypeName)
+import SubjectModuleInfo exposing (getExternalNames)
 import Dict
 import Expect exposing (Expectation, equalSets)
-import FirstPass exposing (parseModule)
 import Test exposing (..)
 import Types exposing (Type(Type, Lambda))
-
-
--- import FirstPass exposing (parseModule)
-
 import Dict
 import Types exposing (Type(Type, Lambda))
-
-
--- type alias Model =
---     { viewFunctions : Dict Name Type
---     , typeAliases : Dict Name Type
---     , unionTypes : Dict Name UnionDefinition
---     }
 
 
 suite : Test
@@ -92,8 +80,7 @@ suite =
                  ]
                     |> String.join "\n"
                 )
-                    |> parseModule
-                    |> DetermineWhichModulesToLoad.doIt
+                    |> SubjectModuleInfo.getModuleInfo
                     |> .externalNamesModuleInfo
                     |> Expect.equal
                         (Dict.fromList <|

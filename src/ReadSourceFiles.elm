@@ -3,14 +3,15 @@ port module ReadSourceFiles exposing (..)
 import Dict exposing (Dict)
 import Helpers exposing (qualifiedNameToPath)
 import Maybe.Extra exposing (isJust)
+import Types exposing (DottedModuleName, ModuleToSource, SourceCode)
 
 
 type alias Model =
-    Dict ModuleName ModuleStatus
+    Dict DottedModuleName ModuleStatus
 
 
-type alias ModuleName =
-    String
+
+-- what is modulename exactly?
 
 
 type alias ModuleStatus =
@@ -196,6 +197,11 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
            )
 
 
+
+-- what is the first string in the dict exactly?
+-- its moduleName, modul
+
+
 getResult : Model -> Result Model (Dict String String)
 getResult model =
     if isFinished model then
@@ -231,7 +237,7 @@ subscriptions =
     readElmModuleResult ReadElmModuleResult
 
 
-isModuleFinished : Model -> ModuleName -> Bool
+isModuleFinished : Model -> DottedModuleName -> Bool
 isModuleFinished model moduleName =
     Dict.get moduleName model
         |> Maybe.map .sourceCode
@@ -281,7 +287,11 @@ haveNotExhaustedAllOptions dirAttempts =
         |> List.head
 
 
-update : Msg -> Model -> { model : Model, result : Maybe (Dict String String), cmd : Cmd Msg }
+
+-- what is Dict String String?
+
+
+update : Msg -> Model -> { model : Model, result : Maybe ModuleToSource, cmd : Cmd Msg }
 update msg model =
     let
         _ =
@@ -305,22 +315,22 @@ update msg model =
                                     (\maybeExistingValue ->
                                         case maybeExistingValue of
                                             Just moduleStatus ->
-                                                let
-                                                    _ =
-                                                        if not <| isJust <| Dict.get scope.dir moduleStatus.dirAttempts then
-                                                            Debug.crash ("could not find " ++ scope.dir ++ " for " ++ scope.moduleName)
-                                                        else
-                                                            ()
-                                                in
-                                                    { moduleStatus
-                                                        | dirAttempts =
-                                                            moduleStatus.dirAttempts
-                                                                |> Dict.update
-                                                                    scope.dir
-                                                                    (updateDirAttempt contents)
-                                                        , sourceCode = contents
-                                                    }
-                                                        |> Just
+                                                Just <|
+                                                    let
+                                                        _ =
+                                                            if not <| isJust <| Dict.get scope.dir moduleStatus.dirAttempts then
+                                                                Debug.crash ("could not find " ++ scope.dir ++ " for " ++ scope.moduleName)
+                                                            else
+                                                                ()
+                                                    in
+                                                        { moduleStatus
+                                                            | dirAttempts =
+                                                                moduleStatus.dirAttempts
+                                                                    |> Dict.update
+                                                                        scope.dir
+                                                                        (updateDirAttempt contents)
+                                                            , sourceCode = contents
+                                                        }
 
                                             Nothing ->
                                                 Debug.crash ("could not update module " ++ scope.moduleName)

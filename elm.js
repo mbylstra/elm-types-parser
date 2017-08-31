@@ -9651,24 +9651,20 @@ var _user$project$DeterminePackageLocations$doIt = function (exactDependenciesCo
 			A2(_elm_lang$core$Json_Decode$decodeString, _user$project$DeterminePackageLocations$exactDependenciesDecoder, exactDependenciesContents)));
 };
 
-var _user$project$Types$ImportMethod = F2(
-	function (a, b) {
-		return {alias: a, exposedNames: b};
+var _user$project$Types$ImportStatement = F3(
+	function (a, b, c) {
+		return {dottedModulePath: a, maybeAlias: b, exposedNames: c};
 	});
 var _user$project$Types$Listing = F2(
 	function (a, b) {
 		return {explicits: a, open: b};
 	});
-var _user$project$Types$QualifiedName = F2(
-	function (a, b) {
-		return {name: a, modulePath: b};
-	});
 var _user$project$Types$IgnoreBlock = {ctor: 'IgnoreBlock'};
 var _user$project$Types$TypeAnnotation = function (a) {
 	return {ctor: 'TypeAnnotation', _0: a};
 };
-var _user$project$Types$UserImport = function (a) {
-	return {ctor: 'UserImport', _0: a};
+var _user$project$Types$Import = function (a) {
+	return {ctor: 'Import', _0: a};
 };
 var _user$project$Types$Union = function (a) {
 	return {ctor: 'Union', _0: a};
@@ -10196,38 +10192,10 @@ var _user$project$ElmTypesParser$parseTipe = function (source) {
 	return A2(_elm_tools$parser$Parser$run, _user$project$ElmTypesParser$tipe, source);
 };
 
-var _user$project$ImportStatement$modulePathToString = function (segments) {
+var _user$project$ImportStatement$toDottedPath = function (segments) {
 	return A2(_elm_lang$core$String$join, '.', segments);
 };
-var _user$project$ImportStatement$isExplicitlyInImport = F2(
-	function (_p1, _p0) {
-		var _p2 = _p1;
-		var _p7 = _p2.modulePath;
-		var _p3 = _p0;
-		var _p6 = _p3._0;
-		var modulePathString = _user$project$ImportStatement$modulePathToString(_p7);
-		if (_elm_lang$core$Native_Utils.eq(modulePathString, _p6)) {
-			return _elm_lang$core$Maybe$Just(_p6);
-		} else {
-			var maybeName = function () {
-				var _p4 = _p3._1.alias;
-				if (_p4.ctor === 'Just') {
-					return _elm_lang$core$Native_Utils.eq(_p4._0, modulePathString) ? _elm_lang$core$Maybe$Just(_p6) : _elm_lang$core$Maybe$Nothing;
-				} else {
-					return _elm_lang$core$Maybe$Nothing;
-				}
-			}();
-			var _p5 = maybeName;
-			if (_p5.ctor === 'Just') {
-				return _elm_lang$core$Maybe$Just(_p5._0);
-			} else {
-				return _elm_lang$core$Native_Utils.eq(
-					_p7,
-					{ctor: '[]'}) ? (A2(_elm_lang$core$List$member, _p2.name, _p3._1.exposedNames.explicits) ? _elm_lang$core$Maybe$Just(_p6) : _elm_lang$core$Maybe$Nothing) : _elm_lang$core$Maybe$Nothing;
-			}
-		}
-	});
-var _user$project$ImportStatement$rawNameToQualifiedName = function (rawName) {
+var _user$project$ImportStatement$rawNameToStructured = function (rawName) {
 	return A2(
 		_elm_lang$core$Maybe$withDefault,
 		{
@@ -10236,17 +10204,55 @@ var _user$project$ImportStatement$rawNameToQualifiedName = function (rawName) {
 		},
 		A2(
 			_elm_lang$core$Maybe$map,
-			function (_p8) {
-				var _p9 = _p8;
+			function (_p0) {
+				var _p1 = _p0;
 				return {
-					name: _p9._0,
-					modulePath: _elm_lang$core$List$reverse(_p9._1)
+					name: _p1._0,
+					modulePath: _elm_lang$core$List$reverse(_p1._1)
 				};
 			},
 			_elm_community$list_extra$List_Extra$uncons(
 				_elm_lang$core$List$reverse(
 					A2(_elm_lang$core$String$split, '.', rawName)))));
 };
+var _user$project$ImportStatement$isExplicitlyInImportStatement = F2(
+	function (rawDottedName, _p2) {
+		var _p3 = _p2;
+		var _p5 = _p3.dottedModulePath;
+		var structuredRawName = _user$project$ImportStatement$rawNameToStructured(rawDottedName);
+		var handleAliasDoesntMatch = _elm_lang$core$Native_Utils.eq(
+			structuredRawName.modulePath,
+			{ctor: '[]'}) ? (A2(_elm_lang$core$List$member, structuredRawName.name, _p3.exposedNames.explicits) ? _elm_lang$core$Maybe$Just(
+			{
+				ctor: '_Tuple2',
+				_0: rawDottedName,
+				_1: {dottedModulePath: _p5, name: structuredRawName.name}
+			}) : _elm_lang$core$Maybe$Nothing) : _elm_lang$core$Maybe$Nothing;
+		var rawNameDottedModulePath = _user$project$ImportStatement$toDottedPath(structuredRawName.modulePath);
+		var $return = function () {
+			if (_elm_lang$core$Native_Utils.eq(rawNameDottedModulePath, _p5)) {
+				return _elm_lang$core$Maybe$Just(
+					{
+						ctor: '_Tuple2',
+						_0: rawDottedName,
+						_1: {dottedModulePath: _p5, name: structuredRawName.name}
+					});
+			} else {
+				var _p4 = _p3.maybeAlias;
+				if (_p4.ctor === 'Just') {
+					return _elm_lang$core$Native_Utils.eq(_p4._0, rawNameDottedModulePath) ? _elm_lang$core$Maybe$Just(
+						{
+							ctor: '_Tuple2',
+							_0: rawDottedName,
+							_1: {dottedModulePath: _p5, name: structuredRawName.name}
+						}) : handleAliasDoesntMatch;
+				} else {
+					return handleAliasDoesntMatch;
+				}
+			}
+		}();
+		return $return;
+	});
 var _user$project$ImportStatement$listing = function (xs) {
 	return A2(_user$project$Types$Listing, xs, false);
 };
@@ -10311,7 +10317,7 @@ var _user$project$ImportStatement$exposedNamesList = _elm_tools$parser$Parser$on
 		ctor: '::',
 		_0: A2(
 			_elm_tools$parser$Parser$andThen,
-			function (_p10) {
+			function (_p6) {
 				return _elm_tools$parser$Parser$succeed(_user$project$ImportStatement$openListing);
 			},
 			_elm_tools$parser$Parser$symbol('(..)')),
@@ -10394,21 +10400,17 @@ var _user$project$ImportStatement$importStatement = A2(
 		_elm_tools$parser$Parser_ops['|='],
 		A2(
 			_elm_tools$parser$Parser_ops['|='],
-			_elm_tools$parser$Parser$succeed(
-				F3(
-					function (name, maybeAlias, exposedNames) {
-						return {
-							ctor: '_Tuple2',
-							_0: name,
-							_1: {alias: maybeAlias, exposedNames: exposedNames}
-						};
-					})),
+			_elm_tools$parser$Parser$succeed(_user$project$Types$ImportStatement),
 			_user$project$ImportStatement$importStatementName),
 		_user$project$ImportStatement$importAlias),
 	_user$project$ImportStatement$exposedNames);
 var _user$project$ImportStatement$parseImportStatement = function (string) {
 	return A2(_elm_tools$parser$Parser$run, _user$project$ImportStatement$importStatement, string);
 };
+var _user$project$ImportStatement$StructuredRawName = F2(
+	function (a, b) {
+		return {name: a, modulePath: b};
+	});
 
 var _user$project$ViewFunctionDetector$isViewFunction = function (tipe) {
 	isViewFunction:
@@ -10563,7 +10565,7 @@ var _user$project$DetermineWhichModulesToLoad$filterTypeExpressions = _elm_lang$
 var _user$project$DetermineWhichModulesToLoad$filterByImports = _elm_lang$core$List$filterMap(
 	function (block) {
 		var _p2 = block;
-		if (_p2.ctor === 'UserImport') {
+		if (_p2.ctor === 'Import') {
 			return _elm_lang$core$Maybe$Just(_p2._0);
 		} else {
 			return _elm_lang$core$Maybe$Nothing;
@@ -10621,18 +10623,19 @@ var _user$project$DetermineWhichModulesToLoad$getNamesHelper = function (tipe) {
 	}
 };
 var _user$project$DetermineWhichModulesToLoad$isExternalName = F2(
-	function (model, name) {
-		return A2(_elm_lang$core$String$contains, '.', name) ? true : (!(A2(_elm_lang$core$Dict$member, name, model.unionTypes) || (A2(_elm_lang$core$Dict$member, name, model.typeAliases) || A2(_elm_lang$core$Dict$member, name, model.viewFunctions))));
+	function (_p8, name) {
+		var _p9 = _p8;
+		return A2(_elm_lang$core$String$contains, '.', name) ? true : (!(A2(_elm_lang$core$Dict$member, name, _p9.localUnionTypes) || (A2(_elm_lang$core$Dict$member, name, _p9.localTypeAliases) || A2(_elm_lang$core$Dict$member, name, _p9.viewFunctions))));
 	});
 var _user$project$DetermineWhichModulesToLoad$getUnionTypes = function (blocks) {
 	return _elm_lang$core$Dict$fromList(
 		A2(
 			_elm_lang$core$List$filterMap,
 			function (block) {
-				var _p8 = block;
-				if ((_p8.ctor === 'Union') && (_p8._0.ctor === '_Tuple2')) {
+				var _p10 = block;
+				if ((_p10.ctor === 'Union') && (_p10._0.ctor === '_Tuple2')) {
 					return _elm_lang$core$Maybe$Just(
-						{ctor: '_Tuple2', _0: _p8._0._0, _1: _p8._0._1});
+						{ctor: '_Tuple2', _0: _p10._0._0, _1: _p10._0._1});
 				} else {
 					return _elm_lang$core$Maybe$Nothing;
 				}
@@ -10644,10 +10647,10 @@ var _user$project$DetermineWhichModulesToLoad$getTypeAliases = function (blocks)
 		A2(
 			_elm_lang$core$List$filterMap,
 			function (block) {
-				var _p9 = block;
-				if ((_p9.ctor === 'TypeAliasDefinition') && (_p9._0.ctor === '_Tuple2')) {
+				var _p11 = block;
+				if ((_p11.ctor === 'TypeAliasDefinition') && (_p11._0.ctor === '_Tuple2')) {
 					return _elm_lang$core$Maybe$Just(
-						{ctor: '_Tuple2', _0: _p9._0._0, _1: _p9._0._1});
+						{ctor: '_Tuple2', _0: _p11._0._0, _1: _p11._0._1});
 				} else {
 					return _elm_lang$core$Maybe$Nothing;
 				}
@@ -10659,59 +10662,77 @@ var _user$project$DetermineWhichModulesToLoad$getViewFunctions = function (block
 		A2(
 			_elm_lang$core$List$filterMap,
 			function (block) {
-				var _p10 = block;
-				if ((_p10.ctor === 'TypeAnnotation') && (_p10._0.ctor === '_Tuple2')) {
-					var _p11 = _p10._0._1;
-					return _user$project$ViewFunctionDetector$isViewFunction(_p11) ? _elm_lang$core$Maybe$Just(
-						{ctor: '_Tuple2', _0: _p10._0._0, _1: _p11}) : _elm_lang$core$Maybe$Nothing;
+				var _p12 = block;
+				if ((_p12.ctor === 'TypeAnnotation') && (_p12._0.ctor === '_Tuple2')) {
+					var _p13 = _p12._0._1;
+					return _user$project$ViewFunctionDetector$isViewFunction(_p13) ? _elm_lang$core$Maybe$Just(
+						{ctor: '_Tuple2', _0: _p12._0._0, _1: _p13}) : _elm_lang$core$Maybe$Nothing;
 				} else {
 					return _elm_lang$core$Maybe$Nothing;
 				}
 			},
 			blocks));
 };
-var _user$project$DetermineWhichModulesToLoad$getExternalNames = function (_p12) {
-	var _p13 = _p12;
+var _user$project$DetermineWhichModulesToLoad$getModulesToLoad = function (info) {
+	return _elm_lang$core$Set$toList(
+		_elm_lang$core$Set$fromList(
+			A2(
+				_elm_lang$core$List$map,
+				function (_) {
+					return _.dottedModulePath;
+				},
+				_elm_lang$core$Dict$values(info.externalNamesModuleInfo))));
+};
+var _user$project$DetermineWhichModulesToLoad$getExternalNames = function (_p14) {
+	var _p15 = _p14;
 	var allNames = A2(
 		_elm_lang$core$List$concatMap,
 		_user$project$DetermineWhichModulesToLoad$getNames,
-		_elm_lang$core$Dict$values(_p13.viewFunctions));
+		_elm_lang$core$Dict$values(_p15.viewFunctions));
 	return A2(
 		_elm_lang$core$List$filter,
-		_user$project$DetermineWhichModulesToLoad$isExternalName(_p13),
+		_user$project$DetermineWhichModulesToLoad$isExternalName(_p15),
 		allNames);
 };
+var _user$project$DetermineWhichModulesToLoad$getExternalNamesModuleInfo = F2(
+	function (externalNames, imports) {
+		var reversedImports = _elm_lang$core$List$reverse(imports);
+		return _elm_lang$core$Dict$fromList(
+			A2(
+				_elm_lang$core$List$concatMap,
+				function (externalName) {
+					return A2(
+						_elm_lang$core$List$filterMap,
+						_user$project$ImportStatement$isExplicitlyInImportStatement(externalName),
+						reversedImports);
+				},
+				externalNames));
+	});
 var _user$project$DetermineWhichModulesToLoad$doIt = function (blocks) {
-	var reversedImports = _elm_lang$core$List$reverse(
-		_user$project$DetermineWhichModulesToLoad$filterByImports(blocks));
-	var model = {
-		unionTypes: _user$project$DetermineWhichModulesToLoad$getUnionTypes(blocks),
-		typeAliases: _user$project$DetermineWhichModulesToLoad$getTypeAliases(blocks),
-		viewFunctions: _user$project$DetermineWhichModulesToLoad$getViewFunctions(blocks)
-	};
-	var externalNames = A2(
-		_elm_lang$core$List$map,
-		_user$project$ImportStatement$rawNameToQualifiedName,
-		_user$project$DetermineWhichModulesToLoad$getExternalNames(model));
+	var imports = _user$project$DetermineWhichModulesToLoad$filterByImports(blocks);
+	var reversedImports = _elm_lang$core$List$reverse(imports);
+	var usedTypeNames = {ctor: '[]'};
+	var viewFunctions = _user$project$DetermineWhichModulesToLoad$getViewFunctions(blocks);
+	var localTypeAliases = _user$project$DetermineWhichModulesToLoad$getTypeAliases(blocks);
+	var localUnionTypes = _user$project$DetermineWhichModulesToLoad$getUnionTypes(blocks);
+	var externalNames = _user$project$DetermineWhichModulesToLoad$getExternalNames(
+		{viewFunctions: viewFunctions, localUnionTypes: localUnionTypes, localTypeAliases: localTypeAliases});
 	return {
-		model: model,
-		modulesToLoad: _elm_lang$core$Set$toList(
-			_elm_lang$core$Set$fromList(
-				A2(
-					_elm_lang$core$List$concatMap,
-					function (qualifiedName) {
-						return A2(
-							_elm_lang$core$List$filterMap,
-							_user$project$ImportStatement$isExplicitlyInImport(qualifiedName),
-							reversedImports);
-					},
-					externalNames)))
+		localUnionTypes: localUnionTypes,
+		localTypeAliases: localTypeAliases,
+		viewFunctions: viewFunctions,
+		usedTypeNames: usedTypeNames,
+		externalNamesModuleInfo: A2(_user$project$DetermineWhichModulesToLoad$getExternalNamesModuleInfo, externalNames, imports)
 	};
 };
-var _user$project$DetermineWhichModulesToLoad$State = F3(
-	function (a, b, c) {
-		return {viewFunctions: a, typeAliases: b, unionTypes: c};
+var _user$project$DetermineWhichModulesToLoad$Info = F5(
+	function (a, b, c, d, e) {
+		return {viewFunctions: a, localTypeAliases: b, localUnionTypes: c, usedTypeNames: d, externalNamesModuleInfo: e};
 	});
+var _user$project$DetermineWhichModulesToLoad$External = function (a) {
+	return {ctor: 'External', _0: a};
+};
+var _user$project$DetermineWhichModulesToLoad$Local = {ctor: 'Local'};
 
 var _user$project$FirstPass$parseBlock = function (rawBlock) {
 	var _p0 = rawBlock;
@@ -10721,7 +10742,7 @@ var _user$project$FirstPass$parseBlock = function (rawBlock) {
 		case 'ImportStatementBlock':
 			return A2(
 				_elm_lang$core$Result$map,
-				_user$project$Types$UserImport,
+				_user$project$Types$Import,
 				_user$project$ImportStatement$parseImportStatement(_p0._0));
 		case 'TypeAliasDefinitionBlock':
 			return A2(
@@ -11625,37 +11646,34 @@ var _user$project$Main$Flags = F3(
 	function (a, b, c) {
 		return {elmPackageContents: a, subjectSourceCode: b, exactDependenciesContents: c};
 	});
-var _user$project$Main$Model = F5(
-	function (a, b, c, d, e) {
-		return {packageInfo: a, sourceDirectories: b, readSourceFiles: c, packageDirs: d, subjectSourceCode: e};
+var _user$project$Main$Model = F4(
+	function (a, b, c, d) {
+		return {sourceDirectories: a, readSourceFilesModel: b, packageDirs: c, subjectSourceCode: d};
 	});
 var _user$project$Main$ReadSourceFilesMsg = function (a) {
 	return {ctor: 'ReadSourceFilesMsg', _0: a};
 };
 var _user$project$Main$init = function (_p1) {
 	var _p2 = _p1;
-	var _p6 = _p2.subjectSourceCode;
+	var _p5 = _p2.subjectSourceCode;
 	var packageInfoResult = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p2.elmPackageContents);
 	var _p3 = packageInfoResult;
 	if (_p3.ctor === 'Ok') {
-		var _p5 = _p3._0;
-		var modulesToLoad = function (_) {
-			return _.modulesToLoad;
-		}(
+		var modulesToLoad = _user$project$DetermineWhichModulesToLoad$getModulesToLoad(
 			_user$project$DetermineWhichModulesToLoad$doIt(
-				_user$project$FirstPass$parseModule(_p6)));
-		var sourceDirectories = _p5.sourceDirectories;
+				_user$project$FirstPass$parseModule(_p5)));
+		var sourceDirectories = _p3._0.sourceDirectories;
 		var packageDirs = _user$project$DeterminePackageLocations$doIt(_p2.exactDependenciesContents);
 		var _p4 = _user$project$ReadSourceFiles$init(
 			{
 				dirNames: A2(_elm_lang$core$Basics_ops['++'], packageDirs, sourceDirectories),
 				moduleNames: modulesToLoad
 			});
-		var readSourceFiles = _p4._0;
+		var readSourceFilesModel = _p4._0;
 		var readSourceFilesCmd = _p4._1;
 		return A2(
 			_elm_lang$core$Platform_Cmd_ops['!'],
-			{subjectSourceCode: _p6, packageInfo: _p5, sourceDirectories: sourceDirectories, readSourceFiles: readSourceFiles, packageDirs: packageDirs},
+			{subjectSourceCode: _p5, sourceDirectories: sourceDirectories, readSourceFilesModel: readSourceFilesModel, packageDirs: packageDirs},
 			{
 				ctor: '::',
 				_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ReadSourceFilesMsg, readSourceFilesCmd),
@@ -11666,15 +11684,15 @@ var _user$project$Main$init = function (_p1) {
 		return _elm_lang$core$Native_Utils.crash(
 			'Main',
 			{
-				start: {line: 109, column: 21},
-				end: {line: 109, column: 32}
+				start: {line: 107, column: 21},
+				end: {line: 107, column: 32}
 			})(err2);
 	}
 };
 var _user$project$Main$update = F2(
 	function (msg, model) {
-		var _p7 = msg;
-		switch (_p7.ctor) {
+		var _p6 = msg;
+		switch (_p6.ctor) {
 			case 'Stop':
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
@@ -11694,11 +11712,11 @@ var _user$project$Main$update = F2(
 						_1: {ctor: '[]'}
 					});
 			default:
-				var readSourceFilesReturn = A2(_user$project$ReadSourceFiles$update, _p7._0, model.readSourceFiles);
+				var readSourceFilesReturn = A2(_user$project$ReadSourceFiles$update, _p6._0, model.readSourceFilesModel);
 				var newModel = _elm_lang$core$Native_Utils.update(
 					model,
-					{readSourceFiles: readSourceFilesReturn.model});
-				var _p8 = A2(_elm_lang$core$Debug$log, '\n\n\nreturn:\n', readSourceFilesReturn.result);
+					{readSourceFilesModel: readSourceFilesReturn.model});
+				var _p7 = A2(_elm_lang$core$Debug$log, '\n\n\nreturn:\n', readSourceFilesReturn.result);
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
 					newModel,

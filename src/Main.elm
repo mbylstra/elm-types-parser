@@ -2,8 +2,7 @@ port module Main exposing (..)
 
 -- import Dict exposing (Dict)
 
-import DetermineWhichModulesToLoad
-import FirstPass exposing (parseModule)
+import ModuleInfo
 import Json.Decode
 import PackageInfo exposing (PackageInfo)
 import Process
@@ -11,6 +10,7 @@ import ReadSourceFiles
 import Task
 import Time exposing (Time)
 import DeterminePackageLocations
+import Types exposing (ModuleInfo)
 
 
 {- REMOVE WHEN COMPILER BUG IS FIXED -}
@@ -55,6 +55,7 @@ type alias Model =
 
     -- , sourceFiles : Dict ModuleName SourceCode
     , subjectSourceCode : String
+    , subjectModuleInfo : ModuleInfo
     }
 
 
@@ -80,11 +81,15 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                     sourceDirectories =
                         packageInfo.sourceDirectories
 
-                    modulesToLoad =
+                    subjectModuleInfo =
                         subjectSourceCode
-                            |> parseModule
-                            |> DetermineWhichModulesToLoad.doIt
-                            |> .modulesToLoad
+                            |> ModuleInfo.getModuleInfo
+
+                    -- we need to store this in the model, so that once we've read the source files,
+                    -- we can match it
+                    modulesToLoad =
+                        subjectModuleInfo
+                            |> ModuleInfo.getModulesToLoad
 
                     ( readSourceFilesModel, readSourceFilesCmd ) =
                         ReadSourceFiles.init
@@ -96,6 +101,7 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                     , sourceDirectories = sourceDirectories
                     , readSourceFilesModel = readSourceFilesModel
                     , packageDirs = packageDirs
+                    , subjectModuleInfo = subjectModuleInfo
                     }
                         ! [ readSourceFilesCmd |> Cmd.map ReadSourceFilesMsg ]
 

@@ -1,4 +1,4 @@
-module DetermineWhichModulesToLoad exposing (..)
+module SubjectModuleInfo exposing (..)
 
 import Types
     exposing
@@ -9,20 +9,26 @@ import Types
         , ImportStatement
         , Union
         , UnionDefinition
+        , ExternalNamesModuleInfo
+        , ModuleInfo
+        , LocalTypeAliases
+        , LocalUnionTypes
+        , Name
+        , ViewFunctions
+        , DottedModuleName
         )
 import Set exposing (Set)
-import ImportStatement
-    exposing
-        ( toDottedPath
-        , isExplicitlyInImportStatement
-        )
 import Dict exposing (Dict)
 import ViewFunctionDetector exposing (isViewFunction)
-
-
-type alias Name =
-    String
-
+import FirstPass
+import ModuleInfo
+    exposing
+        ( getTypeAliases
+        , getUnionTypes
+        , getExternalNamesModuleInfo
+        , filterByImports
+        , isExternalName
+        )
 
 
 -- what is the actual result we want?
@@ -31,61 +37,19 @@ type alias Name =
 -- a list of every union type or type definition used by the view functions
 -- for each one of these:
 ----- is it defined locally or in another module? And if another module,
-
-
-type DefinitionLocation
-    = Local
-    | External String
-
-
-
 -- are we handling the case where a type alias references a module?
 ---- I don't think we are!
 -- Also, we need to replace aliases with the actual thingo.
-
-
-type alias Info =
-    { viewFunctions : ViewFunctions
-    , localTypeAliases : LocalTypeAliases
-    , localUnionTypes : LocalUnionTypes
-    , usedTypeNames : List ( String, DefinitionLocation )
-
-    -- , importedNameAliases : Dict String String -- eg: "Decode.Decoder" => ("Json.Decode", "Decoder")
-    , externalNamesModuleInfo : ExternalNamesModuleInfo
-
-    -- , modulesToLoad : List String
-    }
-
-
-type alias ExternalNamesModuleInfo =
-    Dict RawDottedName { dottedModulePath : String, name : String }
-
-
-type alias RawDottedName =
-    String
-
-
-type alias LocalUnionTypes =
-    Dict Name UnionDefinition
-
-
-type alias ViewFunctions =
-    Dict Name Type
-
-
-type alias LocalTypeAliases =
-    Dict Name Type
-
-
-doIt : List Block -> Info
-
-
-
 -- { model : Info, modulesToLoad : List String }
 
 
-doIt blocks =
+getModuleInfo : String -> ModuleInfo
+getModuleInfo sourceCode =
     let
+        blocks : List Block
+        blocks =
+            FirstPass.parseModule sourceCode
+
         localUnionTypes =
             getUnionTypes blocks
 
@@ -95,11 +59,14 @@ doIt blocks =
         viewFunctions =
             getViewFunctions blocks
 
-        usedTypeNames =
-            []
-
+        -- usedTypeNames =
+        --     []
         externalNames =
-            getExternalNames { viewFunctions = viewFunctions, localUnionTypes = localUnionTypes, localTypeAliases = localTypeAliases }
+            getExternalNames
+                { viewFunctions = viewFunctions
+                , localUnionTypes = localUnionTypes
+                , localTypeAliases = localTypeAliases
+                }
 
         -- |> List.map rawNameToQualifiedName
         imports =
@@ -111,37 +78,10 @@ doIt blocks =
         { localUnionTypes = localUnionTypes
         , localTypeAliases = localTypeAliases
         , viewFunctions = viewFunctions
-        , usedTypeNames = usedTypeNames
+
+        -- , usedTypeNames = usedTypeNames
         , externalNamesModuleInfo = getExternalNamesModuleInfo externalNames imports
-
-        -- , modulesToLoad = []
-        -- externalNames
-        --     |> List.concatMap
-        --         (\qualifiedName ->
-        --             reversedImports
-        --                 |> List.filterMap (isExplicitlyInImportStatement qualifiedName)
-        --         )
-        --     |> Set.fromList
-        --     |> Set.toList
         }
-
-
-getExternalNamesModuleInfo :
-    List String
-    -> List ImportStatement
-    -> ExternalNamesModuleInfo
-getExternalNamesModuleInfo externalNames imports =
-    let
-        reversedImports =
-            imports |> List.reverse
-    in
-        externalNames
-            |> List.concatMap
-                (\externalName ->
-                    reversedImports
-                        |> List.filterMap (isExplicitlyInImportStatement externalName)
-                )
-            |> Dict.fromList
 
 
 
@@ -155,13 +95,25 @@ getExternalNames :
     , localUnionTypes : LocalUnionTypes
     }
     -> List String
-getExternalNames ({ viewFunctions, localTypeAliases, localUnionTypes } as defs) =
+getExternalNames { viewFunctions, localTypeAliases, localUnionTypes } =
     let
         allNames =
             viewFunctions |> Dict.values |> List.concatMap getNames
+
+        definitionNames =
+            Dict.keys viewFunctions ++ Dict.keys localTypeAliases ++ Dict.keys localUnionTypes
     in
         allNames
-            |> List.filter (isExternalName defs)
+            |> List.filter (isExternalName definitionNames)
+
+
+getModulesToLoad : ModuleInfo -> List String
+getModulesToLoad info =
+    info.externalNamesModuleInfo
+        |> Dict.values
+        |> List.map .dottedModulePath
+        |> Set.fromList
+        |> Set.toList
 
 
 
@@ -195,52 +147,23 @@ getViewFunctions blocks =
         |> Dict.fromList
 
 
-getTypeAliases : List Block -> Dict Name Type
-getTypeAliases blocks =
-    blocks
-        |> List.filterMap
-            (\block ->
-                case block of
-                    TypeAliasDefinition ( name, tipe ) ->
-                        Just ( name, tipe )
 
-                    _ ->
-                        Nothing
-            )
-        |> Dict.fromList
-
-
-getUnionTypes : List Block -> Dict Name UnionDefinition
-getUnionTypes blocks =
-    blocks
-        |> List.filterMap
-            (\block ->
-                case block of
-                    Union ( name, definition ) ->
-                        Just ( name, definition )
-
-                    _ ->
-                        Nothing
-            )
-        |> Dict.fromList
-
-
-isExternalName :
-    { viewFunctions : ViewFunctions
-    , localTypeAliases : LocalTypeAliases
-    , localUnionTypes : LocalUnionTypes
-    }
-    -> String
-    -> Bool
-isExternalName { localUnionTypes, localTypeAliases, viewFunctions } name =
-    if String.contains "." name then
-        True
-    else
-        not <|
-            (Dict.member name localUnionTypes
-                || Dict.member name localTypeAliases
-                || Dict.member name viewFunctions
-            )
+-- isExternalName :
+--     { viewFunctions : ViewFunctions
+--     , localTypeAliases : LocalTypeAliases
+--     , localUnionTypes : LocalUnionTypes
+--     }
+--     -> String
+--     -> Bool
+-- isExternalName { localUnionTypes, localTypeAliases, viewFunctions } name =
+--     if String.contains "." name then
+--         True
+--     else
+--         not <|
+--             (Dict.member name localUnionTypes
+--                 || Dict.member name localTypeAliases
+--                 || Dict.member name viewFunctions
+--             )
 
 
 getNames : Type -> List String
@@ -248,49 +171,11 @@ getNames mainTipe =
     case mainTipe of
         Type "Html" _ ->
             -- if the view function is just a constant that returns Html (eg: `view : Html msg`),
-            -- there's. We can relax :)
+            -- there's nothing needed to do. We can relax :)
             []
 
         _ ->
-            getNamesHelper mainTipe
-
-
-getNamesHelper : Type -> List String
-getNamesHelper tipe =
-    case tipe of
-        Var _ ->
-            []
-
-        Type "Html" _ ->
-            []
-
-        Tuple tipes ->
-            List.concatMap getNames tipes
-
-        Lambda leftTipe rightTipe ->
-            let
-                leftNames =
-                    getNames leftTipe
-
-                rightNames =
-                    case rightTipe of
-                        -- we don't want to include the Html name if it's just the return value.
-                        -- However we may want to autogenerate some html for a view function that
-                        -- can take Html as an argument.
-                        Type "Html" _ ->
-                            []
-
-                        _ ->
-                            getNames rightTipe
-            in
-                leftNames ++ rightNames
-
-        Type name _ ->
-            [ name ]
-
-        Record fields _ ->
-            fields
-                |> List.concatMap (Tuple.second >> getNames)
+            ModuleInfo.getNames mainTipe
 
 
 
@@ -377,68 +262,6 @@ getNamesHelper tipe =
 --             |> filterTypeExpressions
 --             |> List.concatMap (getExternalNames localNames)
 --             |> removeDuplicates
-
-
-removeDuplicates : List comparable -> List comparable
-removeDuplicates l =
-    l |> Set.fromList |> Set.toList
-
-
-filterByImports : List Block -> List ImportStatement
-filterByImports =
-    List.filterMap
-        (\block ->
-            case block of
-                Import userImport ->
-                    Just userImport
-
-                _ ->
-                    Nothing
-        )
-
-
-filterTypeExpressions : List Block -> List Type
-filterTypeExpressions =
-    List.concatMap
-        (\block ->
-            case block of
-                TypeAnnotation ( _, tipe ) ->
-                    [ tipe ]
-
-                TypeAliasDefinition ( _, tipe ) ->
-                    [ tipe ]
-
-                Union ( _, typeConstructors ) ->
-                    typeConstructors
-                        |> List.concatMap (Tuple.second)
-
-                _ ->
-                    []
-        )
-
-
-type alias LocalNames =
-    List String
-
-
-getLocalNames : List Block -> List String
-getLocalNames blocks =
-    blocks
-        |> List.filterMap
-            (\block ->
-                case block of
-                    TypeAliasDefinition ( name, _ ) ->
-                        Just name
-
-                    Union ( name, _ ) ->
-                        Just name
-
-                    _ ->
-                        Nothing
-            )
-
-
-
 -- getExternalNames : LocalNames -> Type -> List String
 -- getExternalNames localNames tipe =
 --     case tipe of
@@ -459,38 +282,3 @@ getLocalNames blocks =
 --         Record fields _ ->
 --             fields
 --                 |> List.concatMap (Tuple.second >> (getExternalNames localNames))
-
-
-coreTypes : List String
-coreTypes =
-    [ "Bool"
-    , "Int"
-    , "Float"
-    , "String"
-    , "Char"
-    , "Html"
-    , "List"
-    , "Attribute"
-    , "Maybe"
-    , "Dict"
-    , "Result"
-    , "Decoder" -- doesn't work?
-    ]
-
-
-anyTrue : List Bool -> Bool
-anyTrue =
-    List.any identity
-
-
-handleTypeName : LocalNames -> String -> Maybe String
-handleTypeName localNames typeName =
-    if
-        anyTrue
-            [ List.member typeName coreTypes
-            , List.member typeName localNames
-            ]
-    then
-        Nothing
-    else
-        Just typeName

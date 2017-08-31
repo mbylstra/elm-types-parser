@@ -4,6 +4,7 @@ module Helpers exposing (..)
 
 import String
 import List.Extra exposing (uncons)
+import Dict exposing (Dict)
 
 
 qualifiedNameToPath : String -> String
@@ -28,3 +29,28 @@ qualifiedNameToPath name =
             )
         -- String.split always returns at least one element, so this can't happen
         |> Maybe.withDefault ""
+
+
+groupByFirstTupleItem : List ( comparable, a ) -> Dict comparable (List a)
+groupByFirstTupleItem rows =
+    rows
+        |> List.foldr
+            (\( key, value ) accDict ->
+                accDict
+                    |> Dict.update
+                        key
+                        (\maybeList ->
+                            case maybeList of
+                                Just list ->
+                                    Just <| value :: list
+
+                                Nothing ->
+                                    Just <| [ value ]
+                        )
+            )
+            Dict.empty
+
+
+anyTrue : List Bool -> Bool
+anyTrue =
+    List.any identity
