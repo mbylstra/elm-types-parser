@@ -202,8 +202,8 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
 -- its moduleName, modul
 
 
-getResult : Model -> Result Model (Dict String String)
-getResult model =
+getGoal : Model -> Result Model (Dict String String)
+getGoal model =
     if isFinished model then
         model
             |> Dict.map
@@ -291,7 +291,7 @@ haveNotExhaustedAllOptions dirAttempts =
 -- what is Dict String String?
 
 
-update : Msg -> Model -> { model : Model, result : Maybe ModuleToSource, cmd : Cmd Msg }
+update : Msg -> Model -> { model : Model, goal : Maybe ModuleToSource, cmd : Cmd Msg }
 update msg model =
     let
         _ =
@@ -340,13 +340,13 @@ update msg model =
                     ( model3, cmds ) =
                         getNextCmds newModel
 
-                    result =
-                        getResult model3
+                    goal =
+                        getGoal model3
 
                     -- _ =
                     --     Debug.log "RESULT ****************\n\n" (result |> Result.map Dict.keys)
                 in
-                    { model = model3, cmd = Cmd.batch cmds, result = result |> Result.toMaybe }
+                    { model = model3, cmd = Cmd.batch cmds, goal = goal |> Result.toMaybe }
 
 
 updateDirAttempt : Maybe String -> Maybe DirAttempt -> Maybe DirAttempt

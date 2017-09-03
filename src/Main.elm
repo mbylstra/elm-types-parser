@@ -2,7 +2,6 @@ port module Main exposing (..)
 
 -- import Dict exposing (Dict)
 
-import ModuleInfo
 import Json.Decode
 import PackageInfo exposing (PackageInfo)
 import Process
@@ -11,6 +10,7 @@ import Task
 import Time exposing (Time)
 import DeterminePackageLocations
 import Types exposing (ModuleInfo)
+import SubjectModuleInfo
 
 
 {- REMOVE WHEN COMPILER BUG IS FIXED -}
@@ -48,8 +48,15 @@ type alias ModuleName =
     String
 
 
+type ProgramStage
+    = LoadingTheSubjectsDependentModules
+    | LoadingAllDependentModules
+    | FinishedLoadingModules
+
+
 type alias Model =
-    { sourceDirectories : List String
+    { programStage : ProgramStage
+    , sourceDirectories : List String
     , readSourceFilesModel : ReadSourceFiles.Model
     , packageDirs : List String
 
@@ -83,13 +90,13 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
 
                     subjectModuleInfo =
                         subjectSourceCode
-                            |> ModuleInfo.getModuleInfo
+                            |> SubjectModuleInfo.getModuleInfo
 
                     -- we need to store this in the model, so that once we've read the source files,
                     -- we can match it
                     modulesToLoad =
                         subjectModuleInfo
-                            |> ModuleInfo.getModulesToLoad
+                            |> SubjectModuleInfo.getModulesToLoad
 
                     ( readSourceFilesModel, readSourceFilesCmd ) =
                         ReadSourceFiles.init
@@ -97,7 +104,8 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                             , moduleNames = modulesToLoad
                             }
                 in
-                    { subjectSourceCode = subjectSourceCode
+                    { programStage = LoadingTheSubjectsDependentModules
+                    , subjectSourceCode = subjectSourceCode
                     , sourceDirectories = sourceDirectories
                     , readSourceFilesModel = readSourceFilesModel
                     , packageDirs = packageDirs
@@ -130,10 +138,13 @@ update msg model =
                         model.readSourceFilesModel
 
                 newModel =
-                    { model | readSourceFilesModel = readSourceFilesReturn.model }
+                    { model
+                        | programStage = LoadingAllDependentModules
+                        , readSourceFilesModel = readSourceFilesReturn.model
+                    }
 
                 _ =
-                    Debug.log "\n\n\nreturn:\n" readSourceFilesReturn.result
+                    Debug.log "\n\ngoal:\n" readSourceFilesReturn.goal
             in
                 newModel ! [ readSourceFilesReturn.cmd |> Cmd.map ReadSourceFilesMsg ]
 

@@ -9,6 +9,7 @@ import Types
         , ExternalNamesModuleInfo
         , ModuleInfo
         , ModuleToSource
+        , ModuleToModuleInfo
         , UnionDefinition
         , Name
         , Type
@@ -17,17 +18,15 @@ import Types
         )
 
 
--- getModuleInfos :
---     { moduleToSource : ModuleToSource, usedSymbols : List String }
---     -> List ModuleInfo
--- getModuleInfos { moduleToSource, usedSymbols } =
---     let
---         moduleInfos =
---             moduleToSource
---                 |> Dict.values
---                 |> List.map SubjectModuleInfo.getModuleInfo
---     in
---         moduleInfo
+getModuleInfos :
+    { moduleToSource : ModuleToSource, usedSymbols : List String }
+    -> ModuleToModuleInfo
+getModuleInfos { moduleToSource, usedSymbols } =
+    moduleToSource
+        |> Dict.map
+            (\_ sourceCode ->
+                getModuleInfo { sourceCode = sourceCode, relevantNames = usedSymbols }
+            )
 
 
 getModuleInfo : { sourceCode : String, relevantNames : List String } -> ModuleInfo
@@ -69,8 +68,6 @@ getModuleInfo { sourceCode, relevantNames } =
     in
         { localUnionTypes = localUnionTypes
         , localTypeAliases = localTypeAliases
-
-        -- , usedTypeNames = usedTypeNames
         , externalNamesModuleInfo = getExternalNamesModuleInfo externalNames imports
         , viewFunctions = Dict.empty -- irrelevant
         }

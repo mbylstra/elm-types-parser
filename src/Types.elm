@@ -116,3 +116,7 @@ type alias SourceCode =
 
 type alias ModuleToSource =
     Dict DottedModuleName SourceCode
+
+
+type alias ModuleToModuleInfo =
+    Dict DottedModuleName ModuleInfo
