@@ -80,19 +80,16 @@ port readElmModuleResult : (ReadElmModuleResultR -> msg) -> Sub msg
 -- port getFilenamesInDirReturned : (? -> msg) -> Sub msg
 
 
-init : { moduleNames : List String, dirNames : List String } -> ( Model, Cmd Msg )
-init { moduleNames, dirNames } =
+init : { moduleNames : List String, sourceDirectories : List String } -> ( Model, Cmd Msg )
+init { moduleNames, sourceDirectories } =
     let
-        _ =
-            Debug.log "dirNames" dirNames
-
         newModel =
             (moduleNames
                 |> List.map
                     (\moduleName ->
                         ( moduleName
                         , { dirAttempts =
-                                dirNames
+                                sourceDirectories
                                     |> List.map
                                         (((,) |> flip) DirNotAttemptedYet)
                                     |> Dict.fromList

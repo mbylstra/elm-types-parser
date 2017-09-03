@@ -17,7 +17,6 @@ import Types
         , ViewFunctions
         , DottedModuleName
         )
-import Set exposing (Set)
 import Dict exposing (Dict)
 import ViewFunctionDetector exposing (isViewFunction)
 import FirstPass
@@ -105,15 +104,6 @@ getExternalNames { viewFunctions, localTypeAliases, localUnionTypes } =
     in
         allNames
             |> List.filter (isExternalName definitionNames)
-
-
-getModulesToLoad : ModuleInfo -> List String
-getModulesToLoad info =
-    info.externalNamesModuleInfo
-        |> Dict.values
-        |> List.map .dottedModulePath
-        |> Set.fromList
-        |> Set.toList
 
 
 

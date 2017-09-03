@@ -218,3 +218,21 @@ getNamesInUnionDefinition : UnionDefinition -> List String
 getNamesInUnionDefinition typeConstructors =
     typeConstructors
         |> List.concatMap (\( _, args ) -> List.concatMap getNames args)
+
+
+getExternalSymbols : ModuleInfo -> List String
+getExternalSymbols info =
+    info.externalNamesModuleInfo
+        |> Dict.values
+        |> List.map .name
+        |> Set.fromList
+        |> Set.toList
+
+
+getModulesToLoad : ModuleInfo -> List String
+getModulesToLoad info =
+    info.externalNamesModuleInfo
+        |> Dict.values
+        |> List.map .dottedModulePath
+        |> Set.fromList
+        |> Set.toList

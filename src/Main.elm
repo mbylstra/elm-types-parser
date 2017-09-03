@@ -9,8 +9,11 @@ import ReadSourceFiles
 import Task
 import Time exposing (Time)
 import DeterminePackageLocations
-import Types exposing (ModuleInfo, ModuleToSource)
+import Types exposing (ModuleInfo, ModuleToSource, ModuleToModuleInfo)
 import SubjectModuleInfo
+import ModuleInfo
+import DependentModules
+import Dict
 
 
 {- REMOVE WHEN COMPILER BUG IS FIXED -}
@@ -48,22 +51,22 @@ type alias ModuleName =
     String
 
 
-type ProgramStage
-    = LoadingTheSubjectsDependentModules
-    | LoadingAllDependentModules { subjectDependentModuleSource : ModuleToSource }
-    | FinishedLoadingModules
-
-
 type alias Model =
     { programStage : ProgramStage
     , sourceDirectories : List String
     , readSourceFilesModel : ReadSourceFiles.Model
-    , packageDirs : List String
-
-    -- , sourceFiles : Dict ModuleName SourceCode
     , subjectSourceCode : String
     , subjectModuleInfo : ModuleInfo
     }
+
+
+type ProgramStage
+    = LoadingTheSubjectsDependentModules
+    | LoadingAllDependentModules
+        { moduleInfos : ModuleToModuleInfo
+        , readSourceFilesModel : ReadSourceFiles.Model
+        }
+    | FinishedLoadingModules
 
 
 type Msg
@@ -86,7 +89,7 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                         DeterminePackageLocations.doIt exactDependenciesContents
 
                     sourceDirectories =
-                        packageInfo.sourceDirectories
+                        packageInfo.sourceDirectories ++ packageDirs
 
                     subjectModuleInfo =
                         subjectSourceCode
@@ -96,11 +99,11 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                     -- we can match it
                     modulesToLoad =
                         subjectModuleInfo
-                            |> SubjectModuleInfo.getModulesToLoad
+                            |> ModuleInfo.getModulesToLoad
 
                     ( readSourceFilesModel, readSourceFilesCmd ) =
                         ReadSourceFiles.init
-                            { dirNames = packageDirs ++ sourceDirectories
+                            { sourceDirectories = sourceDirectories
                             , moduleNames = modulesToLoad
                             }
                 in
@@ -108,7 +111,6 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                     , subjectSourceCode = subjectSourceCode
                     , sourceDirectories = sourceDirectories
                     , readSourceFilesModel = readSourceFilesModel
-                    , packageDirs = packageDirs
                     , subjectModuleInfo = subjectModuleInfo
                     }
                         ! [ readSourceFilesCmd |> Cmd.map ReadSourceFilesMsg ]
@@ -140,22 +142,53 @@ update msg model1 =
                 model2 =
                     { model1 | readSourceFilesModel = rsfModel }
 
-                model3 =
+                ( model3, dependentRsfCmd ) =
                     case rsfGoal of
                         Just moduleToSource ->
-                            { model2
-                                | programStage =
-                                    LoadingAllDependentModules
-                                        { subjectDependentModuleSource = moduleToSource }
-                            }
+                            let
+                                usedSymbols =
+                                    ModuleInfo.getExternalSymbols model2.subjectModuleInfo
+
+                                moduleInfos =
+                                    DependentModules.getModuleInfos
+                                        { moduleToSource = moduleToSource, usedSymbols = usedSymbols }
+
+                                -- now that we have the dependent module infos,
+                                -- we need to go through each of them and download their dependent modules
+                                -- (we should take care to not do the same thing more than once, but as MVP
+                                -- its ok)
+                                modulesToLoad : List String
+                                modulesToLoad =
+                                    moduleInfos
+                                        |> Dict.values
+                                        |> List.concatMap ModuleInfo.getModulesToLoad
+
+                                ( readSourceFilesModel, dependentRsfCmd ) =
+                                    ReadSourceFiles.init
+                                        { sourceDirectories = model2.sourceDirectories
+                                        , moduleNames = modulesToLoad
+                                        }
+                            in
+                                ( { model2
+                                    | programStage =
+                                        LoadingAllDependentModules
+                                            { moduleInfos = moduleInfos
+                                            , readSourceFilesModel = readSourceFilesModel
+                                            }
+                                  }
+                                , dependentRsfCmd
+                                )
 
                         Nothing ->
-                            model2
+                            ( model2, Cmd.none )
 
                 _ =
                     Debug.log "\n\ngoal:\n" rsfGoal
             in
-                model3 ! [ rsfCmd |> Cmd.map ReadSourceFilesMsg ]
+                model3
+                    ! [ rsfCmd |> Cmd.map ReadSourceFilesMsg
+                      , dependentRsfCmd |> Cmd.map ReadSourceFilesMsg
+                      ]
 
 
 subscriptions : Model -> Sub Msg
