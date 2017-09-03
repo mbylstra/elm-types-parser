@@ -9,7 +9,7 @@ import ReadSourceFiles
 import Task
 import Time exposing (Time)
 import DeterminePackageLocations
-import Types exposing (ModuleInfo)
+import Types exposing (ModuleInfo, ModuleToSource)
 import SubjectModuleInfo
 
 
@@ -50,7 +50,7 @@ type alias ModuleName =
 
 type ProgramStage
     = LoadingTheSubjectsDependentModules
-    | LoadingAllDependentModules
+    | LoadingAllDependentModules { subjectDependentModuleSource : ModuleToSource }
     | FinishedLoadingModules
 
 
@@ -122,31 +122,40 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update msg model1 =
     case msg of
         Stop ->
-            model ! [ exitApp 0 ]
+            model1 ! [ exitApp 0 ]
 
         Abort ->
-            model ! [ exitApp -1 ]
+            model1 ! [ exitApp -1 ]
 
-        ReadSourceFilesMsg rsfpMsg ->
+        ReadSourceFilesMsg rsfMsg ->
             let
-                readSourceFilesReturn =
+                { rsfModel, rsfGoal, rsfCmd } =
                     ReadSourceFiles.update
-                        rsfpMsg
-                        model.readSourceFilesModel
+                        rsfMsg
+                        model1.readSourceFilesModel
 
-                newModel =
-                    { model
-                        | programStage = LoadingAllDependentModules
-                        , readSourceFilesModel = readSourceFilesReturn.model
-                    }
+                model2 =
+                    { model1 | readSourceFilesModel = rsfModel }
+
+                model3 =
+                    case rsfGoal of
+                        Just moduleToSource ->
+                            { model2
+                                | programStage =
+                                    LoadingAllDependentModules
+                                        { subjectDependentModuleSource = moduleToSource }
+                            }
+
+                        Nothing ->
+                            model2
 
                 _ =
-                    Debug.log "\n\ngoal:\n" readSourceFilesReturn.goal
+                    Debug.log "\n\ngoal:\n" rsfGoal
             in
-                newModel ! [ readSourceFilesReturn.cmd |> Cmd.map ReadSourceFilesMsg ]
+                model3 ! [ rsfCmd |> Cmd.map ReadSourceFilesMsg ]
 
 
 subscriptions : Model -> Sub Msg

@@ -291,7 +291,7 @@ haveNotExhaustedAllOptions dirAttempts =
 -- what is Dict String String?
 
 
-update : Msg -> Model -> { model : Model, goal : Maybe ModuleToSource, cmd : Cmd Msg }
+update : Msg -> Model -> { rsfModel : Model, rsfGoal : Maybe ModuleToSource, rsfCmd : Cmd Msg }
 update msg model =
     let
         _ =
@@ -346,7 +346,7 @@ update msg model =
                     -- _ =
                     --     Debug.log "RESULT ****************\n\n" (result |> Result.map Dict.keys)
                 in
-                    { model = model3, cmd = Cmd.batch cmds, goal = goal |> Result.toMaybe }
+                    { rsfModel = model3, rsfCmd = Cmd.batch cmds, rsfGoal = goal |> Result.toMaybe }
 
 
 updateDirAttempt : Maybe String -> Maybe DirAttempt -> Maybe DirAttempt
