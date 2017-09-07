@@ -42,7 +42,7 @@ type DirAttempt
     | DirFail
 
 
-type alias ReadElmModuleScope =
+type alias ReadElmModulePortScope =
     { path : String, dir : String, moduleName : String }
 
 
@@ -52,13 +52,13 @@ type Msg
 
 type alias ReadElmModuleResultR =
     { contents : Maybe String
-    , scope : ReadElmModuleScope
+    , portScope : ReadElmModulePortScope
     }
 
 
 type alias GetFilenamesInDirResultR =
     { filenames : Maybe (List String)
-    , scope : ReadElmModuleScope
+    , portScope : ReadElmModulePortScope
     }
 
 
@@ -68,7 +68,7 @@ type alias GetFilenamesInDirResultScope =
 
 port readElmModule :
     { path : String
-    , scope : ReadElmModuleScope
+    , portScope : ReadElmModulePortScope
     }
     -> Cmd msg
 
@@ -83,7 +83,7 @@ port readElmModuleResult : (ReadElmModuleResultR -> msg) -> Sub msg
 init : { moduleNames : List String, sourceDirectories : List String } -> ( Model, Cmd Msg )
 init { moduleNames, sourceDirectories } =
     let
-        newModel =
+        model =
             (moduleNames
                 |> List.map
                     (\moduleName ->
@@ -106,10 +106,10 @@ init { moduleNames, sourceDirectories } =
 
         -- _ =
         --     Debug.log "\n\nreadSourceFiles newModel\n\n" newModel
-        ( model3, cmds ) =
-            getNextCmds newModel
+        ( model2, cmds ) =
+            getNextCmds model
     in
-        model3 ! cmds
+        model2 ! cmds
 
 
 getNextCmds : Model -> ( Model, List (Cmd Msg) )
@@ -151,9 +151,8 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
         |> List.foldl
             (\( dirName, dirAttempt ) { dirAttempts, maybeCmds } ->
                 let
-                    _ =
-                        Debug.log "dirName" dirName
-
+                    -- _ =
+                    --     -- Debug.log "dirName" dirName
                     path : String
                     path =
                         dirName
@@ -167,7 +166,7 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
                                 , Just
                                     (readElmModule
                                         { path = path
-                                        , scope =
+                                        , portScope =
                                             { path = path
                                             , dir = dirName
                                             , moduleName = moduleName
@@ -179,8 +178,8 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
                             _ ->
                                 ( ( dirName, dirAttempt ), Nothing )
 
-                    _ =
-                        Debug.log "newDirAttempt" newDirAttempt
+                    -- _ =
+                    --     Debug.log "newDirAttempt" newDirAttempt
                 in
                     { dirAttempts = newDirAttempt :: dirAttempts
                     , maybeCmds = maybeCmd :: maybeCmds
@@ -291,32 +290,31 @@ haveNotExhaustedAllOptions dirAttempts =
 update : Msg -> Model -> { rsfModel : Model, rsfGoal : Maybe ModuleToSource, rsfCmd : Cmd Msg }
 update msg model =
     let
-        _ =
-            Debug.log "\n\nmodel\n" model
-
+        -- _ =
+        --     Debug.log "\n\nmodel\n" model
         -- _ =
         --     Debug.log "ReadSoureFiles.update" True
         _ =
             False
     in
         case msg of
-            ReadElmModuleResult { contents, scope } ->
+            ReadElmModuleResult { contents, portScope } ->
                 let
                     -- _ =
-                    --     Debug.log "scope" scope
+                    --     Debug.log "portScope" portScope
                     newModel : Model
                     newModel =
                         model
                             |> (Dict.update
-                                    scope.moduleName
+                                    portScope.moduleName
                                     (\maybeExistingValue ->
                                         case maybeExistingValue of
                                             Just moduleStatus ->
                                                 Just <|
                                                     let
                                                         _ =
-                                                            if not <| isJust <| Dict.get scope.dir moduleStatus.dirAttempts then
-                                                                Debug.crash ("could not find " ++ scope.dir ++ " for " ++ scope.moduleName)
+                                                            if not <| isJust <| Dict.get portScope.dir moduleStatus.dirAttempts then
+                                                                Debug.crash ("could not find " ++ portScope.dir ++ " for " ++ portScope.moduleName)
                                                             else
                                                                 ()
                                                     in
@@ -324,13 +322,17 @@ update msg model =
                                                             | dirAttempts =
                                                                 moduleStatus.dirAttempts
                                                                     |> Dict.update
-                                                                        scope.dir
+                                                                        portScope.dir
                                                                         (updateDirAttempt contents)
                                                             , sourceCode = contents
                                                         }
 
                                             Nothing ->
-                                                Debug.crash ("could not update module " ++ scope.moduleName)
+                                                let
+                                                    keys =
+                                                        Dict.keys model
+                                                in
+                                                    Debug.crash ("could not update module " ++ portScope.moduleName ++ " keys " ++ (toString keys))
                                     )
                                )
 
@@ -348,7 +350,8 @@ update msg model =
 
 updateDirAttempt : Maybe String -> Maybe DirAttempt -> Maybe DirAttempt
 updateDirAttempt maybeSourceCode maybeDirAttempt =
-    (Debug.log "maybeDirAttempt" maybeDirAttempt)
+    -- (Debug.log "maybeDirAttempt" maybeDirAttempt)
+    maybeDirAttempt
         |> Maybe.map
             (\_ ->
                 case maybeSourceCode of

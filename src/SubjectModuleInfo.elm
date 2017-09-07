@@ -27,7 +27,9 @@ import ModuleInfo
         , getExternalNamesModuleInfo
         , filterByImports
         , isExternalName
+        , isCoreName
         )
+import Helpers exposing (removeDuplicates)
 
 
 -- what is the actual result we want?
@@ -55,8 +57,12 @@ getModuleInfo sourceCode =
         localTypeAliases =
             getTypeAliases blocks
 
+        viewFunctions : Dict Name Type
         viewFunctions =
             getViewFunctions blocks
+
+        _ =
+            Debug.log "subject viewFunctions" (Dict.keys viewFunctions)
 
         -- usedTypeNames =
         --     []
@@ -66,6 +72,9 @@ getModuleInfo sourceCode =
                 , localUnionTypes = localUnionTypes
                 , localTypeAliases = localTypeAliases
                 }
+
+        _ =
+            Debug.log "subject external names" externalNames
 
         -- |> List.map rawNameToQualifiedName
         imports =
@@ -97,7 +106,14 @@ getExternalNames :
 getExternalNames { viewFunctions, localTypeAliases, localUnionTypes } =
     let
         allNames =
-            viewFunctions |> Dict.values |> List.concatMap getNames
+            viewFunctions
+                |> Dict.values
+                |> List.concatMap getNames
+                |> removeDuplicates
+                |> List.filter (not << isCoreName)
+
+        _ =
+            Debug.log "allNames" allNames
 
         definitionNames =
             Dict.keys viewFunctions ++ Dict.keys localTypeAliases ++ Dict.keys localUnionTypes

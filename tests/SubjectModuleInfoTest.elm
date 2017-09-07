@@ -91,3 +91,8 @@ suite =
                             ]
                         )
         ]
+
+
+
+-- TODO: test this
+-- frame : Bool -> Maybe User -> ActivePage -> Html msg -> Html msg

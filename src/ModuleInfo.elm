@@ -56,11 +56,6 @@ getUnionTypes blocks =
         |> Dict.fromList
 
 
-removeDuplicates : List comparable -> List comparable
-removeDuplicates l =
-    l |> Set.fromList |> Set.toList
-
-
 filterByImports : List Block -> List ImportStatement
 filterByImports =
     List.filterMap
@@ -132,17 +127,23 @@ coreTypes =
     ]
 
 
-handleTypeName : LocalNames -> String -> Maybe String
-handleTypeName localNames typeName =
-    if
-        anyTrue
-            [ List.member typeName coreTypes
-            , List.member typeName localNames
-            ]
-    then
-        Nothing
-    else
-        Just typeName
+isCoreName : String -> Bool
+isCoreName name =
+    List.member name coreTypes
+
+
+
+-- handleTypeName : LocalNames -> String -> Maybe String
+-- handleTypeName localNames typeName =
+--     if
+--         anyTrue
+--             [ List.member typeName coreTypes
+--             , List.member typeName localNames
+--             ]
+--     then
+--         Nothing
+--     else
+--         Just typeName
 
 
 groupNamesByModule : ExternalNamesModuleInfo -> Dict DottedModuleName (List Name)
@@ -206,8 +207,8 @@ getNames tipe =
             in
                 leftNames ++ rightNames
 
-        Type name _ ->
-            [ name ]
+        Type name tipes ->
+            [ name ] ++ (List.concatMap getNames tipes)
 
         Record fields _ ->
             fields

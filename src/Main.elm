@@ -65,6 +65,8 @@ type ProgramStage
     | LoadingAllDependentModules
         { moduleInfos : ModuleToModuleInfo
         , readSourceFilesModel : ReadSourceFiles.Model
+
+        -- when we get a ReadSourceFilesMsg, we need to make sure it gets routed to this somehow :/
         }
     | FinishedLoadingModules
 
@@ -73,6 +75,11 @@ type Msg
     = Stop
     | Abort
     | ReadSourceFilesMsg ReadSourceFiles.Msg
+    | LoadingAllDependentModulesMsg LoadingAllDependentModulesMsg
+
+
+type LoadingAllDependentModulesMsg
+    = LADMReadSourceFilesMsg ReadSourceFiles.Msg
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -124,28 +131,35 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model1 =
+update msg model =
+    -- case (Debug.log "msg" msg) of
     case msg of
         Stop ->
-            model1 ! [ exitApp 0 ]
+            model ! [ exitApp 0 ]
 
         Abort ->
-            model1 ! [ exitApp -1 ]
+            model ! [ exitApp -1 ]
 
         ReadSourceFilesMsg rsfMsg ->
             let
+                _ =
+                    Debug.log "initial ReadSourceFilesMsg" True
+
                 { rsfModel, rsfGoal, rsfCmd } =
                     ReadSourceFiles.update
                         rsfMsg
-                        model1.readSourceFilesModel
+                        model.readSourceFilesModel
 
                 model2 =
-                    { model1 | readSourceFilesModel = rsfModel }
+                    { model | readSourceFilesModel = rsfModel }
 
                 ( model3, dependentRsfCmd ) =
                     case rsfGoal of
                         Just moduleToSource ->
                             let
+                                _ =
+                                    Debug.log "subject ReadSourceFiles goal keys" (Dict.keys moduleToSource)
+
                                 usedSymbols =
                                     ModuleInfo.getExternalSymbols model2.subjectModuleInfo
 
@@ -166,7 +180,7 @@ update msg model1 =
                                 ( readSourceFilesModel, dependentRsfCmd ) =
                                     ReadSourceFiles.init
                                         { sourceDirectories = model2.sourceDirectories
-                                        , moduleNames = modulesToLoad
+                                        , moduleNames = (Debug.log "modulesToLoad" modulesToLoad)
                                         }
                             in
                                 ( { model2
@@ -182,22 +196,62 @@ update msg model1 =
                         Nothing ->
                             ( model2, Cmd.none )
 
+                -- _ =
+                --     Debug.log "\n\ngoal:\n" rsfGoal
                 _ =
-                    Debug.log "\n\ngoal:\n" rsfGoal
+                    Debug.log "rsfCmd" rsfCmd
+
+                _ =
+                    Debug.log "dependentRsfCmd" dependentRsfCmd
             in
                 model3
-                    ! [ rsfCmd |> Cmd.map ReadSourceFilesMsg
-                      , dependentRsfCmd |> Cmd.map ReadSourceFilesMsg
+                    -- ! [ rsfCmd |> Cmd.map ReadSourceFilesMsg
+                    --   , dependentRsfCmd |> Cmd.map (LoadingAllDependentModulesMsg << LADMReadSourceFilesMsg)
+                    --   ]
+                    ! [ dependentRsfCmd |> Cmd.map (LoadingAllDependentModulesMsg << LADMReadSourceFilesMsg)
                       ]
+
+        -- | LoadingAllDependentModulesMsg LoadingAllDependentModulesMsg
+        -- = LADMReadSourceFilesMsg ReadSourceFiles.Msg
+        LoadingAllDependentModulesMsg ladmMsg ->
+            case model.programStage of
+                LoadingAllDependentModules ladmModel ->
+                    case ladmMsg of
+                        LADMReadSourceFilesMsg rsfMsg ->
+                            let
+                                { rsfModel, rsfGoal, rsfCmd } =
+                                    ReadSourceFiles.update rsfMsg ladmModel.readSourceFilesModel
+
+                                _ =
+                                    Debug.log "rsfGoal" rsfGoal
+                            in
+                                { model
+                                    | programStage =
+                                        LoadingAllDependentModules
+                                            { ladmModel | readSourceFilesModel = rsfModel }
+                                }
+                                    ! []
+
+                _ ->
+                    model ! []
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ externalStop <| always Abort
-        , ReadSourceFiles.subscriptions
-            |> Sub.map ReadSourceFilesMsg
-        ]
+    (externalStop <| always Abort)
+        :: (case model.programStage of
+                LoadingTheSubjectsDependentModules ->
+                    [ ReadSourceFiles.subscriptions |> Sub.map ReadSourceFilesMsg ]
+
+                LoadingAllDependentModules _ ->
+                    [ ReadSourceFiles.subscriptions
+                        |> Sub.map (LoadingAllDependentModulesMsg << LADMReadSourceFilesMsg)
+                    ]
+
+                FinishedLoadingModules ->
+                    []
+           )
+        |> Sub.batch
 
 
 

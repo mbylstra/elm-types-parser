@@ -41,9 +41,9 @@ ports.readElmModule.subscribe(data => {
 	fs.readFile(data.path, 'utf8', (err, contents) => {
 		// console.log('path', data.path);
 	  if (err) {
-			ports.readElmModuleResult.send({ scope: data.scope, contents: null});
+			ports.readElmModuleResult.send({ portScope: data.portScope, contents: null});
 		} else {
-			ports.readElmModuleResult.send({ scope: data.scope, contents: contents});
+			ports.readElmModuleResult.send({ portScope: data.portScope, contents: contents});
 		}
 	});
 });

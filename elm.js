@@ -9589,68 +9589,6 @@ var _ucode$elm_path$Path_Posix$hasTrailingPathSeparator = _ucode$elm_path$Path_G
 var _ucode$elm_path$Path_Posix$addTrailingPathSeparator = _ucode$elm_path$Path_Generic$addTrailingPathSeparator(_ucode$elm_path$Path_Posix$currPlatform);
 var _ucode$elm_path$Path_Posix$dropTrailingPathSeparator = _ucode$elm_path$Path_Generic$dropTrailingPathSeparator(_ucode$elm_path$Path_Posix$currPlatform);
 
-var _user$project$DeterminePackageLocations$exactDependencyToPath = function (_p0) {
-	var _p1 = _p0;
-	var _p4 = _p1._0;
-	var _p2 = A2(_elm_lang$core$String$split, '/', _p4);
-	if (((_p2.ctor === '::') && (_p2._1.ctor === '::')) && (_p2._1._1.ctor === '[]')) {
-		return _ucode$elm_path$Path_Posix$joinPath(
-			{
-				ctor: '::',
-				_0: '.',
-				_1: {
-					ctor: '::',
-					_0: 'elm-stuff',
-					_1: {
-						ctor: '::',
-						_0: 'packages',
-						_1: {
-							ctor: '::',
-							_0: _p2._0,
-							_1: {
-								ctor: '::',
-								_0: _p2._1._0,
-								_1: {
-									ctor: '::',
-									_0: _p1._1,
-									_1: {
-										ctor: '::',
-										_0: 'src',
-										_1: {ctor: '[]'}
-									}
-								}
-							}
-						}
-					}
-				}
-			});
-	} else {
-		return _elm_lang$core$Native_Utils.crashCase(
-			'DeterminePackageLocations',
-			{
-				start: {line: 15, column: 5},
-				end: {line: 20, column: 68}
-			},
-			_p2)(
-			A2(_elm_lang$core$Basics_ops['++'], _p4, ' is not a valid packageName'));
-	}
-};
-var _user$project$DeterminePackageLocations$exactDependenciesDecoder = _elm_lang$core$Json_Decode$dict(_elm_lang$core$Json_Decode$string);
-var _user$project$DeterminePackageLocations$doIt = function (exactDependenciesContents) {
-	return A2(
-		_elm_lang$core$Result$withDefault,
-		{ctor: '[]'},
-		A2(
-			_elm_lang$core$Result$map,
-			function (_p5) {
-				return A2(
-					_elm_lang$core$List$map,
-					_user$project$DeterminePackageLocations$exactDependencyToPath,
-					_elm_lang$core$Dict$toList(_p5));
-			},
-			A2(_elm_lang$core$Json_Decode$decodeString, _user$project$DeterminePackageLocations$exactDependenciesDecoder, exactDependenciesContents)));
-};
-
 var _user$project$Types$ImportStatement = F3(
 	function (a, b, c) {
 		return {dottedModulePath: a, maybeAlias: b, exposedNames: c};
@@ -9658,6 +9596,10 @@ var _user$project$Types$ImportStatement = F3(
 var _user$project$Types$Listing = F2(
 	function (a, b) {
 		return {explicits: a, open: b};
+	});
+var _user$project$Types$ModuleInfo = F4(
+	function (a, b, c, d) {
+		return {viewFunctions: a, localTypeAliases: b, localUnionTypes: c, externalNamesModuleInfo: d};
 	});
 var _user$project$Types$IgnoreBlock = {ctor: 'IgnoreBlock'};
 var _user$project$Types$TypeAnnotation = function (a) {
@@ -9690,6 +9632,10 @@ var _user$project$Types$Lambda = F2(
 var _user$project$Types$Var = function (a) {
 	return {ctor: 'Var', _0: a};
 };
+var _user$project$Types$External = function (a) {
+	return {ctor: 'External', _0: a};
+};
+var _user$project$Types$Local = {ctor: 'Local'};
 
 var _user$project$ElmTypesParser$pipeSymbol = _elm_tools$parser$Parser$symbol('|');
 var _user$project$ElmTypesParser$comma = _elm_tools$parser$Parser$symbol(',');
@@ -10412,328 +10358,6 @@ var _user$project$ImportStatement$StructuredRawName = F2(
 		return {name: a, modulePath: b};
 	});
 
-var _user$project$ViewFunctionDetector$isViewFunction = function (tipe) {
-	isViewFunction:
-	while (true) {
-		var _p0 = tipe;
-		switch (_p0.ctor) {
-			case 'Var':
-				return false;
-			case 'Lambda':
-				var _v1 = _p0._1;
-				tipe = _v1;
-				continue isViewFunction;
-			case 'Tuple':
-				return false;
-			case 'Type':
-				return _elm_lang$core$Native_Utils.eq(_p0._0, 'Html');
-			default:
-				return false;
-		}
-	}
-};
-
-var _user$project$DetermineWhichModulesToLoad$anyTrue = _elm_lang$core$List$any(_elm_lang$core$Basics$identity);
-var _user$project$DetermineWhichModulesToLoad$coreTypes = {
-	ctor: '::',
-	_0: 'Bool',
-	_1: {
-		ctor: '::',
-		_0: 'Int',
-		_1: {
-			ctor: '::',
-			_0: 'Float',
-			_1: {
-				ctor: '::',
-				_0: 'String',
-				_1: {
-					ctor: '::',
-					_0: 'Char',
-					_1: {
-						ctor: '::',
-						_0: 'Html',
-						_1: {
-							ctor: '::',
-							_0: 'List',
-							_1: {
-								ctor: '::',
-								_0: 'Attribute',
-								_1: {
-									ctor: '::',
-									_0: 'Maybe',
-									_1: {
-										ctor: '::',
-										_0: 'Dict',
-										_1: {
-											ctor: '::',
-											_0: 'Result',
-											_1: {
-												ctor: '::',
-												_0: 'Decoder',
-												_1: {ctor: '[]'}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-};
-var _user$project$DetermineWhichModulesToLoad$handleTypeName = F2(
-	function (localNames, typeName) {
-		return _user$project$DetermineWhichModulesToLoad$anyTrue(
-			{
-				ctor: '::',
-				_0: A2(_elm_lang$core$List$member, typeName, _user$project$DetermineWhichModulesToLoad$coreTypes),
-				_1: {
-					ctor: '::',
-					_0: A2(_elm_lang$core$List$member, typeName, localNames),
-					_1: {ctor: '[]'}
-				}
-			}) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(typeName);
-	});
-var _user$project$DetermineWhichModulesToLoad$getLocalNames = function (blocks) {
-	return A2(
-		_elm_lang$core$List$filterMap,
-		function (block) {
-			var _p0 = block;
-			_v0_2:
-			do {
-				switch (_p0.ctor) {
-					case 'TypeAliasDefinition':
-						if (_p0._0.ctor === '_Tuple2') {
-							return _elm_lang$core$Maybe$Just(_p0._0._0);
-						} else {
-							break _v0_2;
-						}
-					case 'Union':
-						if (_p0._0.ctor === '_Tuple2') {
-							return _elm_lang$core$Maybe$Just(_p0._0._0);
-						} else {
-							break _v0_2;
-						}
-					default:
-						break _v0_2;
-				}
-			} while(false);
-			return _elm_lang$core$Maybe$Nothing;
-		},
-		blocks);
-};
-var _user$project$DetermineWhichModulesToLoad$filterTypeExpressions = _elm_lang$core$List$concatMap(
-	function (block) {
-		var _p1 = block;
-		_v1_3:
-		do {
-			switch (_p1.ctor) {
-				case 'TypeAnnotation':
-					if (_p1._0.ctor === '_Tuple2') {
-						return {
-							ctor: '::',
-							_0: _p1._0._1,
-							_1: {ctor: '[]'}
-						};
-					} else {
-						break _v1_3;
-					}
-				case 'TypeAliasDefinition':
-					if (_p1._0.ctor === '_Tuple2') {
-						return {
-							ctor: '::',
-							_0: _p1._0._1,
-							_1: {ctor: '[]'}
-						};
-					} else {
-						break _v1_3;
-					}
-				case 'Union':
-					if (_p1._0.ctor === '_Tuple2') {
-						return A2(_elm_lang$core$List$concatMap, _elm_lang$core$Tuple$second, _p1._0._1);
-					} else {
-						break _v1_3;
-					}
-				default:
-					break _v1_3;
-			}
-		} while(false);
-		return {ctor: '[]'};
-	});
-var _user$project$DetermineWhichModulesToLoad$filterByImports = _elm_lang$core$List$filterMap(
-	function (block) {
-		var _p2 = block;
-		if (_p2.ctor === 'Import') {
-			return _elm_lang$core$Maybe$Just(_p2._0);
-		} else {
-			return _elm_lang$core$Maybe$Nothing;
-		}
-	});
-var _user$project$DetermineWhichModulesToLoad$removeDuplicates = function (l) {
-	return _elm_lang$core$Set$toList(
-		_elm_lang$core$Set$fromList(l));
-};
-var _user$project$DetermineWhichModulesToLoad$getNames = function (mainTipe) {
-	var _p3 = mainTipe;
-	if ((_p3.ctor === 'Type') && (_p3._0 === 'Html')) {
-		return {ctor: '[]'};
-	} else {
-		return _user$project$DetermineWhichModulesToLoad$getNamesHelper(mainTipe);
-	}
-};
-var _user$project$DetermineWhichModulesToLoad$getNamesHelper = function (tipe) {
-	var _p4 = tipe;
-	switch (_p4.ctor) {
-		case 'Var':
-			return {ctor: '[]'};
-		case 'Tuple':
-			return A2(_elm_lang$core$List$concatMap, _user$project$DetermineWhichModulesToLoad$getNames, _p4._0);
-		case 'Lambda':
-			var _p6 = _p4._1;
-			var rightNames = function () {
-				var _p5 = _p6;
-				if ((_p5.ctor === 'Type') && (_p5._0 === 'Html')) {
-					return {ctor: '[]'};
-				} else {
-					return _user$project$DetermineWhichModulesToLoad$getNames(_p6);
-				}
-			}();
-			var leftNames = _user$project$DetermineWhichModulesToLoad$getNames(_p4._0);
-			return A2(_elm_lang$core$Basics_ops['++'], leftNames, rightNames);
-		case 'Type':
-			if (_p4._0 === 'Html') {
-				return {ctor: '[]'};
-			} else {
-				return {
-					ctor: '::',
-					_0: _p4._0,
-					_1: {ctor: '[]'}
-				};
-			}
-		default:
-			return A2(
-				_elm_lang$core$List$concatMap,
-				function (_p7) {
-					return _user$project$DetermineWhichModulesToLoad$getNames(
-						_elm_lang$core$Tuple$second(_p7));
-				},
-				_p4._0);
-	}
-};
-var _user$project$DetermineWhichModulesToLoad$isExternalName = F2(
-	function (_p8, name) {
-		var _p9 = _p8;
-		return A2(_elm_lang$core$String$contains, '.', name) ? true : (!(A2(_elm_lang$core$Dict$member, name, _p9.localUnionTypes) || (A2(_elm_lang$core$Dict$member, name, _p9.localTypeAliases) || A2(_elm_lang$core$Dict$member, name, _p9.viewFunctions))));
-	});
-var _user$project$DetermineWhichModulesToLoad$getUnionTypes = function (blocks) {
-	return _elm_lang$core$Dict$fromList(
-		A2(
-			_elm_lang$core$List$filterMap,
-			function (block) {
-				var _p10 = block;
-				if ((_p10.ctor === 'Union') && (_p10._0.ctor === '_Tuple2')) {
-					return _elm_lang$core$Maybe$Just(
-						{ctor: '_Tuple2', _0: _p10._0._0, _1: _p10._0._1});
-				} else {
-					return _elm_lang$core$Maybe$Nothing;
-				}
-			},
-			blocks));
-};
-var _user$project$DetermineWhichModulesToLoad$getTypeAliases = function (blocks) {
-	return _elm_lang$core$Dict$fromList(
-		A2(
-			_elm_lang$core$List$filterMap,
-			function (block) {
-				var _p11 = block;
-				if ((_p11.ctor === 'TypeAliasDefinition') && (_p11._0.ctor === '_Tuple2')) {
-					return _elm_lang$core$Maybe$Just(
-						{ctor: '_Tuple2', _0: _p11._0._0, _1: _p11._0._1});
-				} else {
-					return _elm_lang$core$Maybe$Nothing;
-				}
-			},
-			blocks));
-};
-var _user$project$DetermineWhichModulesToLoad$getViewFunctions = function (blocks) {
-	return _elm_lang$core$Dict$fromList(
-		A2(
-			_elm_lang$core$List$filterMap,
-			function (block) {
-				var _p12 = block;
-				if ((_p12.ctor === 'TypeAnnotation') && (_p12._0.ctor === '_Tuple2')) {
-					var _p13 = _p12._0._1;
-					return _user$project$ViewFunctionDetector$isViewFunction(_p13) ? _elm_lang$core$Maybe$Just(
-						{ctor: '_Tuple2', _0: _p12._0._0, _1: _p13}) : _elm_lang$core$Maybe$Nothing;
-				} else {
-					return _elm_lang$core$Maybe$Nothing;
-				}
-			},
-			blocks));
-};
-var _user$project$DetermineWhichModulesToLoad$getModulesToLoad = function (info) {
-	return _elm_lang$core$Set$toList(
-		_elm_lang$core$Set$fromList(
-			A2(
-				_elm_lang$core$List$map,
-				function (_) {
-					return _.dottedModulePath;
-				},
-				_elm_lang$core$Dict$values(info.externalNamesModuleInfo))));
-};
-var _user$project$DetermineWhichModulesToLoad$getExternalNames = function (_p14) {
-	var _p15 = _p14;
-	var allNames = A2(
-		_elm_lang$core$List$concatMap,
-		_user$project$DetermineWhichModulesToLoad$getNames,
-		_elm_lang$core$Dict$values(_p15.viewFunctions));
-	return A2(
-		_elm_lang$core$List$filter,
-		_user$project$DetermineWhichModulesToLoad$isExternalName(_p15),
-		allNames);
-};
-var _user$project$DetermineWhichModulesToLoad$getExternalNamesModuleInfo = F2(
-	function (externalNames, imports) {
-		var reversedImports = _elm_lang$core$List$reverse(imports);
-		return _elm_lang$core$Dict$fromList(
-			A2(
-				_elm_lang$core$List$concatMap,
-				function (externalName) {
-					return A2(
-						_elm_lang$core$List$filterMap,
-						_user$project$ImportStatement$isExplicitlyInImportStatement(externalName),
-						reversedImports);
-				},
-				externalNames));
-	});
-var _user$project$DetermineWhichModulesToLoad$doIt = function (blocks) {
-	var imports = _user$project$DetermineWhichModulesToLoad$filterByImports(blocks);
-	var reversedImports = _elm_lang$core$List$reverse(imports);
-	var usedTypeNames = {ctor: '[]'};
-	var viewFunctions = _user$project$DetermineWhichModulesToLoad$getViewFunctions(blocks);
-	var localTypeAliases = _user$project$DetermineWhichModulesToLoad$getTypeAliases(blocks);
-	var localUnionTypes = _user$project$DetermineWhichModulesToLoad$getUnionTypes(blocks);
-	var externalNames = _user$project$DetermineWhichModulesToLoad$getExternalNames(
-		{viewFunctions: viewFunctions, localUnionTypes: localUnionTypes, localTypeAliases: localTypeAliases});
-	return {
-		localUnionTypes: localUnionTypes,
-		localTypeAliases: localTypeAliases,
-		viewFunctions: viewFunctions,
-		usedTypeNames: usedTypeNames,
-		externalNamesModuleInfo: A2(_user$project$DetermineWhichModulesToLoad$getExternalNamesModuleInfo, externalNames, imports)
-	};
-};
-var _user$project$DetermineWhichModulesToLoad$Info = F5(
-	function (a, b, c, d, e) {
-		return {viewFunctions: a, localTypeAliases: b, localUnionTypes: c, usedTypeNames: d, externalNamesModuleInfo: e};
-	});
-var _user$project$DetermineWhichModulesToLoad$External = function (a) {
-	return {ctor: 'External', _0: a};
-};
-var _user$project$DetermineWhichModulesToLoad$Local = {ctor: 'Local'};
-
 var _user$project$FirstPass$parseBlock = function (rawBlock) {
 	var _p0 = rawBlock;
 	switch (_p0.ctor) {
@@ -10870,22 +10494,450 @@ var _user$project$FirstPass$parseModule = function (source) {
 					_user$project$FirstPass$splitIntoBlocks(source)))));
 };
 
+var _user$project$Helpers$removeDuplicates = function (l) {
+	return _elm_lang$core$Set$toList(
+		_elm_lang$core$Set$fromList(l));
+};
+var _user$project$Helpers$anyTrue = _elm_lang$core$List$any(_elm_lang$core$Basics$identity);
+var _user$project$Helpers$groupByFirstTupleItem = function (rows) {
+	return A3(
+		_elm_lang$core$List$foldr,
+		F2(
+			function (_p0, accDict) {
+				var _p1 = _p0;
+				var _p3 = _p1._1;
+				return A3(
+					_elm_lang$core$Dict$update,
+					_p1._0,
+					function (maybeList) {
+						var _p2 = maybeList;
+						if (_p2.ctor === 'Just') {
+							return _elm_lang$core$Maybe$Just(
+								{ctor: '::', _0: _p3, _1: _p2._0});
+						} else {
+							return _elm_lang$core$Maybe$Just(
+								{
+									ctor: '::',
+									_0: _p3,
+									_1: {ctor: '[]'}
+								});
+						}
+					},
+					accDict);
+			}),
+		_elm_lang$core$Dict$empty,
+		rows);
+};
 var _user$project$Helpers$qualifiedNameToPath = function (name) {
 	return A2(
 		_elm_lang$core$Maybe$withDefault,
 		'',
 		A2(
 			_elm_lang$core$Maybe$map,
-			function (_p0) {
-				var _p1 = _p0;
-				var fileName = A2(_elm_lang$core$Basics_ops['++'], _p1._0, '.elm');
-				var fullReversePath = {ctor: '::', _0: fileName, _1: _p1._1};
+			function (_p4) {
+				var _p5 = _p4;
+				var fileName = A2(_elm_lang$core$Basics_ops['++'], _p5._0, '.elm');
+				var fullReversePath = {ctor: '::', _0: fileName, _1: _p5._1};
 				var path = _elm_lang$core$List$reverse(fullReversePath);
 				return A2(_elm_lang$core$String$join, '/', path);
 			},
 			_elm_community$list_extra$List_Extra$uncons(
 				_elm_lang$core$List$reverse(
 					A2(_elm_lang$core$String$split, '.', name)))));
+};
+
+var _user$project$ModuleInfo$getModulesToLoad = function (info) {
+	return _elm_lang$core$Set$toList(
+		_elm_lang$core$Set$fromList(
+			A2(
+				_elm_lang$core$List$map,
+				function (_) {
+					return _.dottedModulePath;
+				},
+				_elm_lang$core$Dict$values(info.externalNamesModuleInfo))));
+};
+var _user$project$ModuleInfo$getExternalSymbols = function (info) {
+	return _elm_lang$core$Set$toList(
+		_elm_lang$core$Set$fromList(
+			A2(
+				_elm_lang$core$List$map,
+				function (_) {
+					return _.name;
+				},
+				_elm_lang$core$Dict$values(info.externalNamesModuleInfo))));
+};
+var _user$project$ModuleInfo$getNames = function (tipe) {
+	var _p0 = tipe;
+	switch (_p0.ctor) {
+		case 'Var':
+			return {ctor: '[]'};
+		case 'Tuple':
+			return A2(_elm_lang$core$List$concatMap, _user$project$ModuleInfo$getNames, _p0._0);
+		case 'Lambda':
+			var _p2 = _p0._1;
+			var rightNames = function () {
+				var _p1 = _p2;
+				if ((_p1.ctor === 'Type') && (_p1._0 === 'Html')) {
+					return {ctor: '[]'};
+				} else {
+					return _user$project$ModuleInfo$getNames(_p2);
+				}
+			}();
+			var leftNames = _user$project$ModuleInfo$getNames(_p0._0);
+			return A2(_elm_lang$core$Basics_ops['++'], leftNames, rightNames);
+		case 'Type':
+			return A2(
+				_elm_lang$core$Basics_ops['++'],
+				{
+					ctor: '::',
+					_0: _p0._0,
+					_1: {ctor: '[]'}
+				},
+				A2(_elm_lang$core$List$concatMap, _user$project$ModuleInfo$getNames, _p0._1));
+		default:
+			return A2(
+				_elm_lang$core$List$concatMap,
+				function (_p3) {
+					return _user$project$ModuleInfo$getNames(
+						_elm_lang$core$Tuple$second(_p3));
+				},
+				_p0._0);
+	}
+};
+var _user$project$ModuleInfo$getNamesInUnionDefinition = function (typeConstructors) {
+	return A2(
+		_elm_lang$core$List$concatMap,
+		function (_p4) {
+			var _p5 = _p4;
+			return A2(_elm_lang$core$List$concatMap, _user$project$ModuleInfo$getNames, _p5._1);
+		},
+		typeConstructors);
+};
+var _user$project$ModuleInfo$isExternalName = F2(
+	function (definitionNames, name) {
+		return A2(_elm_lang$core$String$contains, '.', name) ? true : (!A2(_elm_lang$core$List$member, name, definitionNames));
+	});
+var _user$project$ModuleInfo$getExternalNamesModuleInfo = F2(
+	function (externalNames, imports) {
+		var reversedImports = _elm_lang$core$List$reverse(imports);
+		return _elm_lang$core$Dict$fromList(
+			A2(
+				_elm_lang$core$List$concatMap,
+				function (externalName) {
+					return A2(
+						_elm_lang$core$List$filterMap,
+						_user$project$ImportStatement$isExplicitlyInImportStatement(externalName),
+						reversedImports);
+				},
+				externalNames));
+	});
+var _user$project$ModuleInfo$groupNamesByModule = function (externalNamesModuleInfo) {
+	return _user$project$Helpers$groupByFirstTupleItem(
+		A2(
+			_elm_lang$core$List$map,
+			function (_p6) {
+				var _p7 = _p6;
+				return {ctor: '_Tuple2', _0: _p7.dottedModulePath, _1: _p7.name};
+			},
+			_elm_lang$core$Dict$values(externalNamesModuleInfo)));
+};
+var _user$project$ModuleInfo$coreTypes = {
+	ctor: '::',
+	_0: 'Bool',
+	_1: {
+		ctor: '::',
+		_0: 'Int',
+		_1: {
+			ctor: '::',
+			_0: 'Float',
+			_1: {
+				ctor: '::',
+				_0: 'String',
+				_1: {
+					ctor: '::',
+					_0: 'Char',
+					_1: {
+						ctor: '::',
+						_0: 'Html',
+						_1: {
+							ctor: '::',
+							_0: 'List',
+							_1: {
+								ctor: '::',
+								_0: 'Attribute',
+								_1: {
+									ctor: '::',
+									_0: 'Maybe',
+									_1: {
+										ctor: '::',
+										_0: 'Dict',
+										_1: {
+											ctor: '::',
+											_0: 'Result',
+											_1: {
+												ctor: '::',
+												_0: 'Decoder',
+												_1: {ctor: '[]'}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+};
+var _user$project$ModuleInfo$isCoreName = function (name) {
+	return A2(_elm_lang$core$List$member, name, _user$project$ModuleInfo$coreTypes);
+};
+var _user$project$ModuleInfo$getLocalNames = function (blocks) {
+	return A2(
+		_elm_lang$core$List$filterMap,
+		function (block) {
+			var _p8 = block;
+			_v4_2:
+			do {
+				switch (_p8.ctor) {
+					case 'TypeAliasDefinition':
+						if (_p8._0.ctor === '_Tuple2') {
+							return _elm_lang$core$Maybe$Just(_p8._0._0);
+						} else {
+							break _v4_2;
+						}
+					case 'Union':
+						if (_p8._0.ctor === '_Tuple2') {
+							return _elm_lang$core$Maybe$Just(_p8._0._0);
+						} else {
+							break _v4_2;
+						}
+					default:
+						break _v4_2;
+				}
+			} while(false);
+			return _elm_lang$core$Maybe$Nothing;
+		},
+		blocks);
+};
+var _user$project$ModuleInfo$filterTypeExpressions = _elm_lang$core$List$concatMap(
+	function (block) {
+		var _p9 = block;
+		_v5_3:
+		do {
+			switch (_p9.ctor) {
+				case 'TypeAnnotation':
+					if (_p9._0.ctor === '_Tuple2') {
+						return {
+							ctor: '::',
+							_0: _p9._0._1,
+							_1: {ctor: '[]'}
+						};
+					} else {
+						break _v5_3;
+					}
+				case 'TypeAliasDefinition':
+					if (_p9._0.ctor === '_Tuple2') {
+						return {
+							ctor: '::',
+							_0: _p9._0._1,
+							_1: {ctor: '[]'}
+						};
+					} else {
+						break _v5_3;
+					}
+				case 'Union':
+					if (_p9._0.ctor === '_Tuple2') {
+						return A2(_elm_lang$core$List$concatMap, _elm_lang$core$Tuple$second, _p9._0._1);
+					} else {
+						break _v5_3;
+					}
+				default:
+					break _v5_3;
+			}
+		} while(false);
+		return {ctor: '[]'};
+	});
+var _user$project$ModuleInfo$filterByImports = _elm_lang$core$List$filterMap(
+	function (block) {
+		var _p10 = block;
+		if (_p10.ctor === 'Import') {
+			return _elm_lang$core$Maybe$Just(_p10._0);
+		} else {
+			return _elm_lang$core$Maybe$Nothing;
+		}
+	});
+var _user$project$ModuleInfo$getUnionTypes = function (blocks) {
+	return _elm_lang$core$Dict$fromList(
+		A2(
+			_elm_lang$core$List$filterMap,
+			function (block) {
+				var _p11 = block;
+				if ((_p11.ctor === 'Union') && (_p11._0.ctor === '_Tuple2')) {
+					return _elm_lang$core$Maybe$Just(
+						{ctor: '_Tuple2', _0: _p11._0._0, _1: _p11._0._1});
+				} else {
+					return _elm_lang$core$Maybe$Nothing;
+				}
+			},
+			blocks));
+};
+var _user$project$ModuleInfo$getTypeAliases = function (blocks) {
+	return _elm_lang$core$Dict$fromList(
+		A2(
+			_elm_lang$core$List$filterMap,
+			function (block) {
+				var _p12 = block;
+				if ((_p12.ctor === 'TypeAliasDefinition') && (_p12._0.ctor === '_Tuple2')) {
+					return _elm_lang$core$Maybe$Just(
+						{ctor: '_Tuple2', _0: _p12._0._0, _1: _p12._0._1});
+				} else {
+					return _elm_lang$core$Maybe$Nothing;
+				}
+			},
+			blocks));
+};
+
+var _user$project$DependentModules$getExternalNames = function (_p0) {
+	var _p1 = _p0;
+	var _p3 = _p1.localUnionTypes;
+	var _p2 = _p1.localTypeAliases;
+	var definitionNames = A2(
+		_elm_lang$core$Basics_ops['++'],
+		_elm_lang$core$Dict$keys(_p2),
+		_elm_lang$core$Dict$keys(_p3));
+	var namesInUnionTypes = A2(
+		_elm_lang$core$List$concatMap,
+		_user$project$ModuleInfo$getNamesInUnionDefinition,
+		_elm_lang$core$Dict$values(_p3));
+	var namesInTypeAliases = A2(
+		_elm_lang$core$List$concatMap,
+		_user$project$ModuleInfo$getNames,
+		_elm_lang$core$Dict$values(_p2));
+	var allNames = A2(_elm_lang$core$Basics_ops['++'], namesInTypeAliases, namesInUnionTypes);
+	return A2(
+		_elm_lang$core$List$filter,
+		_user$project$ModuleInfo$isExternalName(definitionNames),
+		allNames);
+};
+var _user$project$DependentModules$getDirectlyReferencedTypeAliases = function (_p4) {
+	var _p5 = _p4;
+	return A2(
+		_elm_lang$core$Dict$filter,
+		F2(
+			function (key, value) {
+				return A2(_elm_lang$core$List$member, key, _p5.relevantNames);
+			}),
+		_p5.typeAliases);
+};
+var _user$project$DependentModules$getDirectlyReferencedUnionTypes = function (_p6) {
+	var _p7 = _p6;
+	return A2(
+		_elm_lang$core$Dict$filter,
+		F2(
+			function (key, value) {
+				return A2(_elm_lang$core$List$member, key, _p7.relevantNames);
+			}),
+		_p7.unionTypes);
+};
+var _user$project$DependentModules$getModuleInfo = function (_p8) {
+	var _p9 = _p8;
+	var _p10 = _p9.relevantNames;
+	var blocks = _user$project$FirstPass$parseModule(_p9.sourceCode);
+	var localUnionTypes = _user$project$ModuleInfo$getUnionTypes(blocks);
+	var directlyReferencedUnionTypes = _user$project$DependentModules$getDirectlyReferencedUnionTypes(
+		{unionTypes: localUnionTypes, relevantNames: _p10});
+	var localTypeAliases = _user$project$ModuleInfo$getTypeAliases(blocks);
+	var directlyReferencedTypeAliases = _user$project$DependentModules$getDirectlyReferencedTypeAliases(
+		{typeAliases: localTypeAliases, relevantNames: _p10});
+	var definitionNames = A2(
+		_elm_lang$core$Basics_ops['++'],
+		_elm_lang$core$Dict$keys(localTypeAliases),
+		_elm_lang$core$Dict$keys(localUnionTypes));
+	var externalNames = _user$project$DependentModules$getExternalNames(
+		{localUnionTypes: localUnionTypes, localTypeAliases: localTypeAliases});
+	var imports = _user$project$ModuleInfo$filterByImports(blocks);
+	var reversedImports = _elm_lang$core$List$reverse(imports);
+	return {
+		localUnionTypes: localUnionTypes,
+		localTypeAliases: localTypeAliases,
+		externalNamesModuleInfo: A2(_user$project$ModuleInfo$getExternalNamesModuleInfo, externalNames, imports),
+		viewFunctions: _elm_lang$core$Dict$empty
+	};
+};
+var _user$project$DependentModules$getModuleInfos = function (_p11) {
+	var _p12 = _p11;
+	return A2(
+		_elm_lang$core$Dict$map,
+		F2(
+			function (_p13, sourceCode) {
+				return _user$project$DependentModules$getModuleInfo(
+					{sourceCode: sourceCode, relevantNames: _p12.usedSymbols});
+			}),
+		_p12.moduleToSource);
+};
+
+var _user$project$DeterminePackageLocations$exactDependencyToPath = function (_p0) {
+	var _p1 = _p0;
+	var _p4 = _p1._0;
+	var _p2 = A2(_elm_lang$core$String$split, '/', _p4);
+	if (((_p2.ctor === '::') && (_p2._1.ctor === '::')) && (_p2._1._1.ctor === '[]')) {
+		return _ucode$elm_path$Path_Posix$joinPath(
+			{
+				ctor: '::',
+				_0: '.',
+				_1: {
+					ctor: '::',
+					_0: 'elm-stuff',
+					_1: {
+						ctor: '::',
+						_0: 'packages',
+						_1: {
+							ctor: '::',
+							_0: _p2._0,
+							_1: {
+								ctor: '::',
+								_0: _p2._1._0,
+								_1: {
+									ctor: '::',
+									_0: _p1._1,
+									_1: {
+										ctor: '::',
+										_0: 'src',
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}
+					}
+				}
+			});
+	} else {
+		return _elm_lang$core$Native_Utils.crashCase(
+			'DeterminePackageLocations',
+			{
+				start: {line: 15, column: 5},
+				end: {line: 20, column: 68}
+			},
+			_p2)(
+			A2(_elm_lang$core$Basics_ops['++'], _p4, ' is not a valid packageName'));
+	}
+};
+var _user$project$DeterminePackageLocations$exactDependenciesDecoder = _elm_lang$core$Json_Decode$dict(_elm_lang$core$Json_Decode$string);
+var _user$project$DeterminePackageLocations$doIt = function (exactDependenciesContents) {
+	return A2(
+		_elm_lang$core$Result$withDefault,
+		{ctor: '[]'},
+		A2(
+			_elm_lang$core$Result$map,
+			function (_p5) {
+				return A2(
+					_elm_lang$core$List$map,
+					_user$project$DeterminePackageLocations$exactDependencyToPath,
+					_elm_lang$core$Dict$toList(_p5));
+			},
+			A2(_elm_lang$core$Json_Decode$decodeString, _user$project$DeterminePackageLocations$exactDependenciesDecoder, exactDependenciesContents)));
 };
 
 var _user$project$Utils$resultAndMap = _elm_lang$core$Result$map2(
@@ -11308,7 +11360,7 @@ var _user$project$ReadSourceFiles$isFinished = function (model) {
 			_elm_lang$core$Tuple$second,
 			_user$project$ReadSourceFiles$moduleStatuses(model)));
 };
-var _user$project$ReadSourceFiles$getResult = function (model) {
+var _user$project$ReadSourceFiles$getGoal = function (model) {
 	return _user$project$ReadSourceFiles$isFinished(model) ? _elm_lang$core$Result$Ok(
 		A2(
 			_elm_lang$core$Dict$map,
@@ -11333,7 +11385,7 @@ var _user$project$ReadSourceFiles$readElmModule = _elm_lang$core$Native_Platform
 	function (v) {
 		return {
 			path: v.path,
-			scope: {path: v.scope.path, dir: v.scope.dir, moduleName: v.scope.moduleName}
+			portScope: {path: v.portScope.path, dir: v.portScope.dir, moduleName: v.portScope.moduleName}
 		};
 	});
 var _user$project$ReadSourceFiles$readElmModuleResult = _elm_lang$core$Native_Platform.incomingPort(
@@ -11343,13 +11395,13 @@ var _user$project$ReadSourceFiles$readElmModuleResult = _elm_lang$core$Native_Pl
 		function (contents) {
 			return A2(
 				_elm_lang$core$Json_Decode$andThen,
-				function (scope) {
+				function (portScope) {
 					return _elm_lang$core$Json_Decode$succeed(
-						{contents: contents, scope: scope});
+						{contents: contents, portScope: portScope});
 				},
 				A2(
 					_elm_lang$core$Json_Decode$field,
-					'scope',
+					'portScope',
 					A2(
 						_elm_lang$core$Json_Decode$andThen,
 						function (path) {
@@ -11385,17 +11437,17 @@ var _user$project$ReadSourceFiles$ModuleStatus = F2(
 	function (a, b) {
 		return {sourceCode: a, dirAttempts: b};
 	});
-var _user$project$ReadSourceFiles$ReadElmModuleScope = F3(
+var _user$project$ReadSourceFiles$ReadElmModulePortScope = F3(
 	function (a, b, c) {
 		return {path: a, dir: b, moduleName: c};
 	});
 var _user$project$ReadSourceFiles$ReadElmModuleResultR = F2(
 	function (a, b) {
-		return {contents: a, scope: b};
+		return {contents: a, portScope: b};
 	});
 var _user$project$ReadSourceFiles$GetFilenamesInDirResultR = F2(
 	function (a, b) {
-		return {filenames: a, scope: b};
+		return {filenames: a, portScope: b};
 	});
 var _user$project$ReadSourceFiles$DirFail = {ctor: 'DirFail'};
 var _user$project$ReadSourceFiles$DirSuccess = {ctor: 'DirSuccess'};
@@ -11411,7 +11463,7 @@ var _user$project$ReadSourceFiles$updateDirAttempt = F2(
 					return _user$project$ReadSourceFiles$DirFail;
 				}
 			},
-			A2(_elm_lang$core$Debug$log, 'maybeDirAttempt', maybeDirAttempt));
+			maybeDirAttempt);
 	});
 var _user$project$ReadSourceFiles$InFlight = {ctor: 'InFlight'};
 var _user$project$ReadSourceFiles$getNextCmdsForDirAttempts = F2(
@@ -11429,41 +11481,39 @@ var _user$project$ReadSourceFiles$getNextCmdsForDirAttempts = F2(
 				F2(
 					function (_p18, _p17) {
 						var _p19 = _p18;
-						var _p26 = _p19._0;
-						var _p25 = _p19._1;
+						var _p24 = _p19._0;
+						var _p23 = _p19._1;
 						var _p20 = _p17;
 						var path = A2(
 							_elm_lang$core$Basics_ops['++'],
-							_p26,
+							_p24,
 							A2(
 								_elm_lang$core$Basics_ops['++'],
 								'/',
 								_user$project$Helpers$qualifiedNameToPath(moduleName)));
 						var _p21 = function () {
-							var _p22 = _p25;
+							var _p22 = _p23;
 							if (_p22.ctor === 'DirNotAttemptedYet') {
 								return {
 									ctor: '_Tuple2',
-									_0: {ctor: '_Tuple2', _0: _p26, _1: _user$project$ReadSourceFiles$InFlight},
+									_0: {ctor: '_Tuple2', _0: _p24, _1: _user$project$ReadSourceFiles$InFlight},
 									_1: _elm_lang$core$Maybe$Just(
 										_user$project$ReadSourceFiles$readElmModule(
 											{
 												path: path,
-												scope: {path: path, dir: _p26, moduleName: moduleName}
+												portScope: {path: path, dir: _p24, moduleName: moduleName}
 											}))
 								};
 							} else {
 								return {
 									ctor: '_Tuple2',
-									_0: {ctor: '_Tuple2', _0: _p26, _1: _p25},
+									_0: {ctor: '_Tuple2', _0: _p24, _1: _p23},
 									_1: _elm_lang$core$Maybe$Nothing
 								};
 							}
 						}();
 						var newDirAttempt = _p21._0;
 						var maybeCmd = _p21._1;
-						var _p23 = A2(_elm_lang$core$Debug$log, 'newDirAttempt', newDirAttempt);
-						var _p24 = A2(_elm_lang$core$Debug$log, 'dirName', _p26);
 						return {
 							dirAttempts: {ctor: '::', _0: newDirAttempt, _1: _p20.dirAttempts},
 							maybeCmds: {ctor: '::', _0: maybeCmd, _1: _p20.maybeCmds}
@@ -11476,47 +11526,47 @@ var _user$project$ReadSourceFiles$getNextCmdsForDirAttempts = F2(
 				_elm_lang$core$Dict$toList(originalDirAttempts)));
 	});
 var _user$project$ReadSourceFiles$getNextCmds = function (model) {
-	return function (_p27) {
-		var _p28 = _p27;
+	return function (_p25) {
+		var _p26 = _p25;
 		return {
 			ctor: '_Tuple2',
-			_0: _elm_lang$core$Dict$fromList(_p28.accModuleStatuses),
-			_1: _p28.accCmds
+			_0: _elm_lang$core$Dict$fromList(_p26.accModuleStatuses),
+			_1: _p26.accCmds
 		};
 	}(
 		A3(
 			_elm_lang$core$List$foldl,
 			F2(
-				function (_p30, _p29) {
-					var _p31 = _p30;
-					var _p36 = _p31._0;
-					var _p32 = _p29;
-					var _p35 = _p32.accModuleStatuses;
-					var _p34 = _p32.accCmds;
-					if (_elm_community$maybe_extra$Maybe_Extra$isJust(_p31._1.sourceCode)) {
+				function (_p28, _p27) {
+					var _p29 = _p28;
+					var _p34 = _p29._0;
+					var _p30 = _p27;
+					var _p33 = _p30.accModuleStatuses;
+					var _p32 = _p30.accCmds;
+					if (_elm_community$maybe_extra$Maybe_Extra$isJust(_p29._1.sourceCode)) {
 						return {
 							accModuleStatuses: {
 								ctor: '::',
-								_0: {ctor: '_Tuple2', _0: _p36, _1: _p31._1},
-								_1: _p35
+								_0: {ctor: '_Tuple2', _0: _p34, _1: _p29._1},
+								_1: _p33
 							},
-							accCmds: _p34
+							accCmds: _p32
 						};
 					} else {
-						var _p33 = A2(_user$project$ReadSourceFiles$getNextCmdsForDirAttempts, _p36, _p31._1.dirAttempts);
-						var newDirAttempts = _p33._0;
-						var cmds = _p33._1;
+						var _p31 = A2(_user$project$ReadSourceFiles$getNextCmdsForDirAttempts, _p34, _p29._1.dirAttempts);
+						var newDirAttempts = _p31._0;
+						var cmds = _p31._1;
 						return {
 							accModuleStatuses: {
 								ctor: '::',
 								_0: {
 									ctor: '_Tuple2',
-									_0: _p36,
+									_0: _p34,
 									_1: {sourceCode: _elm_lang$core$Maybe$Nothing, dirAttempts: newDirAttempts}
 								},
-								_1: _p35
+								_1: _p33
 							},
-							accCmds: A2(_elm_lang$core$Basics_ops['++'], cmds, _p34)
+							accCmds: A2(_elm_lang$core$Basics_ops['++'], cmds, _p32)
 						};
 					}
 				}),
@@ -11528,70 +11578,79 @@ var _user$project$ReadSourceFiles$getNextCmds = function (model) {
 };
 var _user$project$ReadSourceFiles$update = F2(
 	function (msg, model) {
-		var _p37 = false;
-		var _p38 = A2(_elm_lang$core$Debug$log, '\n\nmodel\n', model);
-		var _p39 = msg;
-		var _p46 = _p39._0.scope;
-		var _p45 = _p39._0.contents;
+		var _p35 = false;
+		var _p36 = msg;
+		var _p42 = _p36._0.portScope;
+		var _p41 = _p36._0.contents;
 		var newModel = A3(
 			_elm_lang$core$Dict$update,
-			_p46.moduleName,
+			_p42.moduleName,
 			function (maybeExistingValue) {
-				var _p40 = maybeExistingValue;
-				if (_p40.ctor === 'Just') {
-					var _p42 = _p40._0;
-					var _p41 = (!_elm_community$maybe_extra$Maybe_Extra$isJust(
-						A2(_elm_lang$core$Dict$get, _p46.dir, _p42.dirAttempts))) ? _elm_lang$core$Native_Utils.crash(
+				var _p37 = maybeExistingValue;
+				if (_p37.ctor === 'Just') {
+					var _p39 = _p37._0;
+					return _elm_lang$core$Maybe$Just(
+						function () {
+							var _p38 = (!_elm_community$maybe_extra$Maybe_Extra$isJust(
+								A2(_elm_lang$core$Dict$get, _p42.dir, _p39.dirAttempts))) ? _elm_lang$core$Native_Utils.crash(
+								'ReadSourceFiles',
+								{
+									start: {line: 317, column: 65},
+									end: {line: 317, column: 76}
+								})(
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									'could not find ',
+									A2(
+										_elm_lang$core$Basics_ops['++'],
+										_p42.dir,
+										A2(_elm_lang$core$Basics_ops['++'], ' for ', _p42.moduleName)))) : {ctor: '_Tuple0'};
+							return _elm_lang$core$Native_Utils.update(
+								_p39,
+								{
+									dirAttempts: A3(
+										_elm_lang$core$Dict$update,
+										_p42.dir,
+										_user$project$ReadSourceFiles$updateDirAttempt(_p41),
+										_p39.dirAttempts),
+									sourceCode: _p41
+								});
+						}());
+				} else {
+					var keys = _elm_lang$core$Dict$keys(model);
+					return _elm_lang$core$Native_Utils.crash(
 						'ReadSourceFiles',
 						{
-							start: {line: 311, column: 61},
-							end: {line: 311, column: 72}
+							start: {line: 335, column: 53},
+							end: {line: 335, column: 64}
 						})(
 						A2(
 							_elm_lang$core$Basics_ops['++'],
-							'could not find ',
+							'could not update module ',
 							A2(
 								_elm_lang$core$Basics_ops['++'],
-								_p46.dir,
-								A2(_elm_lang$core$Basics_ops['++'], ' for ', _p46.moduleName)))) : {ctor: '_Tuple0'};
-					return _elm_lang$core$Maybe$Just(
-						_elm_lang$core$Native_Utils.update(
-							_p42,
-							{
-								dirAttempts: A3(
-									_elm_lang$core$Dict$update,
-									_p46.dir,
-									_user$project$ReadSourceFiles$updateDirAttempt(_p45),
-									_p42.dirAttempts),
-								sourceCode: _p45
-							}));
-				} else {
-					return _elm_lang$core$Native_Utils.crashCase(
-						'ReadSourceFiles',
-						{
-							start: {line: 306, column: 41},
-							end: {line: 326, column: 109}
-						},
-						_p40)(
-						A2(_elm_lang$core$Basics_ops['++'], 'could not update module ', _p46.moduleName));
+								_p42.moduleName,
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									' keys ',
+									_elm_lang$core$Basics$toString(keys)))));
 				}
 			},
 			model);
-		var _p44 = _user$project$ReadSourceFiles$getNextCmds(newModel);
-		var model3 = _p44._0;
-		var cmds = _p44._1;
-		var result = _user$project$ReadSourceFiles$getResult(model3);
+		var _p40 = _user$project$ReadSourceFiles$getNextCmds(newModel);
+		var model3 = _p40._0;
+		var cmds = _p40._1;
+		var goal = _user$project$ReadSourceFiles$getGoal(model3);
 		return {
-			model: model3,
-			cmd: _elm_lang$core$Platform_Cmd$batch(cmds),
-			result: _elm_lang$core$Result$toMaybe(result)
+			rsfModel: model3,
+			rsfCmd: _elm_lang$core$Platform_Cmd$batch(cmds),
+			rsfGoal: _elm_lang$core$Result$toMaybe(goal)
 		};
 	});
 var _user$project$ReadSourceFiles$DirNotAttemptedYet = {ctor: 'DirNotAttemptedYet'};
-var _user$project$ReadSourceFiles$init = function (_p47) {
-	var _p48 = _p47;
-	var _p51 = _p48.dirNames;
-	var newModel = _elm_lang$core$Dict$fromList(
+var _user$project$ReadSourceFiles$init = function (_p43) {
+	var _p44 = _p43;
+	var model = _elm_lang$core$Dict$fromList(
 		A2(
 			_elm_lang$core$List$map,
 			function (moduleName) {
@@ -11607,22 +11666,114 @@ var _user$project$ReadSourceFiles$init = function (_p47) {
 										function (v0, v1) {
 											return {ctor: '_Tuple2', _0: v0, _1: v1};
 										}))(_user$project$ReadSourceFiles$DirNotAttemptedYet),
-								_p51)),
+								_p44.sourceDirectories)),
 						sourceCode: _elm_lang$core$Maybe$Nothing
 					}
 				};
 			},
-			_p48.moduleNames));
-	var _p49 = _user$project$ReadSourceFiles$getNextCmds(newModel);
-	var model3 = _p49._0;
-	var cmds = _p49._1;
-	var _p50 = A2(_elm_lang$core$Debug$log, 'dirNames', _p51);
-	return A2(_elm_lang$core$Platform_Cmd_ops['!'], model3, cmds);
+			_p44.moduleNames));
+	var _p45 = _user$project$ReadSourceFiles$getNextCmds(model);
+	var model2 = _p45._0;
+	var cmds = _p45._1;
+	return A2(_elm_lang$core$Platform_Cmd_ops['!'], model2, cmds);
 };
 var _user$project$ReadSourceFiles$ReadElmModuleResult = function (a) {
 	return {ctor: 'ReadElmModuleResult', _0: a};
 };
 var _user$project$ReadSourceFiles$subscriptions = _user$project$ReadSourceFiles$readElmModuleResult(_user$project$ReadSourceFiles$ReadElmModuleResult);
+
+var _user$project$ViewFunctionDetector$isViewFunction = function (tipe) {
+	isViewFunction:
+	while (true) {
+		var _p0 = tipe;
+		switch (_p0.ctor) {
+			case 'Var':
+				return false;
+			case 'Lambda':
+				var _v1 = _p0._1;
+				tipe = _v1;
+				continue isViewFunction;
+			case 'Tuple':
+				return false;
+			case 'Type':
+				return _elm_lang$core$Native_Utils.eq(_p0._0, 'Html');
+			default:
+				return false;
+		}
+	}
+};
+
+var _user$project$SubjectModuleInfo$getNames = function (mainTipe) {
+	var _p0 = mainTipe;
+	if ((_p0.ctor === 'Type') && (_p0._0 === 'Html')) {
+		return {ctor: '[]'};
+	} else {
+		return _user$project$ModuleInfo$getNames(mainTipe);
+	}
+};
+var _user$project$SubjectModuleInfo$getViewFunctions = function (blocks) {
+	return _elm_lang$core$Dict$fromList(
+		A2(
+			_elm_lang$core$List$filterMap,
+			function (block) {
+				var _p1 = block;
+				if ((_p1.ctor === 'TypeAnnotation') && (_p1._0.ctor === '_Tuple2')) {
+					var _p2 = _p1._0._1;
+					return _user$project$ViewFunctionDetector$isViewFunction(_p2) ? _elm_lang$core$Maybe$Just(
+						{ctor: '_Tuple2', _0: _p1._0._0, _1: _p2}) : _elm_lang$core$Maybe$Nothing;
+				} else {
+					return _elm_lang$core$Maybe$Nothing;
+				}
+			},
+			blocks));
+};
+var _user$project$SubjectModuleInfo$getExternalNames = function (_p3) {
+	var _p4 = _p3;
+	var _p7 = _p4.viewFunctions;
+	var definitionNames = A2(
+		_elm_lang$core$Basics_ops['++'],
+		_elm_lang$core$Dict$keys(_p7),
+		A2(
+			_elm_lang$core$Basics_ops['++'],
+			_elm_lang$core$Dict$keys(_p4.localTypeAliases),
+			_elm_lang$core$Dict$keys(_p4.localUnionTypes)));
+	var allNames = A2(
+		_elm_lang$core$List$filter,
+		function (_p5) {
+			return !_user$project$ModuleInfo$isCoreName(_p5);
+		},
+		_user$project$Helpers$removeDuplicates(
+			A2(
+				_elm_lang$core$List$concatMap,
+				_user$project$SubjectModuleInfo$getNames,
+				_elm_lang$core$Dict$values(_p7))));
+	var _p6 = A2(_elm_lang$core$Debug$log, 'allNames', allNames);
+	return A2(
+		_elm_lang$core$List$filter,
+		_user$project$ModuleInfo$isExternalName(definitionNames),
+		allNames);
+};
+var _user$project$SubjectModuleInfo$getModuleInfo = function (sourceCode) {
+	var blocks = _user$project$FirstPass$parseModule(sourceCode);
+	var localUnionTypes = _user$project$ModuleInfo$getUnionTypes(blocks);
+	var localTypeAliases = _user$project$ModuleInfo$getTypeAliases(blocks);
+	var viewFunctions = _user$project$SubjectModuleInfo$getViewFunctions(blocks);
+	var _p8 = A2(
+		_elm_lang$core$Debug$log,
+		'subject viewFunctions',
+		_elm_lang$core$Dict$keys(viewFunctions));
+	var externalNames = _user$project$SubjectModuleInfo$getExternalNames(
+		{viewFunctions: viewFunctions, localUnionTypes: localUnionTypes, localTypeAliases: localTypeAliases});
+	var _p9 = A2(_elm_lang$core$Debug$log, 'subject external names', externalNames);
+	var imports = _user$project$ModuleInfo$filterByImports(blocks);
+	var reversedImports = _elm_lang$core$List$reverse(imports);
+	return {
+		localUnionTypes: localUnionTypes,
+		localTypeAliases: localTypeAliases,
+		viewFunctions: viewFunctions,
+		externalNamesModuleInfo: A2(_user$project$ModuleInfo$getExternalNamesModuleInfo, externalNames, imports)
+	};
+};
 
 var _user$project$Main$delayMsg = F2(
 	function (time, msg) {
@@ -11646,10 +11797,18 @@ var _user$project$Main$Flags = F3(
 	function (a, b, c) {
 		return {elmPackageContents: a, subjectSourceCode: b, exactDependenciesContents: c};
 	});
-var _user$project$Main$Model = F4(
-	function (a, b, c, d) {
-		return {sourceDirectories: a, readSourceFilesModel: b, packageDirs: c, subjectSourceCode: d};
+var _user$project$Main$Model = F5(
+	function (a, b, c, d, e) {
+		return {programStage: a, sourceDirectories: b, readSourceFilesModel: c, subjectSourceCode: d, subjectModuleInfo: e};
 	});
+var _user$project$Main$FinishedLoadingModules = {ctor: 'FinishedLoadingModules'};
+var _user$project$Main$LoadingAllDependentModules = function (a) {
+	return {ctor: 'LoadingAllDependentModules', _0: a};
+};
+var _user$project$Main$LoadingTheSubjectsDependentModules = {ctor: 'LoadingTheSubjectsDependentModules'};
+var _user$project$Main$LoadingAllDependentModulesMsg = function (a) {
+	return {ctor: 'LoadingAllDependentModulesMsg', _0: a};
+};
 var _user$project$Main$ReadSourceFilesMsg = function (a) {
 	return {ctor: 'ReadSourceFilesMsg', _0: a};
 };
@@ -11659,21 +11818,17 @@ var _user$project$Main$init = function (_p1) {
 	var packageInfoResult = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p2.elmPackageContents);
 	var _p3 = packageInfoResult;
 	if (_p3.ctor === 'Ok') {
-		var modulesToLoad = _user$project$DetermineWhichModulesToLoad$getModulesToLoad(
-			_user$project$DetermineWhichModulesToLoad$doIt(
-				_user$project$FirstPass$parseModule(_p5)));
-		var sourceDirectories = _p3._0.sourceDirectories;
+		var subjectModuleInfo = _user$project$SubjectModuleInfo$getModuleInfo(_p5);
+		var modulesToLoad = _user$project$ModuleInfo$getModulesToLoad(subjectModuleInfo);
 		var packageDirs = _user$project$DeterminePackageLocations$doIt(_p2.exactDependenciesContents);
+		var sourceDirectories = A2(_elm_lang$core$Basics_ops['++'], _p3._0.sourceDirectories, packageDirs);
 		var _p4 = _user$project$ReadSourceFiles$init(
-			{
-				dirNames: A2(_elm_lang$core$Basics_ops['++'], packageDirs, sourceDirectories),
-				moduleNames: modulesToLoad
-			});
+			{sourceDirectories: sourceDirectories, moduleNames: modulesToLoad});
 		var readSourceFilesModel = _p4._0;
 		var readSourceFilesCmd = _p4._1;
 		return A2(
 			_elm_lang$core$Platform_Cmd_ops['!'],
-			{subjectSourceCode: _p5, sourceDirectories: sourceDirectories, readSourceFilesModel: readSourceFilesModel, packageDirs: packageDirs},
+			{programStage: _user$project$Main$LoadingTheSubjectsDependentModules, subjectSourceCode: _p5, sourceDirectories: sourceDirectories, readSourceFilesModel: readSourceFilesModel, subjectModuleInfo: subjectModuleInfo},
 			{
 				ctor: '::',
 				_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ReadSourceFilesMsg, readSourceFilesCmd),
@@ -11684,10 +11839,15 @@ var _user$project$Main$init = function (_p1) {
 		return _elm_lang$core$Native_Utils.crash(
 			'Main',
 			{
-				start: {line: 107, column: 21},
-				end: {line: 107, column: 32}
+				start: {line: 130, column: 21},
+				end: {line: 130, column: 32}
 			})(err2);
 	}
+};
+var _user$project$Main$Abort = {ctor: 'Abort'};
+var _user$project$Main$Stop = {ctor: 'Stop'};
+var _user$project$Main$LADMReadSourceFilesMsg = function (a) {
+	return {ctor: 'LADMReadSourceFilesMsg', _0: a};
 };
 var _user$project$Main$update = F2(
 	function (msg, model) {
@@ -11711,34 +11871,129 @@ var _user$project$Main$update = F2(
 						_0: _user$project$Main$exitApp(-1),
 						_1: {ctor: '[]'}
 					});
-			default:
-				var readSourceFilesReturn = A2(_user$project$ReadSourceFiles$update, _p6._0, model.readSourceFilesModel);
-				var newModel = _elm_lang$core$Native_Utils.update(
+			case 'ReadSourceFilesMsg':
+				var _p7 = A2(_user$project$ReadSourceFiles$update, _p6._0, model.readSourceFilesModel);
+				var rsfModel = _p7.rsfModel;
+				var rsfGoal = _p7.rsfGoal;
+				var rsfCmd = _p7.rsfCmd;
+				var model2 = _elm_lang$core$Native_Utils.update(
 					model,
-					{readSourceFilesModel: readSourceFilesReturn.model});
-				var _p7 = A2(_elm_lang$core$Debug$log, '\n\n\nreturn:\n', readSourceFilesReturn.result);
+					{readSourceFilesModel: rsfModel});
+				var _p8 = function () {
+					var _p9 = rsfGoal;
+					if (_p9.ctor === 'Just') {
+						var _p12 = _p9._0;
+						var usedSymbols = _user$project$ModuleInfo$getExternalSymbols(model2.subjectModuleInfo);
+						var moduleInfos = _user$project$DependentModules$getModuleInfos(
+							{moduleToSource: _p12, usedSymbols: usedSymbols});
+						var modulesToLoad = A2(
+							_elm_lang$core$List$concatMap,
+							_user$project$ModuleInfo$getModulesToLoad,
+							_elm_lang$core$Dict$values(moduleInfos));
+						var _p10 = _user$project$ReadSourceFiles$init(
+							{
+								sourceDirectories: model2.sourceDirectories,
+								moduleNames: A2(_elm_lang$core$Debug$log, 'modulesToLoad', modulesToLoad)
+							});
+						var readSourceFilesModel = _p10._0;
+						var dependentRsfCmd = _p10._1;
+						var _p11 = A2(
+							_elm_lang$core$Debug$log,
+							'subject ReadSourceFiles goal keys',
+							_elm_lang$core$Dict$keys(_p12));
+						return {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Native_Utils.update(
+								model2,
+								{
+									programStage: _user$project$Main$LoadingAllDependentModules(
+										{moduleInfos: moduleInfos, readSourceFilesModel: readSourceFilesModel})
+								}),
+							_1: dependentRsfCmd
+						};
+					} else {
+						return {ctor: '_Tuple2', _0: model2, _1: _elm_lang$core$Platform_Cmd$none};
+					}
+				}();
+				var model3 = _p8._0;
+				var dependentRsfCmd = _p8._1;
+				var _p13 = A2(_elm_lang$core$Debug$log, 'dependentRsfCmd', dependentRsfCmd);
+				var _p14 = A2(_elm_lang$core$Debug$log, 'rsfCmd', rsfCmd);
+				var _p15 = A2(_elm_lang$core$Debug$log, 'initial ReadSourceFilesMsg', true);
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
-					newModel,
+					model3,
 					{
 						ctor: '::',
-						_0: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$ReadSourceFilesMsg, readSourceFilesReturn.cmd),
+						_0: A2(
+							_elm_lang$core$Platform_Cmd$map,
+							function (_p16) {
+								return _user$project$Main$LoadingAllDependentModulesMsg(
+									_user$project$Main$LADMReadSourceFilesMsg(_p16));
+							},
+							dependentRsfCmd),
 						_1: {ctor: '[]'}
 					});
+			default:
+				var _p17 = model.programStage;
+				if (_p17.ctor === 'LoadingAllDependentModules') {
+					var _p21 = _p17._0;
+					var _p18 = _p6._0;
+					var _p19 = A2(_user$project$ReadSourceFiles$update, _p18._0, _p21.readSourceFilesModel);
+					var rsfModel = _p19.rsfModel;
+					var rsfGoal = _p19.rsfGoal;
+					var rsfCmd = _p19.rsfCmd;
+					var _p20 = A2(_elm_lang$core$Debug$log, 'rsfGoal', rsfGoal);
+					return A2(
+						_elm_lang$core$Platform_Cmd_ops['!'],
+						_elm_lang$core$Native_Utils.update(
+							model,
+							{
+								programStage: _user$project$Main$LoadingAllDependentModules(
+									_elm_lang$core$Native_Utils.update(
+										_p21,
+										{readSourceFilesModel: rsfModel}))
+							}),
+						{ctor: '[]'});
+				} else {
+					return A2(
+						_elm_lang$core$Platform_Cmd_ops['!'],
+						model,
+						{ctor: '[]'});
+				}
 		}
 	});
-var _user$project$Main$Abort = {ctor: 'Abort'};
 var _user$project$Main$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$batch(
 		{
 			ctor: '::',
 			_0: _user$project$Main$externalStop(
 				_elm_lang$core$Basics$always(_user$project$Main$Abort)),
-			_1: {
-				ctor: '::',
-				_0: A2(_elm_lang$core$Platform_Sub$map, _user$project$Main$ReadSourceFilesMsg, _user$project$ReadSourceFiles$subscriptions),
-				_1: {ctor: '[]'}
-			}
+			_1: function () {
+				var _p22 = model.programStage;
+				switch (_p22.ctor) {
+					case 'LoadingTheSubjectsDependentModules':
+						return {
+							ctor: '::',
+							_0: A2(_elm_lang$core$Platform_Sub$map, _user$project$Main$ReadSourceFilesMsg, _user$project$ReadSourceFiles$subscriptions),
+							_1: {ctor: '[]'}
+						};
+					case 'LoadingAllDependentModules':
+						return {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$core$Platform_Sub$map,
+								function (_p23) {
+									return _user$project$Main$LoadingAllDependentModulesMsg(
+										_user$project$Main$LADMReadSourceFilesMsg(_p23));
+								},
+								_user$project$ReadSourceFiles$subscriptions),
+							_1: {ctor: '[]'}
+						};
+					default:
+						return {ctor: '[]'};
+				}
+			}()
 		});
 };
 var _user$project$Main$main = _elm_lang$core$Platform$programWithFlags(
@@ -11760,7 +12015,6 @@ var _user$project$Main$main = _elm_lang$core$Platform$programWithFlags(
 				A2(_elm_lang$core$Json_Decode$field, 'exactDependenciesContents', _elm_lang$core$Json_Decode$string));
 		},
 		A2(_elm_lang$core$Json_Decode$field, 'elmPackageContents', _elm_lang$core$Json_Decode$string)));
-var _user$project$Main$Stop = {ctor: 'Stop'};
 
 var Elm = {};
 Elm['Main'] = Elm['Main'] || {};

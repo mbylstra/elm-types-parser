@@ -5,6 +5,7 @@ module Helpers exposing (..)
 import String
 import List.Extra exposing (uncons)
 import Dict exposing (Dict)
+import Set
 
 
 qualifiedNameToPath : String -> String
@@ -54,3 +55,8 @@ groupByFirstTupleItem rows =
 anyTrue : List Bool -> Bool
 anyTrue =
     List.any identity
+
+
+removeDuplicates : List comparable -> List comparable
+removeDuplicates l =
+    l |> Set.fromList |> Set.toList

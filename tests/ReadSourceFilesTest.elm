@@ -9,7 +9,7 @@ import ReadSourceFiles
         , atLeastOneSuccess
         , haveNotExhaustedAllOptions
         , getNextCmds
-        , getResult
+        , getGoal
         )
 import Test exposing (..)
 
@@ -73,7 +73,7 @@ suite =
                                     )
                             , Tuple.second >> List.length >> Expect.equal 1
                             ]
-        , test "getResult with Nothing result" <|
+        , test "getGoal with Nothing result" <|
             \_ ->
                 let
                     model =
@@ -85,10 +85,10 @@ suite =
                         ]
                             |> Dict.fromList
                 in
-                    getResult model
+                    getGoal model
                         |> Expect.equal
                             (Err model)
-        , test "getResult with a result" <|
+        , test "getGoal with a result" <|
             \_ ->
                 let
                     model =
@@ -100,7 +100,7 @@ suite =
                         ]
                             |> Dict.fromList
                 in
-                    getResult model
+                    getGoal model
                         |> Expect.equal
                             (Ok <| Dict.fromList [ ( "module1", "x = 1" ) ])
         ]
