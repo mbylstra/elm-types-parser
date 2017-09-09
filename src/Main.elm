@@ -224,6 +224,14 @@ update msg model =
 
                                 _ =
                                     Debug.log "rsfGoal" rsfGoal
+
+                                _ =
+                                    case rsfGoal of
+                                        Just goal ->
+                                            Debug.log "goal keys" (Dict.keys goal)
+
+                                        Nothing ->
+                                            []
                             in
                                 { model
                                     | programStage =
@@ -244,9 +252,7 @@ subscriptions model =
                     [ ReadSourceFiles.subscriptions |> Sub.map ReadSourceFilesMsg ]
 
                 LoadingAllDependentModules _ ->
-                    [ ReadSourceFiles.subscriptions
-                        |> Sub.map (LoadingAllDependentModulesMsg << LADMReadSourceFilesMsg)
-                    ]
+                    [ ReadSourceFiles.subscriptions |> Sub.map (LoadingAllDependentModulesMsg << LADMReadSourceFilesMsg) ]
 
                 FinishedLoadingModules ->
                     []

@@ -11937,13 +11937,24 @@ var _user$project$Main$update = F2(
 			default:
 				var _p17 = model.programStage;
 				if (_p17.ctor === 'LoadingAllDependentModules') {
-					var _p21 = _p17._0;
+					var _p23 = _p17._0;
 					var _p18 = _p6._0;
-					var _p19 = A2(_user$project$ReadSourceFiles$update, _p18._0, _p21.readSourceFilesModel);
+					var _p19 = A2(_user$project$ReadSourceFiles$update, _p18._0, _p23.readSourceFilesModel);
 					var rsfModel = _p19.rsfModel;
 					var rsfGoal = _p19.rsfGoal;
 					var rsfCmd = _p19.rsfCmd;
 					var _p20 = A2(_elm_lang$core$Debug$log, 'rsfGoal', rsfGoal);
+					var _p21 = function () {
+						var _p22 = rsfGoal;
+						if (_p22.ctor === 'Just') {
+							return A2(
+								_elm_lang$core$Debug$log,
+								'goal keys',
+								_elm_lang$core$Dict$keys(_p22._0));
+						} else {
+							return {ctor: '[]'};
+						}
+					}();
 					return A2(
 						_elm_lang$core$Platform_Cmd_ops['!'],
 						_elm_lang$core$Native_Utils.update(
@@ -11951,7 +11962,7 @@ var _user$project$Main$update = F2(
 							{
 								programStage: _user$project$Main$LoadingAllDependentModules(
 									_elm_lang$core$Native_Utils.update(
-										_p21,
+										_p23,
 										{readSourceFilesModel: rsfModel}))
 							}),
 						{ctor: '[]'});
@@ -11970,8 +11981,8 @@ var _user$project$Main$subscriptions = function (model) {
 			_0: _user$project$Main$externalStop(
 				_elm_lang$core$Basics$always(_user$project$Main$Abort)),
 			_1: function () {
-				var _p22 = model.programStage;
-				switch (_p22.ctor) {
+				var _p24 = model.programStage;
+				switch (_p24.ctor) {
 					case 'LoadingTheSubjectsDependentModules':
 						return {
 							ctor: '::',
@@ -11983,9 +11994,9 @@ var _user$project$Main$subscriptions = function (model) {
 							ctor: '::',
 							_0: A2(
 								_elm_lang$core$Platform_Sub$map,
-								function (_p23) {
+								function (_p25) {
 									return _user$project$Main$LoadingAllDependentModulesMsg(
-										_user$project$Main$LADMReadSourceFilesMsg(_p23));
+										_user$project$Main$LADMReadSourceFilesMsg(_p25));
 								},
 								_user$project$ReadSourceFiles$subscriptions),
 							_1: {ctor: '[]'}
