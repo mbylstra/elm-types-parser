@@ -1,274 +1,77 @@
 module MainTest exposing (..)
 
-import ElmTypesParser
-    exposing
-        ( parseTypeAlias
-        , parseUnion
-        , parseTypeConstructor
-        , parseTypeConstructors
-        , someWhitespace
-        )
-import Types exposing (Type(..))
+import Dict
 import Expect exposing (Expectation, equalSets)
-import Parser exposing (Parser, (|.), (|=))
-import Result.Extra exposing (isErr)
+import Main exposing (Flags, ProgramStage(LoadingTheSubjectsDependentModules), init)
 import Test exposing (..)
-import DataGeneration exposing (generateData)
-import FirstPass exposing (splitIntoBlocks)
 
 
 suite : Test
 suite =
-    describe "ElmTypesParser"
-        [ test "works" <|
-            \_ ->
-                "Int"
-                    |> ElmTypesParser.parseTipe
-                    |> Expect.equal
-                        (Ok <|
-                            Type "Int" []
-                        )
+    describe "Main.elm"
+        (let
+            expectedModel =
+                { programStage = LoadingTheSubjectsDependentModules
+                , sourceDirectories =
+                    [ "."
+                    , "./elm-stuff/packages/elm-lang/core/5.1.1/src"
+                    , "./elm-stuff/packages/elm-lang/html/2.0.0/src"
+                    , "./elm-stuff/packages/elm-lang/virtual-dom/2.0.4/src"
+                    ]
+                , readSourceFilesModel = Dict.empty
+                , subjectSourceCode = "\n\n    "
+                , subjectModuleInfo =
+                    { viewFunctions = Dict.empty
+                    , localTypeAliases = Dict.empty
+                    , localUnionTypes = Dict.empty
+                    , externalNamesModuleInfo = Dict.empty
+                    }
+                }
 
-        -- , test "complex one" <|
-        --     \_ ->
-        --         "(Int -> a) -> { x : Int, y : { z : String }}"
-        --             |> ElmTypesParser.parse
-        --             |> toString
-        --             |> Expect.equal "asdasd"
-        , test "generateData" <|
-            \_ ->
-                "Int -> Bool -> Html Msg"
-                    |> ElmTypesParser.parseTipe
-                    |> Result.map generateData
-                    |> Expect.equal (Ok "1 True")
-        , test "someWhitespace 1" <|
-            \_ ->
-                ""
-                    |> Parser.run someWhitespace
-                    |> isErr
-                    |> Expect.equal True
-        , test "someWhitespace 2" <|
-            \_ ->
-                "\n"
-                    |> Parser.run someWhitespace
-                    |> isErr
-                    |> Expect.equal False
-        , test "someWhitespace 3" <|
-            \_ ->
-                "\n\n"
-                    |> Parser.run someWhitespace
-                    |> isErr
-                    |> Expect.equal False
+            ( model, cmd ) =
+                init testFlags
+         in
+            [ test "init model" <|
+                \_ ->
+                    model
+                        |> Expect.equal
+                            expectedModel
 
-        -- , test "someWhitespace 3" <|
-        --     \_ ->
-        --         "\n --comment"
-        --             |> Parser.run someWhitespace
-        --             |> isErr
-        --             |> Expect.equal False
-        -- , test "someWhitespace 4" <|
-        --     -- This is expected, but it should be improved so that a comment counts as whitespace
-        --     \_ ->
-        --         "--comment"
-        --             |> Parser.run someWhitespace
-        --             |> isErr
-        --             |> Expect.equal True
-        -- , test "record" <|
-        --     \_ ->
-        --         let
-        --             s =
-        --                 """
-        --           { email : String
-        --           , password : String
-        --           , loading : Bool
-        --           , error : Bool
-        --           }
-        --           """
-        --         in
-        --             s
-        --                 |> ElmTypesParser.parse
-        --                 |> Result.map generateData
-        --                 |> Expect.equal (Ok "1 True")
-        , test "splitIntoBlocks" <|
-            \_ ->
-                "aaa\n aaa\nbbb\nccc"
-                    |> splitIntoBlocks
-                    |> Expect.equal
-                        [ "aaa\n aaa"
-                        , "bbb"
-                        , "ccc"
-                        ]
+            -- , test "init cmd" <|
+            --     \_ ->
+            --         cmd
+            --             |> Expect.equal
+            --
+            ]
+        )
 
-        -- , test "classifyBlocks" <|
-        --     \_ ->
-        --         "module Blah exposing (..)\nimport String\n\ntype alias Id = Int\ntype MyType = MyType\nx : Int\nx = 5\n\n"
-        --             |> splitIntoBlocks
-        --             |> List.map classifyBlock
-        --             |> Expect.equal
-        --                 [ ModuleStatement, ImportStatement, TypeAnnotation, FunctionDefinition ]
-        -- , test "parse type alias" <|
-        --     \_ ->
-        --         "type alias Id = Int"
-        --             |> parseTypeAlias
-        --             |> Expect.equal (Ok ( "Id", Type "Int" [] ))
-        , test "typeConstructor: takes no args" <|
-            \_ ->
-                "TypeA"
-                    |> parseTypeConstructor
-                    |> Expect.equal
-                        (Ok
-                            ( "TypeA", [] )
-                        )
-        , test "typeConstructor: takes one simple Type arg" <|
-            \_ ->
-                "TypeA Int"
-                    |> parseTypeConstructor
-                    |> Expect.equal
-                        (Ok
-                            ( "TypeA", [ Type "Int" [] ] )
-                        )
-        , test "typeConstructor: takes two simple Type args" <|
-            \_ ->
-                "MyType ArgA ArgB"
-                    |> parseTypeConstructor
-                    |> Expect.equal
-                        (Ok
-                            ( "MyType", [ Type "ArgA" [], Type "ArgB" [] ] )
-                        )
-        , test "typeConstructor: takes three simple Type args" <|
-            \_ ->
-                "MyType ArgA ArgB ArgC"
-                    |> parseTypeConstructor
-                    |> Expect.equal
-                        (Ok
-                            ( "MyType", [ Type "ArgA" [], Type "ArgB" [], Type "ArgC" [] ] )
-                        )
-        , test "typeConstructor: takes two type variables as args" <|
-            \_ ->
-                "MyType a b"
-                    |> parseTypeConstructor
-                    |> Expect.equal
-                        (Ok
-                            ( "MyType", [ Var "a", Var "b" ] )
-                        )
-        , test "typeConstructor: takes a tuple arg" <|
-            \_ ->
-                "MyType (Int, String)"
-                    |> parseTypeConstructor
-                    |> Expect.equal
-                        (Ok
-                            ( "MyType", [ Tuple [ Type "Int" [], Type "String" [] ] ] )
-                        )
-        , test "typeConstructors: with one that doesn't take any args" <|
-            \_ ->
-                "MyType"
-                    |> parseTypeConstructors
-                    |> Expect.equal
-                        (Ok
-                            [ ( "MyType", [] ) ]
-                        )
-        , test "typeConstructors: with one arg, and it takes a Unit type" <|
-            \_ ->
-                "TypeA ()"
-                    |> parseTypeConstructors
-                    |> Expect.equal
-                        (Ok
-                            [ ( "TypeA", [ Tuple [] ] ) ]
-                        )
-        , test "typeConstructors: Two of them. Both take no args." <|
-            \_ ->
-                "TypeA | TypeB"
-                    |> parseTypeConstructors
-                    |> Expect.equal
-                        (Ok
-                            [ ( "TypeA", [] )
-                            , ( "TypeB", [] )
-                            ]
-                        )
-        , test "typeConstructors: Two of them.  First takes a type variable as an arg." <|
-            \_ ->
-                "TypeA a | TypeB"
-                    |> parseTypeConstructors
-                    |> Expect.equal
-                        (Ok
-                            [ ( "TypeA", [ Var "a" ] )
-                            , ( "TypeB", [] )
-                            ]
-                        )
-        , test "typeConstructors: Three of them.  First two take a type variable as an arg." <|
-            \_ ->
-                "TypeA a | TypeB b | TypeC"
-                    |> parseTypeConstructors
-                    |> Expect.equal
-                        (Ok
-                            [ ( "TypeA", [ Var "a" ] )
-                            , ( "TypeB", [ Var "b" ] )
-                            , ( "TypeC", [] )
-                            ]
-                        )
-        , test "typeConstructors: Two of them.  First takes a simple Type as an arg." <|
-            \_ ->
-                "TypeA Int | TypeB"
-                    |> parseTypeConstructors
-                    |> Expect.equal
-                        (Ok
-                            [ ( "TypeA", [ Type "Int" [] ] )
-                            , ( "TypeB", [] )
-                            ]
-                        )
-        , test "typeConstructors: Two of them.  Both take a simple Type as an arg." <|
-            \_ ->
-                "TypeA Int | TypeB String"
-                    |> parseTypeConstructors
-                    |> Expect.equal
-                        (Ok
-                            [ ( "TypeA", [ Type "Int" [] ] )
-                            , ( "TypeB", [ Type "String" [] ] )
-                            ]
-                        )
-        , test "unionType: single constructor that takes one arg" <|
-            \_ ->
-                "type MyType = TypeA Int"
-                    |> parseUnion
-                    |> Expect.equal
-                        (Ok
-                            ( "MyType"
-                            , [ ( "TypeA", [ Type "Int" [] ] )
-                              ]
-                            )
-                        )
-        , test "unionType: single constructor that takes two args" <|
-            \_ ->
-                "type MyType = TypeA Int String"
-                    |> parseUnion
-                    |> Expect.equal
-                        (Ok
-                            ( "MyType"
-                            , [ ( "TypeA", [ Type "Int" [], Type "String" [] ] )
-                              ]
-                            )
-                        )
-        , test "unionType: single constructor that takes no args" <|
-            \_ ->
-                "type MyType = TypeA"
-                    |> parseUnion
-                    |> Expect.equal
-                        (Ok
-                            ( "MyType"
-                            , [ ( "TypeA", [] )
-                              ]
-                            )
-                        )
-        , test "unionType with two constructors that take no args" <|
-            \_ ->
-                "type MyType = TypeA | TypeB"
-                    |> parseUnion
-                    |> Expect.equal
-                        (Ok
-                            ( "MyType"
-                            , [ ( "TypeA", [] )
-                              , ( "TypeB", [] )
-                              ]
-                            )
-                        )
-        ]
+
+testFlags : Flags
+testFlags =
+    { elmPackageContents = """
+{
+    "version": "1.0.0",
+    "summary": "helpful summary of your project, less than 80 characters",
+    "repository": "https://github.com/user/project.git",
+    "license": "BSD3",
+    "source-directories": [
+        "."
+    ],
+    "exposed-modules": [],
+    "dependencies": {
+        "elm-lang/core": "5.1.1 <= v < 6.0.0"
+    },
+    "elm-version": "0.18.0 <= v < 0.19.0"
+}
+        """
+    , subjectSourceCode = """
+
+    """
+    , exactDependenciesContents = """
+{
+    "elm-lang/virtual-dom": "2.0.4",
+    "elm-lang/html": "2.0.0",
+    "elm-lang/core": "5.1.1"
+}
+    """
+    }
