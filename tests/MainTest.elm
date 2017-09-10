@@ -15,16 +15,13 @@ suite =
             expectedInitializedModel =
                 { programStage = LoadingTheSubjectsDependentModules
                 , subjectSourceCode = testFlags.subjectSourceCode
-                , sourceDirectories = [ "src", "./elm-stuff/packages/elm-lang/core/5.1.1/src" ]
+                , sourceDirectories = [ "src" ]
                 , readSourceFilesModel =
                     Dict.fromList
                         [ ( "ModuleA"
                           , { sourceCode = Nothing
                             , dirAttempts =
-                                Dict.fromList
-                                    [ ( "./elm-stuff/packages/elm-lang/core/5.1.1/src", InFlight )
-                                    , ( "src", InFlight )
-                                    ]
+                                Dict.fromList [ ( "src", InFlight ) ]
                             }
                           )
                         ]
@@ -60,22 +57,11 @@ suite =
                         cmd
                             |> Expect.equal
                                 ([ (Cmd.batch
-                                        --
-                                        -- { type = "node", branches = [{ type = "map", tagger = <function>, tree = { type = "node", branches = [{ type = "leaf",
-                                        --  home = "readElmModule", value = { path = "src/ModuleA.elm", portScope = { path = "src/ModuleA.elm", dir = "src", moduleName = "ModuleA" } } },{ type = "leaf", home = "readElmModule", value = { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm", portScope = { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm", dir = "./elm-stuff/packages/elm-lang/core/5.1.1/src", moduleName = "ModuleA" } } }] } }] }
                                         [ readElmModule
                                             { path = "src/ModuleA.elm"
                                             , portScope =
                                                 { path = "src/ModuleA.elm"
                                                 , dir = "src"
-                                                , moduleName = "ModuleA"
-                                                }
-                                            }
-                                        , readElmModule
-                                            { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm"
-                                            , portScope =
-                                                { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm"
-                                                , dir = "./elm-stuff/packages/elm-lang/core/5.1.1/src"
                                                 , moduleName = "ModuleA"
                                                 }
                                             }
@@ -109,8 +95,7 @@ suite =
                               , { sourceCode = Just moduleASourceCode
                                 , dirAttempts =
                                     Dict.fromList
-                                        [ ( "./elm-stuff/packages/elm-lang/core/5.1.1/src", InFlight )
-                                        , ( "src", DirSuccess )
+                                        [ ( "src", DirSuccess )
                                         ]
                                 }
                               )
@@ -138,10 +123,7 @@ suite =
                                     [ ( "ModuleB"
                                       , { sourceCode = Nothing
                                         , dirAttempts =
-                                            Dict.fromList
-                                                [ ( "./elm-stuff/packages/elm-lang/core/5.1.1/src", InFlight )
-                                                , ( "src", InFlight )
-                                                ]
+                                            Dict.fromList [ ( "src", InFlight ) ]
                                         }
                                       )
                                     ]
@@ -210,15 +192,10 @@ testFlags =
         "src"
     ],
     "exposed-modules": [],
-    "dependencies": {
-        "elm-lang/core": "5.1.1 <= v < 6.0.0"
-    },
+    "dependencies": { },
     "elm-version": "0.18.0 <= v < 0.19.0"
 }
         """
     , subjectSourceCode = subjectSourceCode
-    , exactDependenciesContents = """{
-    "elm-lang/core": "5.1.1"
-}
-    """
+    , exactDependenciesContents = """{}"""
     }
