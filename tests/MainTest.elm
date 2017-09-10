@@ -2,8 +2,8 @@ module MainTest exposing (..)
 
 import Dict
 import Expect exposing (Expectation, equalSets)
-import Main exposing (Flags, Msg(ReadSourceFilesMsg), ProgramStage(LoadingTheSubjectsDependentModules), init)
-import ReadSourceFiles exposing (DirAttempt(InFlight), readElmModule)
+import Main exposing (Flags, Msg(ReadSourceFilesMsg), ProgramStage(LoadingTheSubjectsDependentModules, LoadingAllDependentModules), init, update)
+import ReadSourceFiles exposing (DirAttempt(InFlight, DirSuccess), readElmModule)
 import Test exposing (..)
 import Types exposing (Type(Type, Lambda, Var))
 
@@ -12,7 +12,7 @@ suite : Test
 suite =
     describe "Main.elm"
         (let
-            expectedModel =
+            expectedInitializedModel =
                 { programStage = LoadingTheSubjectsDependentModules
                 , subjectSourceCode = testFlags.subjectSourceCode
                 , sourceDirectories = [ "src", "./elm-stuff/packages/elm-lang/core/5.1.1/src" ]
@@ -49,41 +49,124 @@ suite =
             ( model, cmd ) =
                 init testFlags
          in
-            [ test "init model" <|
-                \_ ->
-                    model
-                        |> Expect.equal
-                            expectedModel
-            , test "init cmd" <|
-                \_ ->
-                    cmd
-                        |> Expect.equal
-                            ([ (Cmd.batch
-                                    --
-                                    -- { type = "node", branches = [{ type = "map", tagger = <function>, tree = { type = "node", branches = [{ type = "leaf",
-                                    --  home = "readElmModule", value = { path = "src/ModuleA.elm", portScope = { path = "src/ModuleA.elm", dir = "src", moduleName = "ModuleA" } } },{ type = "leaf", home = "readElmModule", value = { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm", portScope = { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm", dir = "./elm-stuff/packages/elm-lang/core/5.1.1/src", moduleName = "ModuleA" } } }] } }] }
-                                    [ readElmModule
-                                        { path = "src/ModuleA.elm"
-                                        , portScope =
+            [ describe "init"
+                [ test "init model" <|
+                    \_ ->
+                        model
+                            |> Expect.equal
+                                expectedInitializedModel
+                , test "init cmd" <|
+                    \_ ->
+                        cmd
+                            |> Expect.equal
+                                ([ (Cmd.batch
+                                        --
+                                        -- { type = "node", branches = [{ type = "map", tagger = <function>, tree = { type = "node", branches = [{ type = "leaf",
+                                        --  home = "readElmModule", value = { path = "src/ModuleA.elm", portScope = { path = "src/ModuleA.elm", dir = "src", moduleName = "ModuleA" } } },{ type = "leaf", home = "readElmModule", value = { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm", portScope = { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm", dir = "./elm-stuff/packages/elm-lang/core/5.1.1/src", moduleName = "ModuleA" } } }] } }] }
+                                        [ readElmModule
                                             { path = "src/ModuleA.elm"
-                                            , dir = "src"
-                                            , moduleName = "ModuleA"
+                                            , portScope =
+                                                { path = "src/ModuleA.elm"
+                                                , dir = "src"
+                                                , moduleName = "ModuleA"
+                                                }
                                             }
-                                        }
-                                    , readElmModule
-                                        { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm"
-                                        , portScope =
+                                        , readElmModule
                                             { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm"
-                                            , dir = "./elm-stuff/packages/elm-lang/core/5.1.1/src"
-                                            , moduleName = "ModuleA"
+                                            , portScope =
+                                                { path = "./elm-stuff/packages/elm-lang/core/5.1.1/src/ModuleA.elm"
+                                                , dir = "./elm-stuff/packages/elm-lang/core/5.1.1/src"
+                                                , moduleName = "ModuleA"
+                                                }
                                             }
-                                        }
-                                    ]
-                               )
-                                |> Cmd.map ReadSourceFilesMsg
-                             ]
-                                |> Cmd.batch
+                                        ]
+                                   )
+                                    |> Cmd.map ReadSourceFilesMsg
+                                 ]
+                                    |> Cmd.batch
+                                )
+                ]
+            , describe "update"
+                (let
+                    msg =
+                        ReadSourceFilesMsg
+                            (ReadSourceFiles.ReadElmModuleResult
+                                { contents = Just moduleASourceCode
+                                , portScope =
+                                    { path = "src/ModuleA.elm"
+                                    , dir = "src"
+                                    , moduleName = "ModuleA"
+                                    }
+                                }
                             )
+
+                    ( newModel, cmd ) =
+                        update msg expectedInitializedModel
+
+                    expectedNewReadSourceFilesModel =
+                        Dict.fromList
+                            [ ( "ModuleA"
+                              , { sourceCode = Just moduleASourceCode
+                                , dirAttempts =
+                                    Dict.fromList
+                                        [ ( "./elm-stuff/packages/elm-lang/core/5.1.1/src", InFlight )
+                                        , ( "src", DirSuccess )
+                                        ]
+                                }
+                              )
+                            ]
+
+                    expectedNewProgramStage =
+                        LoadingAllDependentModules
+                            { moduleInfos =
+                                Dict.fromList
+                                    [ ( "ModuleA"
+                                      , { localUnionTypes = Dict.fromList []
+                                        , localTypeAliases = Dict.fromList [ ( "Foo", Type "Bar" [] ) ]
+                                        , externalNamesModuleInfo =
+                                            Dict.fromList
+                                                [ ( "Bar"
+                                                  , { dottedModulePath = "ModuleB", name = "Bar" }
+                                                  )
+                                                ]
+                                        , viewFunctions = Dict.fromList []
+                                        }
+                                      )
+                                    ]
+                            , readSourceFilesModel =
+                                Dict.fromList
+                                    [ ( "ModuleB"
+                                      , { sourceCode = Nothing
+                                        , dirAttempts =
+                                            Dict.fromList
+                                                [ ( "./elm-stuff/packages/elm-lang/core/5.1.1/src", InFlight )
+                                                , ( "src", InFlight )
+                                                ]
+                                        }
+                                      )
+                                    ]
+                            }
+                 in
+                    [ test "new readSoureFilesModel" <|
+                        \_ ->
+                            newModel.readSourceFilesModel
+                                |> Expect.equal
+                                    expectedNewReadSourceFilesModel
+                    , test "new programStage" <|
+                        \_ ->
+                            newModel.programStage
+                                |> Expect.equal
+                                    expectedNewProgramStage
+                    , test "new model" <|
+                        \_ ->
+                            newModel
+                                |> Expect.equal
+                                    { expectedInitializedModel
+                                        | readSourceFilesModel = expectedNewReadSourceFilesModel
+                                        , programStage = expectedNewProgramStage
+                                    }
+                    ]
+                )
             ]
         )
 
