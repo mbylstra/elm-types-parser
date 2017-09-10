@@ -146,12 +146,16 @@ isCoreName name =
 --         Just typeName
 
 
-groupNamesByModule : ExternalNamesModuleInfo -> Dict DottedModuleName (List Name)
+groupNamesByModule :
+    ExternalNamesModuleInfo
+    -> List { moduleName : DottedModuleName, relevantNames : List String }
 groupNamesByModule externalNamesModuleInfo =
     externalNamesModuleInfo
         |> Dict.values
         |> List.map (\{ dottedModulePath, name } -> ( dottedModulePath, name ))
         |> groupByFirstTupleItem
+        |> Dict.toList
+        |> List.map (\( a, b ) -> { moduleName = a, relevantNames = b })
 
 
 getExternalNamesModuleInfo :

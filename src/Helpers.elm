@@ -60,3 +60,13 @@ anyTrue =
 removeDuplicates : List comparable -> List comparable
 removeDuplicates l =
     l |> Set.fromList |> Set.toList
+
+
+unsafeDictGet : comparable -> Dict comparable b -> b
+unsafeDictGet key dict =
+    case Dict.get key dict of
+        Just v ->
+            v
+
+        Nothing ->
+            Debug.crash ("could not find key " ++ toString key)

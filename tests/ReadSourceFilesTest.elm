@@ -45,16 +45,13 @@ suite =
                     let
                         model : Model
                         model =
-                            [ ( "module1"
-                              , { sourceCode = Nothing
-                                , dirAttempts =
-                                    Dict.fromList
-                                        [ ( "dir1", DirNotAttemptedYet )
-                                        ]
-                                }
-                              )
-                            ]
-                                |> Dict.fromList
+                            { moduleName = "Module1"
+                            , sourceCode = Nothing
+                            , dirAttempts =
+                                Dict.fromList
+                                    [ ( "dir1", DirNotAttemptedYet )
+                                    ]
+                            }
 
                         result =
                             getNextCmds model
@@ -63,30 +60,23 @@ suite =
                             |> Expect.all
                                 [ Tuple.first
                                     >> Expect.equal
-                                        ([ ( "module1"
-                                           , { sourceCode = Nothing
-                                             , dirAttempts =
-                                                Dict.fromList
-                                                    [ ( "dir1", InFlight )
-                                                    ]
-                                             }
-                                           )
-                                         ]
-                                            |> Dict.fromList
-                                        )
+                                        { moduleName = "Module1"
+                                        , sourceCode = Nothing
+                                        , dirAttempts =
+                                            Dict.fromList
+                                                [ ( "dir1", InFlight )
+                                                ]
+                                        }
                                 , Tuple.second >> List.length >> Expect.equal 1
                                 ]
             , test "getGoal with Nothing result" <|
                 \_ ->
                     let
                         model =
-                            [ ( "module1"
-                              , { sourceCode = Nothing
-                                , dirAttempts = Dict.fromList [ ( "dir1", DirNotAttemptedYet ) ]
-                                }
-                              )
-                            ]
-                                |> Dict.fromList
+                            { moduleName = "Module1"
+                            , sourceCode = Nothing
+                            , dirAttempts = Dict.fromList [ ( "dir1", DirNotAttemptedYet ) ]
+                            }
                     in
                         getGoal model
                             |> Expect.equal
@@ -95,22 +85,19 @@ suite =
                 \_ ->
                     let
                         model =
-                            [ ( "module1"
-                              , { sourceCode = Just "x = 1"
-                                , dirAttempts = Dict.fromList [ ( "dir1", DirSuccess ) ]
-                                }
-                              )
-                            ]
-                                |> Dict.fromList
+                            { moduleName = "Module1"
+                            , sourceCode = Just "x = 1"
+                            , dirAttempts = Dict.fromList [ ( "dir1", DirSuccess ) ]
+                            }
                     in
                         getGoal model
                             |> Expect.equal
-                                (Ok <| Dict.fromList [ ( "module1", "x = 1" ) ])
+                                (Ok "x = 1")
             ]
         , describe "init"
             (let
                 initArg =
-                    { moduleNames = [ "Foo", "Bar" ], sourceDirectories = [ "dir1", "dir2" ] }
+                    { moduleName = "Foo", sourceDirectories = [ "dir1", "dir2" ] }
              in
                 [ test "model" <|
                     \_ ->
@@ -120,27 +107,14 @@ suite =
                         in
                             model
                                 |> Expect.equal
-                                    (Dict.fromList
-                                        [ ( "Bar"
-                                          , { sourceCode = Nothing
-                                            , dirAttempts =
-                                                Dict.fromList
-                                                    [ ( "dir1", InFlight )
-                                                    , ( "dir2", InFlight )
-                                                    ]
-                                            }
-                                          )
-                                        , ( "Foo"
-                                          , { sourceCode = Nothing
-                                            , dirAttempts =
-                                                Dict.fromList
-                                                    [ ( "dir1", InFlight )
-                                                    , ( "dir2", InFlight )
-                                                    ]
-                                            }
-                                          )
-                                        ]
-                                    )
+                                    { moduleName = "Foo"
+                                    , sourceCode = Nothing
+                                    , dirAttempts =
+                                        Dict.fromList
+                                            [ ( "dir1", InFlight )
+                                            , ( "dir2", InFlight )
+                                            ]
+                                    }
                 , test "cmd" <|
                     \_ ->
                         let
@@ -166,32 +140,8 @@ suite =
                                                 , moduleName = "Foo"
                                                 }
                                             }
-                                        , readElmModule
-                                            { path = "dir2/Bar.elm"
-                                            , portScope =
-                                                { path = "dir2/Bar.elm"
-                                                , dir = "dir2"
-                                                , moduleName = "Bar"
-                                                }
-                                            }
-                                        , readElmModule
-                                            { path = "dir1/Bar.elm"
-                                            , portScope =
-                                                { path = "dir1/Bar.elm"
-                                                , dir = "dir1"
-                                                , moduleName = "Bar"
-                                                }
-                                            }
                                         ]
                                     )
                 ]
             )
         ]
-
-
-
--- dummyCmd : Cmd msg
--- dummyCmd =
---
---
---         { type = "node", branches = [{ type = "leaf", home = "readElmModule", value =  }] }

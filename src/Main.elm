@@ -4,16 +4,14 @@ port module Main exposing (..)
 
 import Json.Decode
 import PackageInfo exposing (PackageInfo)
-import Process
 import ReadSourceFiles
-import Task
-import Time exposing (Time)
 import DeterminePackageLocations
-import Types exposing (ModuleInfo, ModuleToSource, ModuleToModuleInfo)
+import Types exposing (ModuleInfo, ModuleToSource, ModuleToModuleInfo, DottedModuleName)
 import SubjectModuleInfo
-import ModuleInfo
+import ModuleInfo exposing (groupNamesByModule)
 import DependentModules
-import Dict
+import Dict exposing (Dict)
+import Helpers exposing (unsafeDictGet)
 
 
 {- REMOVE WHEN COMPILER BUG IS FIXED -}
@@ -52,34 +50,29 @@ type alias ModuleName =
 
 
 type alias Model =
-    { programStage : ProgramStage
-    , sourceDirectories : List String
-    , readSourceFilesModel : ReadSourceFiles.Model
+    { sourceDirectories : List String
     , subjectSourceCode : String
     , subjectModuleInfo : ModuleInfo
+    , allModulesInfo : AllModulesInfo
     }
 
 
-type ProgramStage
-    = LoadingTheSubjectsDependentModules
-    | LoadingAllDependentModules
-        { moduleInfos : ModuleToModuleInfo
-        , readSourceFilesModel : ReadSourceFiles.Model
+type EitherModuleInfo
+    = Loaded ModuleInfo
+    | NotLoaded ReadSourceFiles.Model
 
-        -- when we get a ReadSourceFilesMsg, we need to make sure it gets routed to this somehow :/
+
+type alias AllModulesInfo =
+    Dict DottedModuleName
+        { relevantNames : List String
+        , eitherModuleInfo : EitherModuleInfo
         }
-    | FinishedLoadingModules
 
 
 type Msg
     = Stop
     | Abort
-    | ReadSourceFilesMsg ReadSourceFiles.Msg
-    | LoadingAllDependentModulesMsg LoadingAllDependentModulesMsg
-
-
-type LoadingAllDependentModulesMsg
-    = LADMReadSourceFilesMsg ReadSourceFiles.Msg
+    | ReadSourceFilesMsg DottedModuleName ReadSourceFiles.Msg
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -98,9 +91,33 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                     sourceDirectories =
                         packageInfo.sourceDirectories ++ packageDirs
 
+                    subjectModuleInfo : ModuleInfo
                     subjectModuleInfo =
                         subjectSourceCode
                             |> SubjectModuleInfo.getModuleInfo
+
+                    ( allModulesInfo, readSourceFilesCmds ) =
+                        subjectModuleInfo.externalNamesModuleInfo
+                            |> groupNamesByModule
+                            |> List.map
+                                (\{ moduleName, relevantNames } ->
+                                    let
+                                        ( rsfModel, rsfCmd ) =
+                                            ReadSourceFiles.init
+                                                { sourceDirectories = sourceDirectories
+                                                , moduleName = moduleName
+                                                }
+                                    in
+                                        ( ( moduleName
+                                          , { relevantNames = relevantNames
+                                            , eitherModuleInfo = NotLoaded rsfModel
+                                            }
+                                          )
+                                        , rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
+                                        )
+                                )
+                            |> List.unzip
+                            |> Tuple.mapFirst Dict.fromList
 
                     -- we need to store this in the model, so that once we've read the source files,
                     -- we can match it
@@ -108,19 +125,31 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                         subjectModuleInfo
                             |> ModuleInfo.getModulesToLoad
 
-                    ( readSourceFilesModel, readSourceFilesCmd ) =
-                        ReadSourceFiles.init
-                            { sourceDirectories = sourceDirectories
-                            , moduleNames = modulesToLoad
-                            }
+                    -- ( readSourceFilesModel, readSourceFilesCmd ) =
+                    --     ReadSourceFiles.init
+                    --         { sourceDirectories = sourceDirectories
+                    --         , moduleNames = modulesToLoad
+                    --         }
+                    -- ( readSourceFilesModels, readSourceFilesCmds ) =
+                    --     modulesToLoad
+                    --         |> List.map
+                    --             (\moduleName ->
+                    --             )
+                    -- allModulesInfo : AllModulesInfo
+                    -- allModulesInfo =
+                    --     readSourceFilesModels
+                    --         |> List.map
+                    --             (\({ moduleName } as readSourceFileModel) ->
+                    --                 ( moduleName, NotLoaded readSourceFileModel )
+                    --             )
+                    --         |> Dict.fromList
                 in
-                    { programStage = LoadingTheSubjectsDependentModules
-                    , subjectSourceCode = subjectSourceCode
+                    { subjectSourceCode = subjectSourceCode
                     , sourceDirectories = sourceDirectories
-                    , readSourceFilesModel = readSourceFilesModel
                     , subjectModuleInfo = subjectModuleInfo
+                    , allModulesInfo = allModulesInfo
                     }
-                        ! [ readSourceFilesCmd |> Cmd.map ReadSourceFilesMsg ]
+                        ! readSourceFilesCmds
 
             Err err ->
                 let
@@ -140,147 +169,139 @@ update msg model =
         Abort ->
             model ! [ exitApp -1 ]
 
-        ReadSourceFilesMsg rsfMsg ->
+        ReadSourceFilesMsg moduleName rsfMsg ->
             let
-                _ =
-                    Debug.log "initial ReadSourceFilesMsg" True
+                { newAllModulesInfo, newExternalModules, rsfCmd } =
+                    updateAllModulesInfoForRsf moduleName rsfMsg model.allModulesInfo
 
-                { rsfModel, rsfGoal, rsfCmd } =
-                    ReadSourceFiles.update
-                        rsfMsg
-                        model.readSourceFilesModel
+                ( allModulesInfo2, newExtModulesCmds ) =
+                    addNewExternalModules model.sourceDirectories newAllModulesInfo newExternalModules
+            in
+                { model | allModulesInfo = allModulesInfo2 }
+                    ! ([ rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
+                       ]
+                        ++ newExtModulesCmds
+                      )
 
-                model2 =
-                    { model | readSourceFilesModel = rsfModel }
 
-                ( model3, dependentRsfCmd ) =
+updateAllModulesInfoForRsf :
+    DottedModuleName
+    -> ReadSourceFiles.Msg
+    -> AllModulesInfo
+    ->
+        { newAllModulesInfo : AllModulesInfo
+        , newExternalModules : List { moduleName : DottedModuleName, relevantNames : List String }
+        , rsfCmd : Cmd ReadSourceFiles.Msg
+        }
+updateAllModulesInfoForRsf moduleName rsfMsg allModulesInfo =
+    let
+        { relevantNames, eitherModuleInfo } =
+            unsafeDictGet moduleName allModulesInfo
+    in
+        case eitherModuleInfo of
+            NotLoaded oldRsfModel ->
+                let
+                    { rsfModel, rsfGoal, rsfCmd } =
+                        ReadSourceFiles.update
+                            rsfMsg
+                            oldRsfModel
+                in
                     case rsfGoal of
-                        Just moduleToSource ->
+                        Just sourceCode ->
                             let
-                                -- so we have all the source code for the stuff that was loaded,
-                                -- but now we need to parse all the loaded modules, and add Nothings
-                                -- for the ones we haven't loaded yet
-                                _ =
-                                    Debug.log "subject ReadSourceFiles goal keys" (Dict.keys moduleToSource)
-
-                                usedSymbols =
-                                    ModuleInfo.getExternalSymbols model2.subjectModuleInfo
-
-                                -- here we need to add the nothings for the ones we haven't loaded yet
-                                loadedModuleInfos : ModuleToModuleInfo
-                                loadedModuleInfos =
-                                    DependentModules.getModuleInfos
-                                        { moduleToSource = moduleToSource, usedSymbols = usedSymbols }
-
-                                -- now that we have the dependent module infos,
-                                -- we need to go through each of them and download their dependent modules
-                                -- (we should take care to not do the same thing more than once, but as MVP
-                                -- its ok)
-                                modulesToLoad : List String
-                                modulesToLoad =
-                                    loadedModuleInfos
-                                        |> Dict.values
-                                        |> List.filterMap identity
-                                        |> List.concatMap ModuleInfo.getModulesToLoad
-
-                                nonLoadedModuleInfos : ModuleToModuleInfo
-                                nonLoadedModuleInfos =
-                                    modulesToLoad
-                                        |> List.map (\moduleName -> ( moduleName, Nothing ))
-                                        |> Dict.fromList
-
-                                allModuleInfos : ModuleToModuleInfo
-                                allModuleInfos =
-                                    Dict.union loadedModuleInfos nonLoadedModuleInfos
-
-                                ( readSourceFilesModel, dependentRsfCmd ) =
-                                    ReadSourceFiles.init
-                                        { sourceDirectories = model2.sourceDirectories
-                                        , moduleNames = (Debug.log "modulesToLoad" modulesToLoad)
+                                moduleInfo : ModuleInfo
+                                moduleInfo =
+                                    DependentModules.getModuleInfo
+                                        { sourceCode = sourceCode
+                                        , relevantNames = relevantNames
                                         }
+
+                                newExternalModules :
+                                    List
+                                        { moduleName : DottedModuleName
+                                        , relevantNames : List String
+                                        }
+                                newExternalModules =
+                                    groupNamesByModule moduleInfo.externalNamesModuleInfo
                             in
-                                ( { model2
-                                    | programStage =
-                                        LoadingAllDependentModules
-                                            { moduleInfos = allModuleInfos
-                                            , readSourceFilesModel = readSourceFilesModel
+                                { newAllModulesInfo =
+                                    allModulesInfo
+                                        |> Dict.insert moduleName
+                                            { relevantNames = relevantNames
+                                            , eitherModuleInfo = Loaded moduleInfo
                                             }
-                                  }
-                                , dependentRsfCmd
-                                )
+                                , newExternalModules = newExternalModules
+                                , rsfCmd = rsfCmd
+                                }
 
                         Nothing ->
-                            ( model2, Cmd.none )
+                            { newAllModulesInfo =
+                                allModulesInfo
+                                    |> Dict.insert moduleName
+                                        { relevantNames = relevantNames
+                                        , eitherModuleInfo = NotLoaded rsfModel
+                                        }
+                            , newExternalModules = []
+                            , rsfCmd = rsfCmd
+                            }
 
-                -- _ =
-                --     Debug.log "\n\ngoal:\n" rsfGoal
-                _ =
-                    Debug.log "rsfCmd" rsfCmd
+            Loaded _ ->
+                { newAllModulesInfo = allModulesInfo
+                , newExternalModules = []
+                , rsfCmd = Cmd.none
+                }
 
-                _ =
-                    Debug.log "dependentRsfCmd" dependentRsfCmd
-            in
-                model3
-                    -- ! [ rsfCmd |> Cmd.map ReadSourceFilesMsg
-                    --   , dependentRsfCmd |> Cmd.map (LoadingAllDependentModulesMsg << LADMReadSourceFilesMsg)
-                    --   ]
-                    ! [ dependentRsfCmd |> Cmd.map (LoadingAllDependentModulesMsg << LADMReadSourceFilesMsg)
-                      ]
 
-        -- | LoadingAllDependentModulesMsg LoadingAllDependentModulesMsg
-        -- = LADMReadSourceFilesMsg ReadSourceFiles.Msg
-        LoadingAllDependentModulesMsg ladmMsg ->
-            case model.programStage of
-                LoadingAllDependentModules ladmModel ->
-                    case ladmMsg of
-                        LADMReadSourceFilesMsg rsfMsg ->
-                            let
-                                { rsfModel, rsfGoal, rsfCmd } =
-                                    ReadSourceFiles.update rsfMsg ladmModel.readSourceFilesModel
+addNewExternalModules :
+    List String
+    -> AllModulesInfo
+    -> List { moduleName : DottedModuleName, relevantNames : List String }
+    -> ( AllModulesInfo, List (Cmd Msg) )
+addNewExternalModules sourceDirectories allModulesInfo newExternalModules =
+    -- this is really naive as it assumes we only pass over a module once.
+    -- it will need to merge "relevantNames" and potentially generate new msgs
+    -- if there are new "relevantNames"
+    newExternalModules
+        |> List.foldl
+            (\{ moduleName, relevantNames } ({ accAllModulesInfo, accCmds } as acc) ->
+                case Dict.get moduleName allModulesInfo of
+                    Just moduleInfo ->
+                        -- this is where we need to do tricky stuff, but for
+                        -- now we do nothing.
+                        acc
 
-                                _ =
-                                    Debug.log "rsfGoal" rsfGoal
+                    Nothing ->
+                        let
+                            ( rsfModel, rsfCmd ) =
+                                ReadSourceFiles.init
+                                    { sourceDirectories = sourceDirectories
+                                    , moduleName = moduleName
+                                    }
 
-                                _ =
-                                    case rsfGoal of
-                                        Just goal ->
-                                            Debug.log "goal keys" (Dict.keys goal)
-
-                                        Nothing ->
-                                            []
-                            in
-                                { model
-                                    | programStage =
-                                        LoadingAllDependentModules
-                                            { ladmModel | readSourceFilesModel = rsfModel }
-                                }
-                                    ! []
-
-                _ ->
-                    model ! []
+                            mappedCmd =
+                                rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
+                        in
+                            { accAllModulesInfo =
+                                accAllModulesInfo
+                                    |> Dict.insert moduleName
+                                        { relevantNames = relevantNames
+                                        , eitherModuleInfo = NotLoaded rsfModel
+                                        }
+                            , accCmds = mappedCmd :: accCmds
+                            }
+            )
+            { accAllModulesInfo = allModulesInfo
+            , accCmds = []
+            }
+        |> (\{ accAllModulesInfo, accCmds } ->
+                ( accAllModulesInfo, accCmds )
+           )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    (externalStop <| always Abort)
-        :: (case model.programStage of
-                LoadingTheSubjectsDependentModules ->
-                    [ ReadSourceFiles.subscriptions |> Sub.map ReadSourceFilesMsg ]
-
-                LoadingAllDependentModules _ ->
-                    [ ReadSourceFiles.subscriptions |> Sub.map (LoadingAllDependentModulesMsg << LADMReadSourceFilesMsg) ]
-
-                FinishedLoadingModules ->
-                    []
-           )
+    ((externalStop <| always Abort)
+        -- :: [ ReadSourceFiles.subscriptions |> Sub.map ReadSourceFilesMsg ]
+        :: []
+    )
         |> Sub.batch
-
-
-
--- UTILITIES
-
-
-delayMsg : Time -> Msg -> Cmd Msg
-delayMsg time msg =
-    Process.sleep time
-        |> Task.perform (\_ -> msg)

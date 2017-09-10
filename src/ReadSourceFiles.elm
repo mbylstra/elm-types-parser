@@ -7,17 +7,14 @@ import Types exposing (DottedModuleName, ModuleToSource, SourceCode)
 
 
 type alias Model =
-    Dict DottedModuleName ModuleStatus
-
-
-
--- what is modulename exactly?
-
-
-type alias ModuleStatus =
-    { sourceCode : Maybe String
+    { moduleName : String
+    , sourceCode : Maybe String
     , dirAttempts : Dict String DirAttempt
     }
+
+
+
+-- type alias ModuleStatus =
 
 
 type alias DirAttempts =
@@ -51,7 +48,8 @@ type Msg
 
 
 type alias ReadElmModuleResultR =
-    { contents : Maybe String
+    { moduleName : String
+    , contents : Maybe String
     , portScope : ReadElmModulePortScope
     }
 
@@ -80,32 +78,19 @@ port readElmModuleResult : (ReadElmModuleResultR -> msg) -> Sub msg
 -- port getFilenamesInDirReturned : (? -> msg) -> Sub msg
 
 
-init : { moduleNames : List String, sourceDirectories : List String } -> ( Model, Cmd Msg )
-init { moduleNames, sourceDirectories } =
+init : { moduleName : String, sourceDirectories : List String } -> ( Model, Cmd Msg )
+init { moduleName, sourceDirectories } =
     let
         model =
-            (moduleNames
-                |> List.map
-                    (\moduleName ->
-                        ( moduleName
-                        , { dirAttempts =
-                                sourceDirectories
-                                    |> List.map
-                                        (((,) |> flip) DirNotAttemptedYet)
-                                    |> Dict.fromList
+            { moduleName = moduleName
+            , dirAttempts =
+                sourceDirectories
+                    |> List.map
+                        (((,) |> flip) DirNotAttemptedYet)
+                    |> Dict.fromList
+            , sourceCode = Nothing
+            }
 
-                          -- (\dirName ->
-                          --     { dirName = dirName, status = DirNotAttemptedYet }
-                          -- )
-                          , sourceCode = Nothing
-                          }
-                        )
-                    )
-                |> Dict.fromList
-            )
-
-        -- _ =
-        --     Debug.log "\n\nreadSourceFiles newModel\n\n" newModel
         ( model2, cmds ) =
             getNextCmds model
     in
@@ -113,35 +98,17 @@ init { moduleNames, sourceDirectories } =
 
 
 getNextCmds : Model -> ( Model, List (Cmd Msg) )
-getNextCmds model =
-    model
-        |> Dict.toList
-        |> List.foldl
-            (\( moduleName, { sourceCode, dirAttempts } as moduleStatus ) { accModuleStatuses, accCmds } ->
-                if isJust sourceCode then
-                    { accModuleStatuses =
-                        ( moduleName, moduleStatus ) :: accModuleStatuses
-                    , accCmds = accCmds
-                    }
-                else
-                    let
-                        ( newDirAttempts, cmds ) =
-                            getNextCmdsForDirAttempts moduleName dirAttempts
-                    in
-                        { accModuleStatuses =
-                            ( moduleName
-                            , { sourceCode = Nothing, dirAttempts = newDirAttempts }
-                            )
-                                :: accModuleStatuses
-                        , accCmds = cmds ++ accCmds
-                        }
-            )
-            { accModuleStatuses = [], accCmds = [] }
-        |> (\{ accModuleStatuses, accCmds } ->
-                ( accModuleStatuses |> Dict.fromList
-                , accCmds
-                )
-           )
+getNextCmds ({ moduleName, sourceCode, dirAttempts } as model) =
+    case sourceCode of
+        Just _ ->
+            ( model, [] )
+
+        Nothing ->
+            let
+                ( newDirAttempts, cmds ) =
+                    getNextCmdsForDirAttempts moduleName dirAttempts
+            in
+                ( { model | dirAttempts = newDirAttempts }, cmds )
 
 
 getNextCmdsForDirAttempts : String -> DirAttempts -> ( DirAttempts, List (Cmd Msg) )
@@ -198,34 +165,12 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
 -- its moduleName, modul
 
 
-getGoal : Model -> Result Model (Dict String String)
+getGoal : Model -> Result Model SourceCode
 getGoal model =
     if isFinished model then
-        model
-            |> Dict.map
-                (\_ moduleStatus ->
-                    moduleStatus.sourceCode |> Maybe.withDefault ""
-                )
-            |> Ok
+        Ok (model.sourceCode |> Maybe.withDefault "")
     else
-        model
-            |> Dict.toList
-            |> List.filterMap
-                (\( moduleName, moduleStatus ) ->
-                    if isJust moduleStatus.sourceCode then
-                        Nothing
-                    else
-                        Just ( moduleName, moduleStatus )
-                )
-            |> Dict.fromList
-            |> Err
-
-
-isFinished : Model -> Bool
-isFinished model =
-    moduleStatuses model
-        |> List.map Tuple.second
-        |> List.all ((==) True)
+        Err model
 
 
 subscriptions : Sub Msg
@@ -233,20 +178,18 @@ subscriptions =
     readElmModuleResult ReadElmModuleResult
 
 
-isModuleFinished : Model -> DottedModuleName -> Bool
-isModuleFinished model moduleName =
-    Dict.get moduleName model
-        |> Maybe.map .sourceCode
-        |> Maybe.withDefault Nothing
-        |> isJust
+isFinished : Model -> Bool
+isFinished model =
+    isJust model.sourceCode
 
 
-moduleStatuses : Model -> List ( String, Bool )
-moduleStatuses model =
-    model
-        |> Dict.toList
-        |> List.map
-            (\( moduleName, dirAttempts ) -> ( moduleName, isModuleFinished model moduleName ))
+
+-- moduleStatuses : Model -> List ( String, Bool )
+-- moduleStatuses model =
+--     model
+--         |> Dict.toList
+--         |> List.map
+--             (\( moduleName, dirAttempts ) -> ( moduleName, isModuleFinished model moduleName ))
 
 
 atLeastOneSuccess : DirAttempts -> Maybe String
@@ -287,7 +230,7 @@ haveNotExhaustedAllOptions dirAttempts =
 -- what is Dict String String?
 
 
-update : Msg -> Model -> { rsfModel : Model, rsfGoal : Maybe ModuleToSource, rsfCmd : Cmd Msg }
+update : Msg -> Model -> { rsfModel : Model, rsfGoal : Maybe SourceCode, rsfCmd : Cmd Msg }
 update msg model =
     let
         -- _ =
@@ -300,50 +243,21 @@ update msg model =
         case msg of
             ReadElmModuleResult { contents, portScope } ->
                 let
-                    -- _ =
-                    --     Debug.log "portScope" portScope
-                    newModel : Model
-                    newModel =
-                        model
-                            |> (Dict.update
-                                    portScope.moduleName
-                                    (\maybeExistingValue ->
-                                        case maybeExistingValue of
-                                            Just moduleStatus ->
-                                                Just <|
-                                                    let
-                                                        _ =
-                                                            if not <| isJust <| Dict.get portScope.dir moduleStatus.dirAttempts then
-                                                                Debug.crash ("could not find " ++ portScope.dir ++ " for " ++ portScope.moduleName)
-                                                            else
-                                                                ()
-                                                    in
-                                                        { moduleStatus
-                                                            | dirAttempts =
-                                                                moduleStatus.dirAttempts
-                                                                    |> Dict.update
-                                                                        portScope.dir
-                                                                        (updateDirAttempt contents)
-                                                            , sourceCode = contents
-                                                        }
-
-                                            Nothing ->
-                                                let
-                                                    keys =
-                                                        Dict.keys model
-                                                in
-                                                    Debug.crash ("could not update module " ++ portScope.moduleName ++ " keys " ++ (toString keys))
-                                    )
-                               )
+                    model2 =
+                        { model
+                            | dirAttempts =
+                                model.dirAttempts
+                                    |> Dict.update
+                                        portScope.dir
+                                        (updateDirAttempt contents)
+                            , sourceCode = contents
+                        }
 
                     ( model3, cmds ) =
-                        getNextCmds newModel
+                        getNextCmds model2
 
                     goal =
                         getGoal model3
-
-                    -- _ =
-                    --     Debug.log "RESULT ****************\n\n" (result |> Result.map Dict.keys)
                 in
                     { rsfModel = model3, rsfCmd = Cmd.batch cmds, rsfGoal = goal |> Result.toMaybe }
 
