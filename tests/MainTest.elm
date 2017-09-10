@@ -149,57 +149,6 @@ suite =
                                 }
                               )
                             ]
-
-                    -- expectedNewProgramStage =
-                    --     LoadingAllDependentModules
-                    --         { moduleInfos =
-                    --             Dict.fromList
-                    --                 [ ( "ModuleA"
-                    --                   , Just
-                    --                         { localUnionTypes = Dict.fromList []
-                    --                         , localTypeAliases = Dict.fromList [ ( "Foo", Type "Bar" [] ) ]
-                    --                         , externalNamesModuleInfo =
-                    --                             Dict.fromList
-                    --                                 [ ( "Bar"
-                    --                                   , { dottedModulePath = "ModuleB", name = "Bar" }
-                    --                                   )
-                    --                                 ]
-                    --                         , viewFunctions = Dict.fromList []
-                    --                         }
-                    --                   )
-                    --                 , ( "ModuleB", Nothing )
-                    --                 ]
-                    --         , readSourceFilesModel =
-                    --             Dict.fromList
-                    --                 [ ( "ModuleB"
-                    --                   , { sourceCode = Nothing
-                    --                     , dirAttempts =
-                    --                         Dict.fromList [ ( "src", InFlight ) ]
-                    --                     }
-                    --                   )
-                    --                 ]
-                    --         }
-                    --
-                    -- expectedNewAllModulesInfo =
-                    --     Dict.fromList
-                    --         [ ( "ModuleA"
-                    --           , { relevantNames = [ "Foo" ]
-                    --             , moduleInfo =
-                    --                 Just
-                    --                     { localUnionTypes = Dict.fromList []
-                    --                     , localTypeAliases = Dict.fromList [ ( "Foo", Type "Bar" [] ) ]
-                    --                     , externalNamesModuleInfo =
-                    --                         Dict.fromList
-                    --                             [ ( "Bar"
-                    --                               , { dottedModulePath = "ModuleB", name = "Bar" }
-                    --                               )
-                    --                             ]
-                    --                     , viewFunctions = Dict.fromList []
-                    --                     }
-                    --             }
-                    --           )
-                    --         , ( "ModuleB", { relevantNames = [ "Bar" ], moduleInfo = Nothing } )
-                    --         ]
                  in
                     -- [ test "new readSoureFilesModel" <|
                     --     \_ ->
@@ -216,15 +165,13 @@ suite =
                             newModel.allModulesInfo
                                 |> Expect.equal
                                     expectedNewAllModulesInfo
-
-                    -- , test "new model" <|
-                    --     \_ ->
-                    --         newModel
-                    --             |> Expect.equal
-                    --                 { expectedInitializedModel
-                    --                     | readSourceFilesModel = expectedNewReadSourceFilesModel
-                    --                     , programStage = expectedNewProgramStage
-                    --                 }
+                    , test "new model" <|
+                        \_ ->
+                            newModel
+                                |> Expect.equal
+                                    { expectedInitializedModel
+                                        | allModulesInfo = expectedNewAllModulesInfo
+                                    }
                     ]
                 )
             ]
