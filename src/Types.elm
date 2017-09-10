@@ -119,4 +119,4 @@ type alias ModuleToSource =
 
 
 type alias ModuleToModuleInfo =
-    Dict DottedModuleName ModuleInfo
+    Dict DottedModuleName (Maybe ModuleInfo)

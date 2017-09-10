@@ -157,13 +157,18 @@ update msg model =
                     case rsfGoal of
                         Just moduleToSource ->
                             let
+                                -- so we have all the source code for the stuff that was loaded,
+                                -- but now we need to parse all the loaded modules, and add Nothings
+                                -- for the ones we haven't loaded yet
                                 _ =
                                     Debug.log "subject ReadSourceFiles goal keys" (Dict.keys moduleToSource)
 
                                 usedSymbols =
                                     ModuleInfo.getExternalSymbols model2.subjectModuleInfo
 
-                                moduleInfos =
+                                -- here we need to add the nothings for the ones we haven't loaded yet
+                                loadedModuleInfos : ModuleToModuleInfo
+                                loadedModuleInfos =
                                     DependentModules.getModuleInfos
                                         { moduleToSource = moduleToSource, usedSymbols = usedSymbols }
 
@@ -173,9 +178,20 @@ update msg model =
                                 -- its ok)
                                 modulesToLoad : List String
                                 modulesToLoad =
-                                    moduleInfos
+                                    loadedModuleInfos
                                         |> Dict.values
+                                        |> List.filterMap identity
                                         |> List.concatMap ModuleInfo.getModulesToLoad
+
+                                nonLoadedModuleInfos : ModuleToModuleInfo
+                                nonLoadedModuleInfos =
+                                    modulesToLoad
+                                        |> List.map (\moduleName -> ( moduleName, Nothing ))
+                                        |> Dict.fromList
+
+                                allModuleInfos : ModuleToModuleInfo
+                                allModuleInfos =
+                                    Dict.union loadedModuleInfos nonLoadedModuleInfos
 
                                 ( readSourceFilesModel, dependentRsfCmd ) =
                                     ReadSourceFiles.init
@@ -186,7 +202,7 @@ update msg model =
                                 ( { model2
                                     | programStage =
                                         LoadingAllDependentModules
-                                            { moduleInfos = moduleInfos
+                                            { moduleInfos = allModuleInfos
                                             , readSourceFilesModel = readSourceFilesModel
                                             }
                                   }

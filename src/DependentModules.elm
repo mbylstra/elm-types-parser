@@ -25,7 +25,7 @@ getModuleInfos { moduleToSource, usedSymbols } =
     moduleToSource
         |> Dict.map
             (\_ sourceCode ->
-                getModuleInfo { sourceCode = sourceCode, relevantNames = usedSymbols }
+                Just (getModuleInfo { sourceCode = sourceCode, relevantNames = usedSymbols })
             )
 
 
