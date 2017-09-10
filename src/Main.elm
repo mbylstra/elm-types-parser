@@ -300,8 +300,13 @@ addNewExternalModules sourceDirectories allModulesInfo newExternalModules =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    ((externalStop <| always Abort)
-        -- :: [ ReadSourceFiles.subscriptions |> Sub.map ReadSourceFilesMsg ]
-        :: []
+    ([ externalStop <| always Abort ]
+        ++ [ readSourceFilesSubscription ]
     )
         |> Sub.batch
+
+
+readSourceFilesSubscription : Sub Msg
+readSourceFilesSubscription =
+    ReadSourceFiles.subscription
+        |> Sub.map (\( moduleName, rsfMsg ) -> (ReadSourceFilesMsg moduleName rsfMsg))

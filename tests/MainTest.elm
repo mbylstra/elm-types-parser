@@ -94,8 +94,7 @@ suite =
                         ReadSourceFilesMsg
                             "ModuleA"
                             (ReadSourceFiles.ReadElmModuleResult
-                                { moduleName = "ModuleA"
-                                , contents = Just moduleASourceCode
+                                { contents = Just moduleASourceCode
                                 , portScope =
                                     { path = "src/ModuleA.elm"
                                     , dir = "src"

@@ -10939,52 +10939,47 @@ var _user$project$ReadSourceFiles$readElmModuleResult = _elm_lang$core$Native_Pl
 	'readElmModuleResult',
 	A2(
 		_elm_lang$core$Json_Decode$andThen,
-		function (moduleName) {
+		function (contents) {
 			return A2(
 				_elm_lang$core$Json_Decode$andThen,
-				function (contents) {
-					return A2(
-						_elm_lang$core$Json_Decode$andThen,
-						function (portScope) {
-							return _elm_lang$core$Json_Decode$succeed(
-								{moduleName: moduleName, contents: contents, portScope: portScope});
-						},
-						A2(
-							_elm_lang$core$Json_Decode$field,
-							'portScope',
-							A2(
-								_elm_lang$core$Json_Decode$andThen,
-								function (path) {
-									return A2(
-										_elm_lang$core$Json_Decode$andThen,
-										function (dir) {
-											return A2(
-												_elm_lang$core$Json_Decode$andThen,
-												function (moduleName) {
-													return _elm_lang$core$Json_Decode$succeed(
-														{path: path, dir: dir, moduleName: moduleName});
-												},
-												A2(_elm_lang$core$Json_Decode$field, 'moduleName', _elm_lang$core$Json_Decode$string));
-										},
-										A2(_elm_lang$core$Json_Decode$field, 'dir', _elm_lang$core$Json_Decode$string));
-								},
-								A2(_elm_lang$core$Json_Decode$field, 'path', _elm_lang$core$Json_Decode$string))));
+				function (portScope) {
+					return _elm_lang$core$Json_Decode$succeed(
+						{contents: contents, portScope: portScope});
 				},
 				A2(
 					_elm_lang$core$Json_Decode$field,
-					'contents',
-					_elm_lang$core$Json_Decode$oneOf(
-						{
-							ctor: '::',
-							_0: _elm_lang$core$Json_Decode$null(_elm_lang$core$Maybe$Nothing),
-							_1: {
-								ctor: '::',
-								_0: A2(_elm_lang$core$Json_Decode$map, _elm_lang$core$Maybe$Just, _elm_lang$core$Json_Decode$string),
-								_1: {ctor: '[]'}
-							}
-						})));
+					'portScope',
+					A2(
+						_elm_lang$core$Json_Decode$andThen,
+						function (path) {
+							return A2(
+								_elm_lang$core$Json_Decode$andThen,
+								function (dir) {
+									return A2(
+										_elm_lang$core$Json_Decode$andThen,
+										function (moduleName) {
+											return _elm_lang$core$Json_Decode$succeed(
+												{path: path, dir: dir, moduleName: moduleName});
+										},
+										A2(_elm_lang$core$Json_Decode$field, 'moduleName', _elm_lang$core$Json_Decode$string));
+								},
+								A2(_elm_lang$core$Json_Decode$field, 'dir', _elm_lang$core$Json_Decode$string));
+						},
+						A2(_elm_lang$core$Json_Decode$field, 'path', _elm_lang$core$Json_Decode$string))));
 		},
-		A2(_elm_lang$core$Json_Decode$field, 'moduleName', _elm_lang$core$Json_Decode$string)));
+		A2(
+			_elm_lang$core$Json_Decode$field,
+			'contents',
+			_elm_lang$core$Json_Decode$oneOf(
+				{
+					ctor: '::',
+					_0: _elm_lang$core$Json_Decode$null(_elm_lang$core$Maybe$Nothing),
+					_1: {
+						ctor: '::',
+						_0: A2(_elm_lang$core$Json_Decode$map, _elm_lang$core$Maybe$Just, _elm_lang$core$Json_Decode$string),
+						_1: {ctor: '[]'}
+					}
+				}))));
 var _user$project$ReadSourceFiles$Model = F3(
 	function (a, b, c) {
 		return {moduleName: a, sourceCode: b, dirAttempts: c};
@@ -10993,9 +10988,9 @@ var _user$project$ReadSourceFiles$ReadElmModulePortScope = F3(
 	function (a, b, c) {
 		return {path: a, dir: b, moduleName: c};
 	});
-var _user$project$ReadSourceFiles$ReadElmModuleResultR = F3(
-	function (a, b, c) {
-		return {moduleName: a, contents: b, portScope: c};
+var _user$project$ReadSourceFiles$ReadElmModuleResultR = F2(
+	function (a, b) {
+		return {contents: a, portScope: b};
 	});
 var _user$project$ReadSourceFiles$GetFilenamesInDirResultR = F2(
 	function (a, b) {
@@ -11149,7 +11144,13 @@ var _user$project$ReadSourceFiles$init = function (_p27) {
 var _user$project$ReadSourceFiles$ReadElmModuleResult = function (a) {
 	return {ctor: 'ReadElmModuleResult', _0: a};
 };
-var _user$project$ReadSourceFiles$subscriptions = _user$project$ReadSourceFiles$readElmModuleResult(_user$project$ReadSourceFiles$ReadElmModuleResult);
+var _user$project$ReadSourceFiles$subscription = A2(
+	_elm_lang$core$Platform_Sub$map,
+	function (result) {
+		var _p30 = result;
+		return {ctor: '_Tuple2', _0: _p30._0.portScope.moduleName, _1: result};
+	},
+	_user$project$ReadSourceFiles$readElmModuleResult(_user$project$ReadSourceFiles$ReadElmModuleResult));
 
 var _user$project$ViewFunctionDetector$isViewFunction = function (tipe) {
 	isViewFunction:
@@ -11470,15 +11471,29 @@ var _user$project$Main$update = F2(
 						newExtModulesCmds));
 		}
 	});
+var _user$project$Main$readSourceFilesSubscription = A2(
+	_elm_lang$core$Platform_Sub$map,
+	function (_p26) {
+		var _p27 = _p26;
+		return A2(_user$project$Main$ReadSourceFilesMsg, _p27._0, _p27._1);
+	},
+	_user$project$ReadSourceFiles$subscription);
 var _user$project$Main$Abort = {ctor: 'Abort'};
 var _user$project$Main$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$batch(
-		{
-			ctor: '::',
-			_0: _user$project$Main$externalStop(
-				_elm_lang$core$Basics$always(_user$project$Main$Abort)),
-			_1: {ctor: '[]'}
-		});
+		A2(
+			_elm_lang$core$Basics_ops['++'],
+			{
+				ctor: '::',
+				_0: _user$project$Main$externalStop(
+					_elm_lang$core$Basics$always(_user$project$Main$Abort)),
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: _user$project$Main$readSourceFilesSubscription,
+				_1: {ctor: '[]'}
+			}));
 };
 var _user$project$Main$main = _elm_lang$core$Platform$programWithFlags(
 	{init: _user$project$Main$init, update: _user$project$Main$update, subscriptions: _user$project$Main$subscriptions})(

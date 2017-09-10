@@ -48,8 +48,7 @@ type Msg
 
 
 type alias ReadElmModuleResultR =
-    { moduleName : String
-    , contents : Maybe String
+    { contents : Maybe String
     , portScope : ReadElmModulePortScope
     }
 
@@ -173,9 +172,15 @@ getGoal model =
         Err model
 
 
-subscriptions : Sub Msg
-subscriptions =
+subscription : Sub ( DottedModuleName, Msg )
+subscription =
     readElmModuleResult ReadElmModuleResult
+        |> Sub.map
+            (\result ->
+                case result of
+                    ReadElmModuleResult resultR ->
+                        ( resultR.portScope.moduleName, result )
+            )
 
 
 isFinished : Model -> Bool
