@@ -150,16 +150,6 @@ suite =
                               )
                             ]
                  in
-                    -- [ test "new readSoureFilesModel" <|
-                    --     \_ ->
-                    --         newModel.readSourceFilesModel
-                    --             |> Expect.equal
-                    --                 expectedNewReadSourceFilesModel
-                    -- , test "new programStage" <|
-                    --     \_ ->
-                    --         newModel.programStage
-                    --             |> Expect.equal
-                    --                 expectedNewProgramStage
                     [ test "expected new AllModulesInfo" <|
                         \_ ->
                             newModel.allModulesInfo
