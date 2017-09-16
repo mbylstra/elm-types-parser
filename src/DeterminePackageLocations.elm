@@ -10,19 +10,19 @@ exactDependenciesDecoder =
     Json.Decode.dict Json.Decode.string
 
 
-exactDependencyToPath : ( String, String ) -> String
-exactDependencyToPath ( fullName, version ) =
+exactDependencyToPackagePath : ( String, String ) -> String
+exactDependencyToPackagePath ( fullName, version ) =
     case String.split "/" fullName of
         user :: packageName :: [] ->
-            joinPath [ ".", "elm-stuff", "packages", user, packageName, version, "src" ]
+            joinPath [ ".", "elm-stuff", "packages", user, packageName, version ]
 
         _ ->
             Debug.crash (fullName ++ " is not a valid packageName")
 
 
-doIt : String -> List String
-doIt exactDependenciesContents =
+getPackagePaths : String -> List String
+getPackagePaths exactDependenciesContents =
     exactDependenciesContents
         |> Json.Decode.decodeString exactDependenciesDecoder
-        |> Result.map (Dict.toList >> List.map exactDependencyToPath)
+        |> Result.map (Dict.toList >> List.map exactDependencyToPackagePath)
         |> Result.withDefault []

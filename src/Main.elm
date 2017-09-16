@@ -2,21 +2,28 @@ port module Main exposing (..)
 
 -- import Dict exposing (Dict)
 
+import DependentModules
+import DeterminePackageLocations
+import Dict exposing (Dict)
+import Helpers exposing (allTrue, unsafeAssumeSuccess, unsafeDictGet)
 import Json.Decode
+import ModuleInfo exposing (groupNamesByModule)
 import PackageInfo exposing (PackageInfo)
 import ReadSourceFiles
-import DeterminePackageLocations
-import Types exposing (ModuleInfo, ModuleToSource, ModuleToModuleInfo, DottedModuleName)
 import SubjectModuleInfo
-import ModuleInfo exposing (groupNamesByModule)
-import DependentModules
-import Dict exposing (Dict)
-import Helpers exposing (unsafeDictGet)
+import Types exposing (DottedModuleName, ModuleInfo, ModuleToModuleInfo, ModuleToSource)
+import Path.Posix as Path exposing (joinPath, takeDirectory, dropFileName)
 
 
 {- REMOVE WHEN COMPILER BUG IS FIXED -}
 
 import Json.Decode
+
+
+port readElmPackageInfoContents : List String -> Cmd msg
+
+
+port readElmPackageInfoContentsResult : (List ( String, String ) -> msg) -> Sub msg
 
 
 port exitApp : Float -> Cmd msg
@@ -50,7 +57,8 @@ type alias ModuleName =
 
 
 type alias Model =
-    { sourceDirectories : List String
+    { packageSourceDirectoriesFound : Bool
+    , sourceDirectories : List String
     , subjectSourceCode : String
     , subjectModuleInfo : ModuleInfo
     , allModulesInfo : AllModulesInfo
@@ -73,6 +81,7 @@ type Msg
     = Stop
     | Abort
     | ReadSourceFilesMsg DottedModuleName ReadSourceFiles.Msg
+    | ReadElmPackageInfoContentsResult (List ( String, String ))
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -86,7 +95,7 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
             Ok packageInfo ->
                 let
                     packageDirs =
-                        DeterminePackageLocations.doIt exactDependenciesContents
+                        DeterminePackageLocations.getPackagePaths exactDependenciesContents
 
                     sourceDirectories =
                         packageInfo.sourceDirectories ++ packageDirs
@@ -96,60 +105,20 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                         subjectSourceCode
                             |> SubjectModuleInfo.getModuleInfo
 
-                    ( allModulesInfo, readSourceFilesCmds ) =
-                        subjectModuleInfo.externalNamesModuleInfo
-                            |> groupNamesByModule
+                    elmPackageJsonPaths =
+                        packageDirs
                             |> List.map
-                                (\{ moduleName, relevantNames } ->
-                                    let
-                                        ( rsfModel, rsfCmd ) =
-                                            ReadSourceFiles.init
-                                                { sourceDirectories = sourceDirectories
-                                                , moduleName = moduleName
-                                                }
-                                    in
-                                        ( ( moduleName
-                                          , { relevantNames = relevantNames
-                                            , eitherModuleInfo = NotLoaded rsfModel
-                                            }
-                                          )
-                                        , rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
-                                        )
+                                (\packageDir ->
+                                    joinPath [ packageDir, "elm-package.json" ]
                                 )
-                            |> List.unzip
-                            |> Tuple.mapFirst Dict.fromList
-
-                    -- we need to store this in the model, so that once we've read the source files,
-                    -- we can match it
-                    modulesToLoad =
-                        subjectModuleInfo
-                            |> ModuleInfo.getModulesToLoad
-
-                    -- ( readSourceFilesModel, readSourceFilesCmd ) =
-                    --     ReadSourceFiles.init
-                    --         { sourceDirectories = sourceDirectories
-                    --         , moduleNames = modulesToLoad
-                    --         }
-                    -- ( readSourceFilesModels, readSourceFilesCmds ) =
-                    --     modulesToLoad
-                    --         |> List.map
-                    --             (\moduleName ->
-                    --             )
-                    -- allModulesInfo : AllModulesInfo
-                    -- allModulesInfo =
-                    --     readSourceFilesModels
-                    --         |> List.map
-                    --             (\({ moduleName } as readSourceFileModel) ->
-                    --                 ( moduleName, NotLoaded readSourceFileModel )
-                    --             )
-                    --         |> Dict.fromList
                 in
-                    { subjectSourceCode = subjectSourceCode
+                    { packageSourceDirectoriesFound = False
+                    , subjectSourceCode = subjectSourceCode
                     , sourceDirectories = sourceDirectories
                     , subjectModuleInfo = subjectModuleInfo
-                    , allModulesInfo = allModulesInfo
+                    , allModulesInfo = Dict.empty
                     }
-                        ! readSourceFilesCmds
+                        ! [ readElmPackageInfoContents elmPackageJsonPaths ]
 
             Err err ->
                 let
@@ -159,29 +128,160 @@ init { elmPackageContents, subjectSourceCode, exactDependenciesContents } =
                     Debug.crash err2
 
 
+isFinished : Model -> Bool
+isFinished model =
+    model.allModulesInfo
+        |> Dict.values
+        |> List.map
+            (.eitherModuleInfo
+                >> (\eitherModuleInfo ->
+                        case eitherModuleInfo of
+                            Loaded _ ->
+                                True
+
+                            NotLoaded _ ->
+                                False
+                   )
+            )
+        |> allTrue
+
+
+getLoadedModuleInfos : Model -> Dict DottedModuleName ModuleInfo
+getLoadedModuleInfos model =
+    model.allModulesInfo
+        |> Dict.toList
+        |> List.map
+            (\( moduleName, moduleInfo ) ->
+                (case moduleInfo.eitherModuleInfo of
+                    Loaded moduleInfo ->
+                        Just ( moduleName, moduleInfo )
+
+                    NotLoaded _ ->
+                        Nothing
+                )
+            )
+        |> List.filterMap identity
+        |> Dict.fromList
+
+
+getFailedLoads : Model -> List ReadSourceFiles.Model
+getFailedLoads model =
+    model.allModulesInfo
+        |> Dict.toList
+        |> List.map
+            (\( moduleName, moduleInfo ) ->
+                (case moduleInfo.eitherModuleInfo of
+                    Loaded _ ->
+                        Nothing
+
+                    NotLoaded rsfModel ->
+                        ReadSourceFiles.hasFailed rsfModel
+                )
+            )
+        |> List.filterMap identity
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     -- case (Debug.log "msg" msg) of
     case msg of
+        ReadElmPackageInfoContentsResult tupleList ->
+            updateWithElmPackageInfoContentsResult model tupleList
+
+        ReadSourceFilesMsg moduleName rsfMsg ->
+            let
+                ( newModel, cmd ) =
+                    let
+                        { newAllModulesInfo, newExternalModules, rsfCmd } =
+                            updateAllModulesInfoForRsf moduleName rsfMsg model.allModulesInfo
+
+                        ( allModulesInfo2, newExtModulesCmds ) =
+                            addNewExternalModules model.sourceDirectories newAllModulesInfo newExternalModules
+
+                        _ =
+                            Debug.log ("ReadSourceFilesMsg for " ++ moduleName) True
+                    in
+                        { model | allModulesInfo = allModulesInfo2 }
+                            ! ([ rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
+                               ]
+                                ++ newExtModulesCmds
+                              )
+
+                _ =
+                    Debug.log "failedLoads" (getFailedLoads newModel)
+
+                _ =
+                    Debug.log "isFinished" (isFinished newModel)
+
+                _ =
+                    Debug.log "moduleInfos" (getLoadedModuleInfos newModel)
+
+                _ =
+                    Debug.log "subjectModuleInfo" (newModel.subjectModuleInfo)
+            in
+                ( newModel, cmd )
+
         Stop ->
             model ! [ exitApp 0 ]
 
         Abort ->
             model ! [ exitApp -1 ]
 
-        ReadSourceFilesMsg moduleName rsfMsg ->
-            let
-                { newAllModulesInfo, newExternalModules, rsfCmd } =
-                    updateAllModulesInfoForRsf moduleName rsfMsg model.allModulesInfo
 
-                ( allModulesInfo2, newExtModulesCmds ) =
-                    addNewExternalModules model.sourceDirectories newAllModulesInfo newExternalModules
-            in
-                { model | allModulesInfo = allModulesInfo2 }
-                    ! ([ rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
-                       ]
-                        ++ newExtModulesCmds
-                      )
+updateWithElmPackageInfoContentsResult : Model -> List ( String, String ) -> ( Model, Cmd Msg )
+updateWithElmPackageInfoContentsResult model tupleList =
+    let
+        packageSourceDirectories =
+            tupleList
+                |> List.concatMap
+                    (\( elmPackagePath, contents ) ->
+                        Json.Decode.decodeString PackageInfo.decoder contents
+                            -- for the decoder to fail there'd have to be a completely
+                            -- broken package installed. We wouldn't even get this
+                            -- far if that were the case.
+                            |> unsafeAssumeSuccess
+                            |> .sourceDirectories
+                            |> List.map
+                                (\relativeSourceDirectory ->
+                                    joinPath
+                                        [ dropFileName elmPackagePath
+                                        , relativeSourceDirectory
+                                        ]
+                                )
+                    )
+
+        allSourceDirectories =
+            model.sourceDirectories ++ packageSourceDirectories
+
+        ( allModulesInfo, readSourceFilesCmds ) =
+            model.subjectModuleInfo.externalNamesModuleInfo
+                |> groupNamesByModule
+                |> List.map
+                    (\{ moduleName, relevantNames } ->
+                        let
+                            ( rsfModel, rsfCmd ) =
+                                ReadSourceFiles.init
+                                    { sourceDirectories = allSourceDirectories
+                                    , moduleName = moduleName
+                                    }
+                        in
+                            ( ( moduleName
+                              , { relevantNames = relevantNames
+                                , eitherModuleInfo = NotLoaded rsfModel
+                                }
+                              )
+                            , rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
+                            )
+                    )
+                |> List.unzip
+                |> Tuple.mapFirst Dict.fromList
+    in
+        { model
+            | packageSourceDirectoriesFound = True
+            , sourceDirectories = allSourceDirectories
+            , allModulesInfo = allModulesInfo
+        }
+            ! readSourceFilesCmds
 
 
 updateAllModulesInfoForRsf :
@@ -301,6 +401,7 @@ addNewExternalModules sourceDirectories allModulesInfo newExternalModules =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     ([ externalStop <| always Abort ]
+        ++ [ readElmPackageInfoContentsResult ReadElmPackageInfoContentsResult ]
         ++ [ readSourceFilesSubscription ]
     )
         |> Sub.batch

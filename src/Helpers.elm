@@ -57,6 +57,11 @@ anyTrue =
     List.any identity
 
 
+allTrue : List Bool -> Bool
+allTrue =
+    List.all identity
+
+
 removeDuplicates : List comparable -> List comparable
 removeDuplicates l =
     l |> Set.fromList |> Set.toList
@@ -70,3 +75,13 @@ unsafeDictGet key dict =
 
         Nothing ->
             Debug.crash ("could not find key " ++ toString key)
+
+
+unsafeAssumeSuccess : Result err success -> success
+unsafeAssumeSuccess result =
+    case result of
+        Ok data ->
+            data
+
+        Err err ->
+            Debug.crash ("Err: " ++ (toString err))

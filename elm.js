@@ -10078,19 +10078,37 @@ var _user$project$FirstPass$parseModule = function (source) {
 					_user$project$FirstPass$splitIntoBlocks(source)))));
 };
 
+var _user$project$Helpers$unsafeAssumeSuccess = function (result) {
+	var _p0 = result;
+	if (_p0.ctor === 'Ok') {
+		return _p0._0;
+	} else {
+		return _elm_lang$core$Native_Utils.crashCase(
+			'Helpers',
+			{
+				start: {line: 82, column: 5},
+				end: {line: 87, column: 52}
+			},
+			_p0)(
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				'Err: ',
+				_elm_lang$core$Basics$toString(_p0._0)));
+	}
+};
 var _user$project$Helpers$unsafeDictGet = F2(
 	function (key, dict) {
-		var _p0 = A2(_elm_lang$core$Dict$get, key, dict);
-		if (_p0.ctor === 'Just') {
-			return _p0._0;
+		var _p2 = A2(_elm_lang$core$Dict$get, key, dict);
+		if (_p2.ctor === 'Just') {
+			return _p2._0;
 		} else {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'Helpers',
 				{
-					start: {line: 67, column: 5},
-					end: {line: 72, column: 64}
+					start: {line: 72, column: 5},
+					end: {line: 77, column: 64}
 				},
-				_p0)(
+				_p2)(
 				A2(
 					_elm_lang$core$Basics_ops['++'],
 					'could not find key ',
@@ -10101,27 +10119,28 @@ var _user$project$Helpers$removeDuplicates = function (l) {
 	return _elm_lang$core$Set$toList(
 		_elm_lang$core$Set$fromList(l));
 };
+var _user$project$Helpers$allTrue = _elm_lang$core$List$all(_elm_lang$core$Basics$identity);
 var _user$project$Helpers$anyTrue = _elm_lang$core$List$any(_elm_lang$core$Basics$identity);
 var _user$project$Helpers$groupByFirstTupleItem = function (rows) {
 	return A3(
 		_elm_lang$core$List$foldr,
 		F2(
-			function (_p2, accDict) {
-				var _p3 = _p2;
-				var _p5 = _p3._1;
+			function (_p4, accDict) {
+				var _p5 = _p4;
+				var _p7 = _p5._1;
 				return A3(
 					_elm_lang$core$Dict$update,
-					_p3._0,
+					_p5._0,
 					function (maybeList) {
-						var _p4 = maybeList;
-						if (_p4.ctor === 'Just') {
+						var _p6 = maybeList;
+						if (_p6.ctor === 'Just') {
 							return _elm_lang$core$Maybe$Just(
-								{ctor: '::', _0: _p5, _1: _p4._0});
+								{ctor: '::', _0: _p7, _1: _p6._0});
 						} else {
 							return _elm_lang$core$Maybe$Just(
 								{
 									ctor: '::',
-									_0: _p5,
+									_0: _p7,
 									_1: {ctor: '[]'}
 								});
 						}
@@ -10137,10 +10156,10 @@ var _user$project$Helpers$qualifiedNameToPath = function (name) {
 		'',
 		A2(
 			_elm_lang$core$Maybe$map,
-			function (_p6) {
-				var _p7 = _p6;
-				var fileName = A2(_elm_lang$core$Basics_ops['++'], _p7._0, '.elm');
-				var fullReversePath = {ctor: '::', _0: fileName, _1: _p7._1};
+			function (_p8) {
+				var _p9 = _p8;
+				var fileName = A2(_elm_lang$core$Basics_ops['++'], _p9._0, '.elm');
+				var fullReversePath = {ctor: '::', _0: fileName, _1: _p9._1};
 				var path = _elm_lang$core$List$reverse(fullReversePath);
 				return A2(_elm_lang$core$String$join, '/', path);
 			},
@@ -10477,7 +10496,7 @@ var _user$project$DependentModules$getModuleInfo = function (_p8) {
 	};
 };
 
-var _user$project$DeterminePackageLocations$exactDependencyToPath = function (_p0) {
+var _user$project$DeterminePackageLocations$exactDependencyToPackagePath = function (_p0) {
 	var _p1 = _p0;
 	var _p4 = _p1._0;
 	var _p2 = A2(_elm_lang$core$String$split, '/', _p4);
@@ -10501,11 +10520,7 @@ var _user$project$DeterminePackageLocations$exactDependencyToPath = function (_p
 								_1: {
 									ctor: '::',
 									_0: _p1._1,
-									_1: {
-										ctor: '::',
-										_0: 'src',
-										_1: {ctor: '[]'}
-									}
+									_1: {ctor: '[]'}
 								}
 							}
 						}
@@ -10524,7 +10539,7 @@ var _user$project$DeterminePackageLocations$exactDependencyToPath = function (_p
 	}
 };
 var _user$project$DeterminePackageLocations$exactDependenciesDecoder = _elm_lang$core$Json_Decode$dict(_elm_lang$core$Json_Decode$string);
-var _user$project$DeterminePackageLocations$doIt = function (exactDependenciesContents) {
+var _user$project$DeterminePackageLocations$getPackagePaths = function (exactDependenciesContents) {
 	return A2(
 		_elm_lang$core$Result$withDefault,
 		{ctor: '[]'},
@@ -10533,7 +10548,7 @@ var _user$project$DeterminePackageLocations$doIt = function (exactDependenciesCo
 			function (_p5) {
 				return A2(
 					_elm_lang$core$List$map,
-					_user$project$DeterminePackageLocations$exactDependencyToPath,
+					_user$project$DeterminePackageLocations$exactDependencyToPackagePath,
 					_elm_lang$core$Dict$toList(_p5));
 			},
 			A2(_elm_lang$core$Json_Decode$decodeString, _user$project$DeterminePackageLocations$exactDependenciesDecoder, exactDependenciesContents)));
@@ -10923,6 +10938,10 @@ var _user$project$ReadSourceFiles$atLeastOneSuccess = function (dirAttempts) {
 var _user$project$ReadSourceFiles$isFinished = function (model) {
 	return _elm_community$maybe_extra$Maybe_Extra$isJust(model.sourceCode);
 };
+var _user$project$ReadSourceFiles$hasFailed = function (model) {
+	return ((!_user$project$ReadSourceFiles$isFinished(model)) && _elm_community$maybe_extra$Maybe_Extra$isNothing(
+		_user$project$ReadSourceFiles$haveNotExhaustedAllOptions(model.dirAttempts))) ? _elm_lang$core$Maybe$Just(model) : _elm_lang$core$Maybe$Nothing;
+};
 var _user$project$ReadSourceFiles$getGoal = function (model) {
 	return _user$project$ReadSourceFiles$isFinished(model) ? _elm_lang$core$Result$Ok(
 		A2(_elm_lang$core$Maybe$withDefault, '', model.sourceCode)) : _elm_lang$core$Result$Err(model);
@@ -11245,6 +11264,126 @@ var _user$project$SubjectModuleInfo$getModuleInfo = function (sourceCode) {
 	};
 };
 
+var _user$project$Main$getFailedLoads = function (model) {
+	return A2(
+		_elm_lang$core$List$filterMap,
+		_elm_lang$core$Basics$identity,
+		A2(
+			_elm_lang$core$List$map,
+			function (_p0) {
+				var _p1 = _p0;
+				var _p2 = _p1._1.eitherModuleInfo;
+				if (_p2.ctor === 'Loaded') {
+					return _elm_lang$core$Maybe$Nothing;
+				} else {
+					return _user$project$ReadSourceFiles$hasFailed(_p2._0);
+				}
+			},
+			_elm_lang$core$Dict$toList(model.allModulesInfo)));
+};
+var _user$project$Main$getLoadedModuleInfos = function (model) {
+	return _elm_lang$core$Dict$fromList(
+		A2(
+			_elm_lang$core$List$filterMap,
+			_elm_lang$core$Basics$identity,
+			A2(
+				_elm_lang$core$List$map,
+				function (_p3) {
+					var _p4 = _p3;
+					var _p5 = _p4._1.eitherModuleInfo;
+					if (_p5.ctor === 'Loaded') {
+						return _elm_lang$core$Maybe$Just(
+							{ctor: '_Tuple2', _0: _p4._0, _1: _p5._0});
+					} else {
+						return _elm_lang$core$Maybe$Nothing;
+					}
+				},
+				_elm_lang$core$Dict$toList(model.allModulesInfo))));
+};
+var _user$project$Main$isFinished = function (model) {
+	return _user$project$Helpers$allTrue(
+		A2(
+			_elm_lang$core$List$map,
+			function (_p6) {
+				return function (eitherModuleInfo) {
+					var _p7 = eitherModuleInfo;
+					if (_p7.ctor === 'Loaded') {
+						return true;
+					} else {
+						return false;
+					}
+				}(
+					function (_) {
+						return _.eitherModuleInfo;
+					}(_p6));
+			},
+			_elm_lang$core$Dict$values(model.allModulesInfo)));
+};
+var _user$project$Main$readElmPackageInfoContents = _elm_lang$core$Native_Platform.outgoingPort(
+	'readElmPackageInfoContents',
+	function (v) {
+		return _elm_lang$core$Native_List.toArray(v).map(
+			function (v) {
+				return v;
+			});
+	});
+var _user$project$Main$init = function (_p8) {
+	var _p9 = _p8;
+	var _p11 = _p9.subjectSourceCode;
+	var packageInfoResult = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p9.elmPackageContents);
+	var _p10 = packageInfoResult;
+	if (_p10.ctor === 'Ok') {
+		var subjectModuleInfo = _user$project$SubjectModuleInfo$getModuleInfo(_p11);
+		var packageDirs = _user$project$DeterminePackageLocations$getPackagePaths(_p9.exactDependenciesContents);
+		var sourceDirectories = A2(_elm_lang$core$Basics_ops['++'], _p10._0.sourceDirectories, packageDirs);
+		var elmPackageJsonPaths = A2(
+			_elm_lang$core$List$map,
+			function (packageDir) {
+				return _ucode$elm_path$Path_Posix$joinPath(
+					{
+						ctor: '::',
+						_0: packageDir,
+						_1: {
+							ctor: '::',
+							_0: 'elm-package.json',
+							_1: {ctor: '[]'}
+						}
+					});
+			},
+			packageDirs);
+		return A2(
+			_elm_lang$core$Platform_Cmd_ops['!'],
+			{packageSourceDirectoriesFound: false, subjectSourceCode: _p11, sourceDirectories: sourceDirectories, subjectModuleInfo: subjectModuleInfo, allModulesInfo: _elm_lang$core$Dict$empty},
+			{
+				ctor: '::',
+				_0: _user$project$Main$readElmPackageInfoContents(elmPackageJsonPaths),
+				_1: {ctor: '[]'}
+			});
+	} else {
+		var err2 = A2(_elm_lang$core$Basics_ops['++'], 'Invalid elm-package.json.\n\n ', _p10._0);
+		return _elm_lang$core$Native_Utils.crash(
+			'Main',
+			{
+				start: {line: 128, column: 21},
+				end: {line: 128, column: 32}
+			})(err2);
+	}
+};
+var _user$project$Main$readElmPackageInfoContentsResult = _elm_lang$core$Native_Platform.incomingPort(
+	'readElmPackageInfoContentsResult',
+	_elm_lang$core$Json_Decode$list(
+		A2(
+			_elm_lang$core$Json_Decode$andThen,
+			function (x0) {
+				return A2(
+					_elm_lang$core$Json_Decode$andThen,
+					function (x1) {
+						return _elm_lang$core$Json_Decode$succeed(
+							{ctor: '_Tuple2', _0: x0, _1: x1});
+					},
+					A2(_elm_lang$core$Json_Decode$index, 1, _elm_lang$core$Json_Decode$string));
+			},
+			A2(_elm_lang$core$Json_Decode$index, 0, _elm_lang$core$Json_Decode$string))));
 var _user$project$Main$exitApp = _elm_lang$core$Native_Platform.outgoingPort(
 	'exitApp',
 	function (v) {
@@ -11258,9 +11397,9 @@ var _user$project$Main$Flags = F3(
 	function (a, b, c) {
 		return {elmPackageContents: a, subjectSourceCode: b, exactDependenciesContents: c};
 	});
-var _user$project$Main$Model = F4(
-	function (a, b, c, d) {
-		return {sourceDirectories: a, subjectSourceCode: b, subjectModuleInfo: c, allModulesInfo: d};
+var _user$project$Main$Model = F5(
+	function (a, b, c, d, e) {
+		return {packageSourceDirectoriesFound: a, sourceDirectories: b, subjectSourceCode: c, subjectModuleInfo: d, allModulesInfo: e};
 	});
 var _user$project$Main$NotLoaded = function (a) {
 	return {ctor: 'NotLoaded', _0: a};
@@ -11270,19 +11409,19 @@ var _user$project$Main$Loaded = function (a) {
 };
 var _user$project$Main$updateAllModulesInfoForRsf = F3(
 	function (moduleName, rsfMsg, allModulesInfo) {
-		var _p0 = A2(_user$project$Helpers$unsafeDictGet, moduleName, allModulesInfo);
-		var relevantNames = _p0.relevantNames;
-		var eitherModuleInfo = _p0.eitherModuleInfo;
-		var _p1 = eitherModuleInfo;
-		if (_p1.ctor === 'NotLoaded') {
-			var _p2 = A2(_user$project$ReadSourceFiles$update, rsfMsg, _p1._0);
-			var rsfModel = _p2.rsfModel;
-			var rsfGoal = _p2.rsfGoal;
-			var rsfCmd = _p2.rsfCmd;
-			var _p3 = rsfGoal;
-			if (_p3.ctor === 'Just') {
+		var _p12 = A2(_user$project$Helpers$unsafeDictGet, moduleName, allModulesInfo);
+		var relevantNames = _p12.relevantNames;
+		var eitherModuleInfo = _p12.eitherModuleInfo;
+		var _p13 = eitherModuleInfo;
+		if (_p13.ctor === 'NotLoaded') {
+			var _p14 = A2(_user$project$ReadSourceFiles$update, rsfMsg, _p13._0);
+			var rsfModel = _p14.rsfModel;
+			var rsfGoal = _p14.rsfGoal;
+			var rsfCmd = _p14.rsfCmd;
+			var _p15 = rsfGoal;
+			if (_p15.ctor === 'Just') {
 				var moduleInfo = _user$project$DependentModules$getModuleInfo(
-					{sourceCode: _p3._0, relevantNames: relevantNames});
+					{sourceCode: _p15._0, relevantNames: relevantNames});
 				var newExternalModules = _user$project$ModuleInfo$groupNamesByModule(moduleInfo.externalNamesModuleInfo);
 				return {
 					newAllModulesInfo: A3(
@@ -11318,101 +11457,115 @@ var _user$project$Main$updateAllModulesInfoForRsf = F3(
 			};
 		}
 	});
+var _user$project$Main$ReadElmPackageInfoContentsResult = function (a) {
+	return {ctor: 'ReadElmPackageInfoContentsResult', _0: a};
+};
 var _user$project$Main$ReadSourceFilesMsg = F2(
 	function (a, b) {
 		return {ctor: 'ReadSourceFilesMsg', _0: a, _1: b};
 	});
-var _user$project$Main$init = function (_p4) {
-	var _p5 = _p4;
-	var _p12 = _p5.subjectSourceCode;
-	var packageInfoResult = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p5.elmPackageContents);
-	var _p6 = packageInfoResult;
-	if (_p6.ctor === 'Ok') {
-		var subjectModuleInfo = _user$project$SubjectModuleInfo$getModuleInfo(_p12);
-		var modulesToLoad = _user$project$ModuleInfo$getModulesToLoad(subjectModuleInfo);
-		var packageDirs = _user$project$DeterminePackageLocations$doIt(_p5.exactDependenciesContents);
-		var sourceDirectories = A2(_elm_lang$core$Basics_ops['++'], _p6._0.sourceDirectories, packageDirs);
-		var _p7 = A2(
+var _user$project$Main$updateWithElmPackageInfoContentsResult = F2(
+	function (model, tupleList) {
+		var packageSourceDirectories = A2(
+			_elm_lang$core$List$concatMap,
+			function (_p16) {
+				var _p17 = _p16;
+				return A2(
+					_elm_lang$core$List$map,
+					function (relativeSourceDirectory) {
+						return _ucode$elm_path$Path_Posix$joinPath(
+							{
+								ctor: '::',
+								_0: _ucode$elm_path$Path_Posix$dropFileName(_p17._0),
+								_1: {
+									ctor: '::',
+									_0: relativeSourceDirectory,
+									_1: {ctor: '[]'}
+								}
+							});
+					},
+					function (_) {
+						return _.sourceDirectories;
+					}(
+						_user$project$Helpers$unsafeAssumeSuccess(
+							A2(_elm_lang$core$Json_Decode$decodeString, _user$project$PackageInfo$decoder, _p17._1))));
+			},
+			tupleList);
+		var allSourceDirectories = A2(_elm_lang$core$Basics_ops['++'], model.sourceDirectories, packageSourceDirectories);
+		var _p18 = A2(
 			_elm_lang$core$Tuple$mapFirst,
 			_elm_lang$core$Dict$fromList,
 			_elm_lang$core$List$unzip(
 				A2(
 					_elm_lang$core$List$map,
-					function (_p8) {
-						var _p9 = _p8;
-						var _p11 = _p9.moduleName;
-						var _p10 = _user$project$ReadSourceFiles$init(
-							{sourceDirectories: sourceDirectories, moduleName: _p11});
-						var rsfModel = _p10._0;
-						var rsfCmd = _p10._1;
+					function (_p19) {
+						var _p20 = _p19;
+						var _p22 = _p20.moduleName;
+						var _p21 = _user$project$ReadSourceFiles$init(
+							{sourceDirectories: allSourceDirectories, moduleName: _p22});
+						var rsfModel = _p21._0;
+						var rsfCmd = _p21._1;
 						return {
 							ctor: '_Tuple2',
 							_0: {
 								ctor: '_Tuple2',
-								_0: _p11,
+								_0: _p22,
 								_1: {
-									relevantNames: _p9.relevantNames,
+									relevantNames: _p20.relevantNames,
 									eitherModuleInfo: _user$project$Main$NotLoaded(rsfModel)
 								}
 							},
 							_1: A2(
 								_elm_lang$core$Platform_Cmd$map,
-								_user$project$Main$ReadSourceFilesMsg(_p11),
+								_user$project$Main$ReadSourceFilesMsg(_p22),
 								rsfCmd)
 						};
 					},
-					_user$project$ModuleInfo$groupNamesByModule(subjectModuleInfo.externalNamesModuleInfo))));
-		var allModulesInfo = _p7._0;
-		var readSourceFilesCmds = _p7._1;
+					_user$project$ModuleInfo$groupNamesByModule(model.subjectModuleInfo.externalNamesModuleInfo))));
+		var allModulesInfo = _p18._0;
+		var readSourceFilesCmds = _p18._1;
 		return A2(
 			_elm_lang$core$Platform_Cmd_ops['!'],
-			{subjectSourceCode: _p12, sourceDirectories: sourceDirectories, subjectModuleInfo: subjectModuleInfo, allModulesInfo: allModulesInfo},
+			_elm_lang$core$Native_Utils.update(
+				model,
+				{packageSourceDirectoriesFound: true, sourceDirectories: allSourceDirectories, allModulesInfo: allModulesInfo}),
 			readSourceFilesCmds);
-	} else {
-		var err2 = A2(_elm_lang$core$Basics_ops['++'], 'Invalid elm-package.json.\n\n ', _p6._0);
-		return _elm_lang$core$Native_Utils.crash(
-			'Main',
-			{
-				start: {line: 159, column: 21},
-				end: {line: 159, column: 32}
-			})(err2);
-	}
-};
+	});
 var _user$project$Main$addNewExternalModules = F3(
 	function (sourceDirectories, allModulesInfo, newExternalModules) {
-		return function (_p13) {
-			var _p14 = _p13;
-			return {ctor: '_Tuple2', _0: _p14.accAllModulesInfo, _1: _p14.accCmds};
+		return function (_p23) {
+			var _p24 = _p23;
+			return {ctor: '_Tuple2', _0: _p24.accAllModulesInfo, _1: _p24.accCmds};
 		}(
 			A3(
 				_elm_lang$core$List$foldl,
 				F2(
-					function (_p16, _p15) {
-						var _p17 = _p16;
-						var _p21 = _p17.moduleName;
-						var _p18 = _p15;
-						var _p19 = A2(_elm_lang$core$Dict$get, _p21, allModulesInfo);
-						if (_p19.ctor === 'Just') {
-							return _p18;
+					function (_p26, _p25) {
+						var _p27 = _p26;
+						var _p31 = _p27.moduleName;
+						var _p28 = _p25;
+						var _p29 = A2(_elm_lang$core$Dict$get, _p31, allModulesInfo);
+						if (_p29.ctor === 'Just') {
+							return _p28;
 						} else {
-							var _p20 = _user$project$ReadSourceFiles$init(
-								{sourceDirectories: sourceDirectories, moduleName: _p21});
-							var rsfModel = _p20._0;
-							var rsfCmd = _p20._1;
+							var _p30 = _user$project$ReadSourceFiles$init(
+								{sourceDirectories: sourceDirectories, moduleName: _p31});
+							var rsfModel = _p30._0;
+							var rsfCmd = _p30._1;
 							var mappedCmd = A2(
 								_elm_lang$core$Platform_Cmd$map,
-								_user$project$Main$ReadSourceFilesMsg(_p21),
+								_user$project$Main$ReadSourceFilesMsg(_p31),
 								rsfCmd);
 							return {
 								accAllModulesInfo: A3(
 									_elm_lang$core$Dict$insert,
-									_p21,
+									_p31,
 									{
-										relevantNames: _p17.relevantNames,
+										relevantNames: _p27.relevantNames,
 										eitherModuleInfo: _user$project$Main$NotLoaded(rsfModel)
 									},
-									_p18.accAllModulesInfo),
-								accCmds: {ctor: '::', _0: mappedCmd, _1: _p18.accCmds}
+									_p28.accAllModulesInfo),
+								accCmds: {ctor: '::', _0: mappedCmd, _1: _p28.accCmds}
 							};
 						}
 					}),
@@ -11424,8 +11577,57 @@ var _user$project$Main$addNewExternalModules = F3(
 	});
 var _user$project$Main$update = F2(
 	function (msg, model) {
-		var _p22 = msg;
-		switch (_p22.ctor) {
+		var _p32 = msg;
+		switch (_p32.ctor) {
+			case 'ReadElmPackageInfoContentsResult':
+				return A2(_user$project$Main$updateWithElmPackageInfoContentsResult, model, _p32._0);
+			case 'ReadSourceFilesMsg':
+				var _p41 = _p32._0;
+				var _p33 = function () {
+					var _p34 = A2(
+						_elm_lang$core$Debug$log,
+						A2(_elm_lang$core$Basics_ops['++'], 'ReadSourceFilesMsg for ', _p41),
+						true);
+					var _p35 = A3(_user$project$Main$updateAllModulesInfoForRsf, _p41, _p32._1, model.allModulesInfo);
+					var newAllModulesInfo = _p35.newAllModulesInfo;
+					var newExternalModules = _p35.newExternalModules;
+					var rsfCmd = _p35.rsfCmd;
+					var _p36 = A3(_user$project$Main$addNewExternalModules, model.sourceDirectories, newAllModulesInfo, newExternalModules);
+					var allModulesInfo2 = _p36._0;
+					var newExtModulesCmds = _p36._1;
+					return A2(
+						_elm_lang$core$Platform_Cmd_ops['!'],
+						_elm_lang$core$Native_Utils.update(
+							model,
+							{allModulesInfo: allModulesInfo2}),
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							{
+								ctor: '::',
+								_0: A2(
+									_elm_lang$core$Platform_Cmd$map,
+									_user$project$Main$ReadSourceFilesMsg(_p41),
+									rsfCmd),
+								_1: {ctor: '[]'}
+							},
+							newExtModulesCmds));
+				}();
+				var newModel = _p33._0;
+				var cmd = _p33._1;
+				var _p37 = A2(
+					_elm_lang$core$Debug$log,
+					'failedLoads',
+					_user$project$Main$getFailedLoads(newModel));
+				var _p38 = A2(
+					_elm_lang$core$Debug$log,
+					'isFinished',
+					_user$project$Main$isFinished(newModel));
+				var _p39 = A2(
+					_elm_lang$core$Debug$log,
+					'moduleInfos',
+					_user$project$Main$getLoadedModuleInfos(newModel));
+				var _p40 = A2(_elm_lang$core$Debug$log, 'subjectModuleInfo', newModel.subjectModuleInfo);
+				return {ctor: '_Tuple2', _0: newModel, _1: cmd};
 			case 'Stop':
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
@@ -11435,7 +11637,7 @@ var _user$project$Main$update = F2(
 						_0: _user$project$Main$exitApp(0),
 						_1: {ctor: '[]'}
 					});
-			case 'Abort':
+			default:
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
 					model,
@@ -11444,38 +11646,13 @@ var _user$project$Main$update = F2(
 						_0: _user$project$Main$exitApp(-1),
 						_1: {ctor: '[]'}
 					});
-			default:
-				var _p25 = _p22._0;
-				var _p23 = A3(_user$project$Main$updateAllModulesInfoForRsf, _p25, _p22._1, model.allModulesInfo);
-				var newAllModulesInfo = _p23.newAllModulesInfo;
-				var newExternalModules = _p23.newExternalModules;
-				var rsfCmd = _p23.rsfCmd;
-				var _p24 = A3(_user$project$Main$addNewExternalModules, model.sourceDirectories, newAllModulesInfo, newExternalModules);
-				var allModulesInfo2 = _p24._0;
-				var newExtModulesCmds = _p24._1;
-				return A2(
-					_elm_lang$core$Platform_Cmd_ops['!'],
-					_elm_lang$core$Native_Utils.update(
-						model,
-						{allModulesInfo: allModulesInfo2}),
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						{
-							ctor: '::',
-							_0: A2(
-								_elm_lang$core$Platform_Cmd$map,
-								_user$project$Main$ReadSourceFilesMsg(_p25),
-								rsfCmd),
-							_1: {ctor: '[]'}
-						},
-						newExtModulesCmds));
 		}
 	});
 var _user$project$Main$readSourceFilesSubscription = A2(
 	_elm_lang$core$Platform_Sub$map,
-	function (_p26) {
-		var _p27 = _p26;
-		return A2(_user$project$Main$ReadSourceFilesMsg, _p27._0, _p27._1);
+	function (_p42) {
+		var _p43 = _p42;
+		return A2(_user$project$Main$ReadSourceFilesMsg, _p43._0, _p43._1);
 	},
 	_user$project$ReadSourceFiles$subscription);
 var _user$project$Main$Abort = {ctor: 'Abort'};
@@ -11489,11 +11666,18 @@ var _user$project$Main$subscriptions = function (model) {
 					_elm_lang$core$Basics$always(_user$project$Main$Abort)),
 				_1: {ctor: '[]'}
 			},
-			{
-				ctor: '::',
-				_0: _user$project$Main$readSourceFilesSubscription,
-				_1: {ctor: '[]'}
-			}));
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				{
+					ctor: '::',
+					_0: _user$project$Main$readElmPackageInfoContentsResult(_user$project$Main$ReadElmPackageInfoContentsResult),
+					_1: {ctor: '[]'}
+				},
+				{
+					ctor: '::',
+					_0: _user$project$Main$readSourceFilesSubscription,
+					_1: {ctor: '[]'}
+				})));
 };
 var _user$project$Main$main = _elm_lang$core$Platform$programWithFlags(
 	{init: _user$project$Main$init, update: _user$project$Main$update, subscriptions: _user$project$Main$subscriptions})(

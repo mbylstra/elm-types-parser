@@ -2,7 +2,7 @@ port module ReadSourceFiles exposing (..)
 
 import Dict exposing (Dict)
 import Helpers exposing (qualifiedNameToPath)
-import Maybe.Extra exposing (isJust)
+import Maybe.Extra exposing (isJust, isNothing)
 import Types exposing (DottedModuleName, ModuleToSource, SourceCode)
 
 
@@ -231,8 +231,15 @@ haveNotExhaustedAllOptions dirAttempts =
         |> List.head
 
 
-
--- what is Dict String String?
+hasFailed : Model -> Maybe Model
+hasFailed model =
+    if
+        (not <| isFinished model)
+            && (isNothing <| haveNotExhaustedAllOptions model.dirAttempts)
+    then
+        Just model
+    else
+        Nothing
 
 
 update : Msg -> Model -> { rsfModel : Model, rsfGoal : Maybe SourceCode, rsfCmd : Cmd Msg }
