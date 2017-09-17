@@ -1,10 +1,38 @@
 module DataGeneration exposing (..)
 
+import Dict exposing (Dict)
+import Helpers exposing (unsafeDictGet, unsafeListHead)
 import Types exposing (..)
 
 
-generateData : Type -> String
-generateData tipe =
+type alias ModulesInfo =
+    Dict DottedModuleName ModuleInfo
+
+
+type alias AllTypes =
+    { subjectModuleInfo : ModuleInfo
+    , allModulesInfo : ModulesInfo
+    }
+
+
+generateViewFunctions : AllTypes -> List String
+generateViewFunctions ({ subjectModuleInfo, allModulesInfo } as allTypes) =
+    subjectModuleInfo.viewFunctions
+        |> Dict.toList
+        |> List.map (generateViewFunction allTypes)
+
+
+generateViewFunction : AllTypes -> ( String, Type ) -> String
+generateViewFunction allTypes ( functionName, functionTipe ) =
+    let
+        innards =
+            generateData allTypes functionTipe
+    in
+        "staticView = " ++ functionName ++ " " ++ innards
+
+
+generateData : AllTypes -> Type -> String
+generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
     case tipe of
         Var varName ->
             "()"
@@ -12,18 +40,18 @@ generateData tipe =
         Lambda leftTipe rightTipe ->
             let
                 left =
-                    generateData leftTipe
+                    generateData allTypes leftTipe
             in
                 case rightTipe of
                     Lambda _ _ ->
-                        left ++ " " ++ (generateData rightTipe)
+                        left ++ " " ++ (generateData allTypes rightTipe)
 
                     _ ->
                         left
 
         Tuple tipes ->
             "("
-                ++ (tipes |> List.map generateData |> String.join ", ")
+                ++ (tipes |> List.map (generateData allTypes) |> String.join ", ")
                 ++ ")"
 
         Type typeName _ ->
@@ -41,12 +69,12 @@ generateData tipe =
                     "1.0"
 
                 _ ->
-                    Debug.crash "unknown type"
+                    substituteType allTypes typeName
 
         Record fields _ ->
             let
                 generateFieldData ( name, tipe ) =
-                    name ++ " = " ++ (generateData tipe)
+                    name ++ " = " ++ (generateData allTypes tipe)
             in
                 "{"
                     ++ (fields
@@ -54,3 +82,50 @@ generateData tipe =
                             |> String.join ", "
                        )
                     ++ "}"
+
+
+generateFromUnionType : AllTypes -> UnionDefinition -> String
+generateFromUnionType allTypes unionDefinition =
+    unionDefinition
+        |> unsafeListHead
+        |> generateFromTypeConstructor allTypes
+
+
+generateFromTypeConstructor : AllTypes -> TypeConstructor -> String
+generateFromTypeConstructor allTypes ( name, args ) =
+    let
+        generateArg tipe =
+            " ( " ++ generateData allTypes tipe ++ " ) "
+
+        argsString =
+            List.map generateArg args |> String.join " "
+    in
+        name ++ " " ++ argsString
+
+
+substituteType : AllTypes -> String -> String
+substituteType ({ subjectModuleInfo, allModulesInfo } as allTypes) typeName =
+    case Dict.get typeName subjectModuleInfo.localTypeAliases of
+        Just tipe ->
+            generateData allTypes tipe
+
+        Nothing ->
+            case Dict.get typeName subjectModuleInfo.localUnionTypes of
+                Just unionDefinition ->
+                    generateFromUnionType allTypes unionDefinition
+
+                Nothing ->
+                    unsafeDictGet typeName subjectModuleInfo.externalNamesModuleInfo
+                        |> substitueExternalType allTypes.allModulesInfo
+
+
+substitueExternalType :
+    ModulesInfo
+    -> { dottedModulePath : String, name : String }
+    -> String
+substitueExternalType modulesInfo { dottedModulePath, name } =
+    let
+        moduleInfo =
+            unsafeDictGet dottedModulePath modulesInfo
+    in
+        substituteType { subjectModuleInfo = moduleInfo, allModulesInfo = modulesInfo } name

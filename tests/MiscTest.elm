@@ -13,7 +13,10 @@ import Expect exposing (Expectation, equalSets)
 import Parser exposing (Parser, (|.), (|=))
 import Result.Extra exposing (isErr)
 import Test exposing (..)
-import DataGeneration exposing (generateData)
+
+
+-- import DataGeneration exposing (generateData)
+
 import FirstPass exposing (splitIntoBlocks)
 
 
@@ -35,12 +38,12 @@ suite =
         --             |> ElmTypesParser.parse
         --             |> toString
         --             |> Expect.equal "asdasd"
-        , test "generateData" <|
-            \_ ->
-                "Int -> Bool -> Html Msg"
-                    |> ElmTypesParser.parseTipe
-                    |> Result.map generateData
-                    |> Expect.equal (Ok "1 True")
+        -- , test "generateData" <|
+        --     \_ ->
+        --         "Int -> Bool -> Html Msg"
+        --             |> ElmTypesParser.parseTipe
+        --             |> Result.map generateData
+        --             |> Expect.equal (Ok "1 True")
         , test "someWhitespace 1" <|
             \_ ->
                 ""

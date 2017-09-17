@@ -60,20 +60,11 @@ type alias Listing =
     }
 
 
-
--- DetermineWhichModulesToLoad
-
-
 type alias ModuleInfo =
     { viewFunctions : ViewFunctions
     , localTypeAliases : LocalTypeAliases
     , localUnionTypes : LocalUnionTypes
-
-    -- , usedTypeNames : List ( String, DefinitionLocation )
-    -- , importedNameAliases : Dict String String -- eg: "Decode.Decoder" => ("Json.Decode", "Decoder")
     , externalNamesModuleInfo : ExternalNamesModuleInfo
-
-    -- , modulesToLoad : List String
     }
 
 

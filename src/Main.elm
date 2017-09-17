@@ -2,6 +2,7 @@ port module Main exposing (..)
 
 -- import Dict exposing (Dict)
 
+import DataGeneration exposing (generateViewFunctions)
 import DependentModules
 import DeterminePackageLocations
 import Dict exposing (Dict)
@@ -9,10 +10,10 @@ import Helpers exposing (allTrue, unsafeAssumeSuccess, unsafeDictGet)
 import Json.Decode
 import ModuleInfo exposing (groupNamesByModule)
 import PackageInfo exposing (PackageInfo)
+import Path.Posix as Path exposing (dropFileName, joinPath, takeDirectory)
 import ReadSourceFiles
 import SubjectModuleInfo
 import Types exposing (DottedModuleName, ModuleInfo, ModuleToModuleInfo, ModuleToSource)
-import Path.Posix as Path exposing (joinPath, takeDirectory, dropFileName)
 
 
 {- REMOVE WHEN COMPILER BUG IS FIXED -}
@@ -186,7 +187,7 @@ update msg model =
     -- case (Debug.log "msg" msg) of
     case msg of
         ReadElmPackageInfoContentsResult tupleList ->
-            updateWithElmPackageInfoContentsResult model tupleList
+            updateWithElmPackageInfoContentsResult tupleList model
 
         ReadSourceFilesMsg moduleName rsfMsg ->
             let
@@ -207,6 +208,17 @@ update msg model =
                                 ++ newExtModulesCmds
                               )
 
+                -- _ =
+                --     case isFinished newModel of
+                --         True ->
+                --             generateViewFunctions
+                --                 { subjectModuleInfo = newModel.subjectModuleInfo
+                --                 , allModulesInfo = simplifyAllModulesInfo newModel.allModulesInfo
+                --                 }
+                --                 |> List.map (Debug.log "viewFunction")
+                --
+                --         False ->
+                --             []
                 _ =
                     Debug.log "failedLoads" (getFailedLoads newModel)
 
@@ -228,8 +240,8 @@ update msg model =
             model ! [ exitApp -1 ]
 
 
-updateWithElmPackageInfoContentsResult : Model -> List ( String, String ) -> ( Model, Cmd Msg )
-updateWithElmPackageInfoContentsResult model tupleList =
+updateWithElmPackageInfoContentsResult : List ( String, String ) -> Model -> ( Model, Cmd Msg )
+updateWithElmPackageInfoContentsResult tupleList model =
     let
         packageSourceDirectories =
             tupleList
@@ -411,3 +423,25 @@ readSourceFilesSubscription : Sub Msg
 readSourceFilesSubscription =
     ReadSourceFiles.subscription
         |> Sub.map (\( moduleName, rsfMsg ) -> (ReadSourceFilesMsg moduleName rsfMsg))
+
+
+simplifyAllModulesInfo :
+    AllModulesInfo
+    -> Dict DottedModuleName ModuleInfo
+simplifyAllModulesInfo allModulesInfo =
+    allModulesInfo
+        |> Dict.toList
+        |> List.filterMap
+            (\( dottedModuleName, { relevantNames, eitherModuleInfo } ) ->
+                case eitherModuleInfo of
+                    Loaded moduleInfo ->
+                        Just ( dottedModuleName, moduleInfo )
+
+                    NotLoaded _ ->
+                        Nothing
+            )
+        |> Dict.fromList
+
+
+
+-- |> Dict.fromList

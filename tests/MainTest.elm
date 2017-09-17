@@ -10,6 +10,7 @@ import Main
         , update
         , EitherModuleInfo(Loaded, NotLoaded)
         , AllModulesInfo
+        , updateWithElmPackageInfoContentsResult
         )
 import ReadSourceFiles exposing (DirAttempt(InFlight, DirSuccess), readElmModule)
 import Test exposing (..)
@@ -21,7 +22,8 @@ suite =
     describe "Main.elm"
         (let
             expectedInitializedModel =
-                { subjectSourceCode = testFlags.subjectSourceCode
+                { packageSourceDirectoriesFound = True
+                , subjectSourceCode = testFlags.subjectSourceCode
                 , sourceDirectories = [ "src" ]
                 , subjectModuleInfo = expectedSubjectModuleInfo
                 , allModulesInfo =
@@ -57,8 +59,12 @@ suite =
                         ]
                 }
 
-            ( model, cmd ) =
+            ( initialModel, cmd ) =
                 init testFlags
+
+            ( model, _ ) =
+                initialModel
+                    |> updateWithElmPackageInfoContentsResult []
          in
             [ describe "init"
                 [ test "init model" <|

@@ -80,8 +80,8 @@ getModuleInfo sourceCode =
         imports =
             filterByImports blocks
 
-        reversedImports =
-            imports |> List.reverse
+        -- reversedImports =
+        --     imports |> List.reverse
     in
         { localUnionTypes = localUnionTypes
         , localTypeAliases = localTypeAliases

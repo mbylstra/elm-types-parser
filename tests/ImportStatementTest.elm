@@ -184,6 +184,37 @@ suite =
                               }
                             )
                         )
+        , test "multiline import statement" <|
+            \_ ->
+                isExplicitlyInImportStatement
+                    "B.C.Foo"
+                    { dottedModulePath = "B.C"
+                    , maybeAlias = Nothing
+                    , exposedNames = { explicits = [], open = False }
+                    }
+                    |> Expect.equal
+                        (Just
+                            ( "B.C.Foo"
+                            , { dottedModulePath = "B.C"
+                              , name = "Foo"
+                              }
+                            )
+                        )
+        , test "multiline import" <|
+            \_ ->
+                """import A
+    exposing
+        ( foo
+        , bar
+        )"""
+                    |> parseImportStatement
+                    |> Expect.equal
+                        (Ok
+                            { dottedModulePath = "A"
+                            , maybeAlias = Nothing
+                            , exposedNames = { explicits = [ "foo", "bar" ], open = False }
+                            }
+                        )
 
         -- , test "isExplicityInImport using exposing" <|
         --     \_ ->

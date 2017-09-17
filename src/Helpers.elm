@@ -85,3 +85,13 @@ unsafeAssumeSuccess result =
 
         Err err ->
             Debug.crash ("Err: " ++ (toString err))
+
+
+unsafeListHead : List a -> a
+unsafeListHead xs =
+    case List.head xs of
+        Just x ->
+            x
+
+        Nothing ->
+            Debug.crash "List is empty"
