@@ -30,6 +30,7 @@ import ModuleInfo
         , isCoreName
         )
 import Helpers exposing (removeDuplicates)
+import ImportStatement exposing (elmImplicitImports)
 
 
 -- what is the actual result we want?
@@ -64,6 +65,15 @@ getModuleInfo sourceCode =
         _ =
             Debug.log "subject viewFunctions" (Dict.keys viewFunctions)
 
+        _ =
+            Debug.log "subject localUnionTypes" (localUnionTypes)
+
+        _ =
+            Debug.log "subject localTypeAliases" (localTypeAliases)
+
+        _ =
+            Debug.log "subject source" (blocks)
+
         -- usedTypeNames =
         --     []
         externalNames =
@@ -78,7 +88,8 @@ getModuleInfo sourceCode =
 
         -- |> List.map rawNameToQualifiedName
         imports =
-            filterByImports blocks
+            elmImplicitImports
+                ++ filterByImports blocks
 
         -- reversedImports =
         --     imports |> List.reverse

@@ -28,7 +28,7 @@ type alias TypeConstructorArgs =
 
 
 type alias Union =
-    ( String, UnionDefinition )
+    ( String, List String, UnionDefinition )
 
 
 type alias UnionDefinition =

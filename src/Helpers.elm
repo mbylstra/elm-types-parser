@@ -67,14 +67,14 @@ removeDuplicates l =
     l |> Set.fromList |> Set.toList
 
 
-unsafeDictGet : comparable -> Dict comparable b -> b
-unsafeDictGet key dict =
+unsafeDictGet : String -> comparable -> Dict comparable b -> b
+unsafeDictGet errorMessage key dict =
     case Dict.get key dict of
         Just v ->
             v
 
         Nothing ->
-            Debug.crash ("could not find key " ++ toString key)
+            Debug.crash ("could not find key " ++ toString key ++ " in " ++ errorMessage)
 
 
 unsafeAssumeSuccess : Result err success -> success

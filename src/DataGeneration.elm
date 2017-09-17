@@ -115,8 +115,14 @@ substituteType ({ subjectModuleInfo, allModulesInfo } as allTypes) typeName =
                     generateFromUnionType allTypes unionDefinition
 
                 Nothing ->
-                    unsafeDictGet typeName subjectModuleInfo.externalNamesModuleInfo
-                        |> substitueExternalType allTypes.allModulesInfo
+                    -- unsafeDictGet "DataGeneration.elm line 118" typeName subjectModuleInfo.externalNamesModuleInfo
+                    case Dict.get typeName subjectModuleInfo.externalNamesModuleInfo of
+                        Just x ->
+                            x
+                                |> substitueExternalType allTypes.allModulesInfo
+
+                        Nothing ->
+                            Debug.crash ("couldnt find " ++ typeName ++ " in " ++ toString allTypes)
 
 
 substitueExternalType :
@@ -126,6 +132,6 @@ substitueExternalType :
 substitueExternalType modulesInfo { dottedModulePath, name } =
     let
         moduleInfo =
-            unsafeDictGet dottedModulePath modulesInfo
+            unsafeDictGet "DataGeneration.elm line 129" dottedModulePath modulesInfo
     in
         substituteType { subjectModuleInfo = moduleInfo, allModulesInfo = modulesInfo } name

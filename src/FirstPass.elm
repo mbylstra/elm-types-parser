@@ -29,6 +29,8 @@ type RawBlock
 parseModule : String -> List Block
 parseModule source =
     source
+        |> String.lines
+        |> removeOneLineComments
         |> splitIntoBlocks
         |> classifyBlocks
         |> List.map parseBlock
@@ -36,17 +38,28 @@ parseModule source =
         |> List.filterMap identity
 
 
-splitIntoBlocks : String -> List String
-splitIntoBlocks elmCode =
-    case elmCode |> String.lines of
+removeOneLineComments : List String -> List String
+removeOneLineComments lines =
+    lines
+        |> List.map removeOneLineComment
+
+
+removeOneLineComment : String -> String
+removeOneLineComment line =
+    line |> String.split "--" |> List.head |> Maybe.withDefault ""
+
+
+splitIntoBlocks : List String -> List String
+splitIntoBlocks lines =
+    case lines of
         [] ->
             []
 
         line :: [] ->
             [ line ]
 
-        line :: lines ->
-            lines
+        line :: restLines ->
+            restLines
                 |> List.foldl
                     (\line { blocks, currBlock } ->
                         if (line |> String.startsWith " ") then

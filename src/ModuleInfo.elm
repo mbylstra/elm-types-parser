@@ -47,7 +47,7 @@ getUnionTypes blocks =
         |> List.filterMap
             (\block ->
                 case block of
-                    Union ( name, definition ) ->
+                    Union ( name, _, definition ) ->
                         Just ( name, definition )
 
                     _ ->
@@ -80,7 +80,7 @@ filterTypeExpressions =
                 TypeAliasDefinition ( _, tipe ) ->
                     [ tipe ]
 
-                Union ( _, typeConstructors ) ->
+                Union ( _, _, typeConstructors ) ->
                     typeConstructors
                         |> List.concatMap (Tuple.second)
 
@@ -102,7 +102,7 @@ getLocalNames blocks =
                     TypeAliasDefinition ( name, _ ) ->
                         Just name
 
-                    Union ( name, _ ) ->
+                    Union ( name, _, _ ) ->
                         Just name
 
                     _ ->

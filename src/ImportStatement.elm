@@ -242,3 +242,18 @@ isExplicitlyInImportStatement rawDottedName { dottedModulePath, maybeAlias, expo
 toDottedPath : List String -> String
 toDottedPath segments =
     String.join "." segments
+
+
+elmImplicitImports : List ImportStatement
+elmImplicitImports =
+    [ ImportStatement "Basics" Nothing (Listing [ "Order", "Never" ] False)
+    , ImportStatement "Debug" Nothing closedListing
+    , ImportStatement "List" Nothing (Listing [ "List" ] False)
+    , ImportStatement "Maybe" Nothing (Listing [ "Maybe" ] False)
+    , ImportStatement "Result" Nothing (Listing [ "Result" ] False)
+    , ImportStatement "String" Nothing (Listing [ "String" ] False)
+    , ImportStatement "Tuple" Nothing closedListing
+    , ImportStatement "Platform" Nothing (Listing [ "Program" ] False)
+    , ImportStatement "Platform.Cmd" Nothing (Listing [ "Cmd" ] False)
+    , ImportStatement "Platform.Sub" Nothing (Listing [ "Sub" ] False)
+    ]

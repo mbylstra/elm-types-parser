@@ -327,14 +327,26 @@ parseUnion source =
 
 unionType : Parser Union
 unionType =
-    Parser.succeed (,)
+    Parser.succeed (,,)
         |. Parser.symbol "type"
         |. someWhitespace
         |= capVar
         |. someWhitespace
+        |= parseUnionTypeVariables
         |. Parser.symbol "="
         |. someWhitespace
         |= typeConstructors
+
+
+parseUnionTypeVariables : Parser (List String)
+parseUnionTypeVariables =
+    Parser.oneOf
+        [ Parser.delayedCommitMap
+            (\typeVariables _ -> typeVariables)
+            (lowVar |> Parser.map List.singleton)
+            someWhitespace
+        , Parser.succeed []
+        ]
 
 
 parseTypeConstructors : String -> Result Parser.Error (List TypeConstructor)

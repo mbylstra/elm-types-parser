@@ -16,6 +16,7 @@ import Types
         , LocalTypeAliases
         , LocalUnionTypes
         )
+import ImportStatement exposing (elmImplicitImports)
 
 
 getModuleInfo : { sourceCode : String, relevantNames : List String } -> ModuleInfo
@@ -31,14 +32,13 @@ getModuleInfo { sourceCode, relevantNames } =
         localTypeAliases =
             getTypeAliases blocks
 
-        directlyReferencedUnionTypes =
-            getDirectlyReferencedUnionTypes
-                { unionTypes = localUnionTypes, relevantNames = relevantNames }
-
-        directlyReferencedTypeAliases =
-            getDirectlyReferencedTypeAliases
-                { typeAliases = localTypeAliases, relevantNames = relevantNames }
-
+        -- directlyReferencedUnionTypes =
+        --     getDirectlyReferencedUnionTypes
+        --         { unionTypes = localUnionTypes, relevantNames = relevantNames }
+        --
+        -- directlyReferencedTypeAliases =
+        --     getDirectlyReferencedTypeAliases
+        --         { typeAliases = localTypeAliases, relevantNames = relevantNames }
         -- then for each union type and type alias, get external module names, etc
         definitionNames =
             Dict.keys localTypeAliases ++ Dict.keys localUnionTypes
@@ -50,7 +50,8 @@ getModuleInfo { sourceCode, relevantNames } =
                 }
 
         imports =
-            filterByImports blocks
+            elmImplicitImports
+                ++ (filterByImports blocks)
 
         reversedImports =
             imports |> List.reverse
@@ -62,20 +63,21 @@ getModuleInfo { sourceCode, relevantNames } =
         }
 
 
-getDirectlyReferencedUnionTypes :
-    { unionTypes : Dict Name UnionDefinition, relevantNames : List String }
-    -> Dict Name UnionDefinition
-getDirectlyReferencedUnionTypes { unionTypes, relevantNames } =
-    unionTypes
-        |> Dict.filter (\key value -> List.member key relevantNames)
 
-
-getDirectlyReferencedTypeAliases :
-    { typeAliases : Dict Name Type, relevantNames : List String }
-    -> Dict Name Type
-getDirectlyReferencedTypeAliases { typeAliases, relevantNames } =
-    typeAliases
-        |> Dict.filter (\key value -> List.member key relevantNames)
+-- getDirectlyReferencedUnionTypes :
+--     { unionTypes : Dict Name UnionDefinition, relevantNames : List String }
+--     -> Dict Name UnionDefinition
+-- getDirectlyReferencedUnionTypes { unionTypes, relevantNames } =
+--     unionTypes
+--         |> Dict.filter (\key value -> List.member key relevantNames)
+--
+--
+-- getDirectlyReferencedTypeAliases :
+--     { typeAliases : Dict Name Type, relevantNames : List String }
+--     -> Dict Name Type
+-- getDirectlyReferencedTypeAliases { typeAliases, relevantNames } =
+--     typeAliases
+--         |> Dict.filter (\key value -> List.member key relevantNames)
 
 
 getExternalNames :

@@ -208,17 +208,18 @@ update msg model =
                                 ++ newExtModulesCmds
                               )
 
-                -- _ =
-                --     case isFinished newModel of
-                --         True ->
-                --             generateViewFunctions
-                --                 { subjectModuleInfo = newModel.subjectModuleInfo
-                --                 , allModulesInfo = simplifyAllModulesInfo newModel.allModulesInfo
-                --                 }
-                --                 |> List.map (Debug.log "viewFunction")
-                --
-                --         False ->
-                --             []
+                _ =
+                    case isFinished newModel of
+                        True ->
+                            generateViewFunctions
+                                { subjectModuleInfo = newModel.subjectModuleInfo
+                                , allModulesInfo = simplifyAllModulesInfo newModel.allModulesInfo
+                                }
+                                |> List.map (Debug.log "viewFunction")
+
+                        False ->
+                            []
+
                 _ =
                     Debug.log "failedLoads" (getFailedLoads newModel)
 
@@ -308,7 +309,7 @@ updateAllModulesInfoForRsf :
 updateAllModulesInfoForRsf moduleName rsfMsg allModulesInfo =
     let
         { relevantNames, eitherModuleInfo } =
-            unsafeDictGet moduleName allModulesInfo
+            unsafeDictGet "Main.elm line 312" moduleName allModulesInfo
     in
         case eitherModuleInfo of
             NotLoaded oldRsfModel ->
