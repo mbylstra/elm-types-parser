@@ -8,6 +8,8 @@ import ImportStatement
         , importAlias
         , importStatementName
         , parseImportStatement
+        , unionTypeWithAllConstructors
+        , exposedType
         )
 import Parser
 import Expect exposing (Expectation, equalSets)
@@ -25,7 +27,7 @@ suite =
                         (Ok <|
                             [ "varA", "varB" ]
                         )
-        , test "exposedNamesList on (..) " <|
+        , test "exposedNamesList for `(..)` " <|
             \_ ->
                 "(..)"
                     |> Parser.run exposedNamesList
@@ -33,7 +35,7 @@ suite =
                         (Ok <|
                             { open = True, explicits = [] }
                         )
-        , test "exposedNamesList (varA, varB) " <|
+        , test "exposedNamesList for `(varA, varB)` " <|
             \_ ->
                 "(varA,varB)"
                     |> Parser.run exposedNamesList
@@ -41,6 +43,41 @@ suite =
                         (Ok <|
                             { open = False, explicits = [ "varA", "varB" ] }
                         )
+        , test "explicitExposedNames for `(varA)` " <|
+            \_ ->
+                "(varA)"
+                    |> Parser.run explicitExposedNames
+                    |> Expect.equal (Ok <| [ "varA" ])
+        , test "explicitExposedNames for `(varA, varB)` " <|
+            \_ ->
+                "(varA, varB)"
+                    |> Parser.run explicitExposedNames
+                    |> Expect.equal (Ok <| [ "varA", "varB" ])
+        , test "exposedType for `Foo`" <|
+            \_ ->
+                "Foo"
+                    |> Parser.run exposedType
+                    |> Expect.equal (Ok <| "Foo")
+        , test "exposedType for `Foo(..)`" <|
+            \_ ->
+                "Foo"
+                    |> Parser.run exposedType
+                    |> Expect.equal (Ok <| "Foo")
+        , test "explicitExposedNames for `(Foo(..), Bar)` " <|
+            \_ ->
+                "(Foo(..), Bar)"
+                    |> Parser.run explicitExposedNames
+                    |> Expect.equal (Ok <| [ "Foo", "Bar" ])
+        , test "unionTypeWithAllConstructors for `Foo(..)` " <|
+            \_ ->
+                "Foo(..)"
+                    |> Parser.run unionTypeWithAllConstructors
+                    |> Expect.equal (Ok <| "Foo")
+        , test "unionTypeWithAllConstructors for `Foo` " <|
+            \_ ->
+                "Foo"
+                    |> Parser.run unionTypeWithAllConstructors
+                    |> Expect.err
         , test "importAlias" <|
             \_ ->
                 " as Blah"
@@ -199,21 +236,6 @@ suite =
                               , name = "Foo"
                               }
                             )
-                        )
-        , test "multiline import" <|
-            \_ ->
-                """import A
-    exposing
-        ( foo
-        , bar
-        )"""
-                    |> parseImportStatement
-                    |> Expect.equal
-                        (Ok
-                            { dottedModulePath = "A"
-                            , maybeAlias = Nothing
-                            , exposedNames = { explicits = [ "foo", "bar" ], open = False }
-                            }
                         )
 
         -- , test "isExplicityInImport using exposing" <|

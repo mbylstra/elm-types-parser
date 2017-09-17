@@ -1,5 +1,6 @@
 module FirstPass exposing (..)
 
+import String.Extra
 import ElmTypesParser exposing (parseTypeAlias, parseTypeAnnotation, parseUnion)
 import ImportStatement exposing (importStatement, parseImportStatement)
 import Parser
@@ -67,7 +68,7 @@ classifyBlock s =
     if s |> String.startsWith "module" then
         ModuleStatementBlock s
     else if s |> String.startsWith "import" then
-        ImportStatementBlock s
+        ImportStatementBlock (replaceNewLinesWithSpaces s)
     else if s |> String.startsWith "type alias" then
         TypeAliasDefinitionBlock s
     else if s |> String.startsWith "type" then
@@ -116,3 +117,8 @@ parseBlock rawBlock =
 
         UnknownBlock string ->
             Ok IgnoreBlock
+
+
+replaceNewLinesWithSpaces : String -> String
+replaceNewLinesWithSpaces s =
+    s |> String.Extra.replace "\n" " "

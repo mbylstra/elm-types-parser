@@ -104,16 +104,35 @@ explicitExposedNames =
     Parser.succeed (\head tail -> head :: tail)
         |. Parser.symbol "("
         |. whitespace
-        |= lowOrCapVar
+        |= exposedType
         |. whitespace
         |= Parser.repeat Parser.zeroOrMore
             (Parser.succeed identity
                 |. Parser.symbol ","
                 |. whitespace
-                |= lowOrCapVar
+                |= exposedType
                 |. whitespace
             )
         |. whitespace
+
+
+exposedType : Parser String
+exposedType =
+    Parser.oneOf [ unionTypeWithAllConstructors, lowVar, capVar ]
+
+
+
+-- For now we just ignore the type constructors (BIG TODO!)
+
+
+unionTypeWithAllConstructors : Parser String
+unionTypeWithAllConstructors =
+    -- you need to use delayedCommitMap instead of |. and |= if you want
+    -- the parser to be used with oneOf (as |. and |= do not backtrack)
+    Parser.delayedCommitMap
+        (\name _ -> name)
+        capVar
+        (Parser.symbol "(..)")
 
 
 lowOrCapVar : Parser String
