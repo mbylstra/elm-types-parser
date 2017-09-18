@@ -2,7 +2,7 @@ module DependentModules exposing (..)
 
 import Dict exposing (Dict)
 import FirstPass
-import ModuleInfo exposing (getTypeAliases, getUnionTypes, isExternalName, filterByImports, getExternalNamesModuleInfo)
+import ModuleInfo exposing (LocalTypeDefinitions, getTypeAliases, getUnionTypes, isExternalName, filterByImports, getExternalNamesModuleInfo)
 import Types
     exposing
         ( Block
@@ -14,7 +14,6 @@ import Types
         , Name
         , Type
         , LocalTypeAliases
-        , LocalUnionTypes
         )
 import ImportStatement exposing (elmImplicitImports)
 
@@ -44,10 +43,9 @@ getModuleInfo { sourceCode, relevantNames } =
             Dict.keys localTypeAliases ++ Dict.keys localUnionTypes
 
         externalNames =
-            getExternalNames
-                { localUnionTypes = localUnionTypes
-                , localTypeAliases = localTypeAliases
-                }
+            ModuleInfo.getExternalNames
+                (LocalTypeDefinitions localUnionTypes localTypeAliases)
+                relevantNames
 
         imports =
             elmImplicitImports
@@ -78,26 +76,3 @@ getModuleInfo { sourceCode, relevantNames } =
 -- getDirectlyReferencedTypeAliases { typeAliases, relevantNames } =
 --     typeAliases
 --         |> Dict.filter (\key value -> List.member key relevantNames)
-
-
-getExternalNames :
-    { localTypeAliases : LocalTypeAliases
-    , localUnionTypes : LocalUnionTypes
-    }
-    -> List String
-getExternalNames { localTypeAliases, localUnionTypes } =
-    let
-        namesInTypeAliases =
-            Dict.values localTypeAliases |> List.concatMap ModuleInfo.getNames
-
-        namesInUnionTypes =
-            Dict.values localUnionTypes |> List.concatMap ModuleInfo.getNamesInUnionDefinition
-
-        allNames =
-            namesInTypeAliases ++ namesInUnionTypes
-
-        definitionNames =
-            Dict.keys localTypeAliases ++ Dict.keys localUnionTypes
-    in
-        allNames
-            |> List.filter (isExternalName definitionNames)

@@ -26,6 +26,12 @@ import ImportStatement
         )
 
 
+type alias LocalTypeDefinitions =
+    { unionTypes : Dict Name UnionDefinition
+    , typeAliases : Dict Name Type
+    }
+
+
 getTypeAliases : List Block -> Dict Name Type
 getTypeAliases blocks =
     blocks
@@ -117,7 +123,6 @@ coreTypes =
     , "Float"
     , "String"
     , "Char"
-    , "Html"
     , "List"
     , "Attribute"
     , "Maybe"
@@ -176,12 +181,41 @@ getExternalNamesModuleInfo externalNames imports =
             |> Dict.fromList
 
 
-isExternalName : List Name -> Name -> Bool
-isExternalName definitionNames name =
+type LocalOrExternalName
+    = LocalUnionType UnionDefinition
+    | LocalTypeAlias Type
+    | ExternalName
+
+
+getNameLocation : LocalTypeDefinitions -> Name -> LocalOrExternalName
+getNameLocation { unionTypes, typeAliases } name =
     if String.contains "." name then
-        True
+        ExternalName
     else
-        not <| List.member name definitionNames
+        case Dict.get name unionTypes of
+            Just unionDefinition ->
+                LocalUnionType unionDefinition
+
+            Nothing ->
+                case Dict.get name typeAliases of
+                    Just tipe ->
+                        LocalTypeAlias tipe
+
+                    Nothing ->
+                        ExternalName
+
+
+isExternalName : LocalTypeDefinitions -> Name -> Bool
+isExternalName localTypeDefinitions name =
+    case getNameLocation localTypeDefinitions name of
+        LocalUnionType _ ->
+            False
+
+        LocalTypeAlias _ ->
+            False
+
+        ExternalName ->
+            True
 
 
 getNames : Type -> List String
@@ -241,3 +275,46 @@ getModulesToLoad info =
         |> List.map .dottedModulePath
         |> Set.fromList
         |> Set.toList
+
+
+getExternalNames : LocalTypeDefinitions -> List String -> List String
+getExternalNames localTypeDefinitions names =
+    getExternalNames_ localTypeDefinitions { namesToLookUp = names, externalNames = [] }
+        |> .externalNames
+
+
+type alias ExternalNamesAcc =
+    { namesToLookUp : List String, externalNames : List String }
+
+
+getExternalNames_ : LocalTypeDefinitions -> ExternalNamesAcc -> ExternalNamesAcc
+getExternalNames_ localTypeDefinitions acc =
+    let
+        { externalNames, namesToLookUp } =
+            acc
+
+        { unionTypes, typeAliases } =
+            localTypeDefinitions
+    in
+        case namesToLookUp of
+            [] ->
+                acc
+
+            name :: moreNames ->
+                case getNameLocation localTypeDefinitions name of
+                    ExternalName ->
+                        { externalNames = name :: externalNames, namesToLookUp = moreNames }
+
+                    LocalUnionType unionDefinition ->
+                        let
+                            extraNames =
+                                getNamesInUnionDefinition unionDefinition
+                        in
+                            { acc | namesToLookUp = moreNames ++ extraNames }
+
+                    LocalTypeAlias tipe ->
+                        let
+                            extraNames =
+                                getNames tipe
+                        in
+                            { acc | namesToLookUp = moreNames ++ extraNames }

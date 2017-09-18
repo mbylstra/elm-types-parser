@@ -54,7 +54,7 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
                 ++ (tipes |> List.map (generateData allTypes) |> String.join ", ")
                 ++ ")"
 
-        Type typeName _ ->
+        Type typeName typeArguments ->
             case typeName of
                 "Int" ->
                     "1"
@@ -67,6 +67,16 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
 
                 "Float" ->
                     "1.0"
+
+                "Html" ->
+                    """(Html.text "hello")"""
+
+                "List" ->
+                    let
+                        listType =
+                            unsafeListHead typeArguments
+                    in
+                        "[" ++ generateData allTypes listType ++ "]"
 
                 _ ->
                     substituteType allTypes typeName

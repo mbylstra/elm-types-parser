@@ -22,12 +22,14 @@ import ViewFunctionDetector exposing (isViewFunction)
 import FirstPass
 import ModuleInfo
     exposing
-        ( getTypeAliases
+        ( LocalTypeDefinitions
+        , getTypeAliases
         , getUnionTypes
         , getExternalNamesModuleInfo
         , filterByImports
         , isExternalName
         , isCoreName
+        , getNameLocation
         )
 import Helpers exposing (removeDuplicates)
 import ImportStatement exposing (elmImplicitImports)
@@ -71,9 +73,8 @@ getModuleInfo sourceCode =
         _ =
             Debug.log "subject localTypeAliases" (localTypeAliases)
 
-        _ =
-            Debug.log "subject source" (blocks)
-
+        -- _ =
+        --     Debug.log "subject source" (blocks)
         -- usedTypeNames =
         --     []
         externalNames =
@@ -116,7 +117,7 @@ getExternalNames :
     -> List String
 getExternalNames { viewFunctions, localTypeAliases, localUnionTypes } =
     let
-        allNames =
+        viewFunctionNames =
             viewFunctions
                 |> Dict.values
                 |> List.concatMap getNames
@@ -124,16 +125,41 @@ getExternalNames { viewFunctions, localTypeAliases, localUnionTypes } =
                 |> List.filter (not << isCoreName)
 
         _ =
-            Debug.log "allNames" allNames
-
-        definitionNames =
-            Dict.keys viewFunctions ++ Dict.keys localTypeAliases ++ Dict.keys localUnionTypes
+            Debug.log "viewFunctionNames" viewFunctionNames
     in
-        allNames
-            |> List.filter (isExternalName definitionNames)
+        ModuleInfo.getExternalNames (LocalTypeDefinitions localUnionTypes localTypeAliases) viewFunctionNames
 
 
 
+-- idea. fold over the viewFunction type aliases, and keep adding to a list of local and external names.
+--
+-- using allName, get a list of external names, AND a list of local names (split it)
+-- for the localNames, do the same. I guess it could be stack/queue? You keep popping off the top and keep
+-- going till its empty.
+-- As long as there is nothing circular, this won't go forever.
+-- blah : List String -> { localTypeAliases
+-- blah names =
+--     let
+--         blah_
+--     in
+--
+-- { externalNames = name :: externalNames, names = moreNames }
+-- False ->
+--     -- we need a getNames function for union ttypes and type aliases (like the view function one)
+--     -- we need access to all the stuff.
+--     -- here we need to pull any names out of the definition (we kinda need
+--     -- to know if it's type or a type alias, but we can just check.
+--     -- we should update the isExternalName function
+--     -- consider making it a dual list of names instead of asingle list of both types?
+--     -- ModuleInfo.getNamesInUnionDefinition
+--     --     ModuleInfo.getNames
+--     namesInTypeAliases =
+--         Dict.values localTypeAliases |> List.concatMap ModuleInfo.getNames
+--
+--     namesInUnionTypes =
+--         Dict.values localUnionTypes |> List.concatMap ModuleInfo.getNamesInUnionDefinition
+-- getLocalTypeNames { localUnionTypes, localTypeAliases } =
+--     Dict.keys LocalUnionTypes ++ Dict.keys LocalTypeAliases
 -- getTypeNameAliases : List String -> Dict String String
 -- getTypeNameAliases externalNames =
 --     externalNames

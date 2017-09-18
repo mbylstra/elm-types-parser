@@ -184,8 +184,8 @@ getFailedLoads model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    -- case (Debug.log "msg" msg) of
-    case msg of
+    case (Debug.log "msg" msg) of
+        -- case msg of
         ReadElmPackageInfoContentsResult tupleList ->
             updateWithElmPackageInfoContentsResult tupleList model
 
@@ -208,29 +208,29 @@ update msg model =
                                 ++ newExtModulesCmds
                               )
 
-                _ =
-                    case isFinished newModel of
-                        True ->
-                            generateViewFunctions
-                                { subjectModuleInfo = newModel.subjectModuleInfo
-                                , allModulesInfo = simplifyAllModulesInfo newModel.allModulesInfo
-                                }
-                                |> List.map (Debug.log "viewFunction")
-
-                        False ->
-                            []
-
+                -- _ =
+                --     case isFinished newModel of
+                --         True ->
+                --             let
+                --                 _ =
+                --                     Debug.log "\n\n\n FINISHED moduleInfos\n" (getLoadedModuleInfos newModel)
+                --
+                --                 _ =
+                --                     Debug.log "\n\n\n FINISHED subjectModuleInfo\n" (newModel.subjectModuleInfo)
+                --             in
+                --                 generateViewFunctions
+                --                     { subjectModuleInfo = newModel.subjectModuleInfo
+                --                     , allModulesInfo = simplifyAllModulesInfo newModel.allModulesInfo
+                --                     }
+                --                     |> List.map (Debug.log "viewFunction")
+                --
+                --         False ->
+                --             []
                 _ =
                     Debug.log "failedLoads" (getFailedLoads newModel)
 
                 _ =
                     Debug.log "isFinished" (isFinished newModel)
-
-                _ =
-                    Debug.log "moduleInfos" (getLoadedModuleInfos newModel)
-
-                _ =
-                    Debug.log "subjectModuleInfo" (newModel.subjectModuleInfo)
             in
                 ( newModel, cmd )
 
@@ -288,13 +288,18 @@ updateWithElmPackageInfoContentsResult tupleList model =
                     )
                 |> List.unzip
                 |> Tuple.mapFirst Dict.fromList
+
+        newModel =
+            { model
+                | packageSourceDirectoriesFound = True
+                , sourceDirectories = allSourceDirectories
+                , allModulesInfo = allModulesInfo
+            }
+
+        _ =
+            Debug.log "\n\nnewModel after updateWithElmPackageInfoContentsResult" newModel
     in
-        { model
-            | packageSourceDirectoriesFound = True
-            , sourceDirectories = allSourceDirectories
-            , allModulesInfo = allModulesInfo
-        }
-            ! readSourceFilesCmds
+        newModel ! readSourceFilesCmds
 
 
 updateAllModulesInfoForRsf :
