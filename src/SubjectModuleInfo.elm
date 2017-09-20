@@ -7,7 +7,6 @@ import Types
         , TypeAnnotation
         , TypeAliasDefinition
         , ImportStatement
-        , Union
         , UnionDefinition
         , ExternalNamesModuleInfo
         , ModuleInfo

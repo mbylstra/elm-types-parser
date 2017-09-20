@@ -7,7 +7,7 @@ import Types
         , TypeAnnotation
         , TypeAliasDefinition
         , ImportStatement
-        , Union
+        , UnionR
         , UnionDefinition
         , ExternalNamesModuleInfo
         , ModuleInfo
@@ -53,7 +53,7 @@ getUnionTypes blocks =
         |> List.filterMap
             (\block ->
                 case block of
-                    Union ( name, _, definition ) ->
+                    Union { name, definition } ->
                         Just ( name, definition )
 
                     _ ->
@@ -86,8 +86,8 @@ filterTypeExpressions =
                 TypeAliasDefinition ( _, tipe ) ->
                     [ tipe ]
 
-                Union ( _, _, typeConstructors ) ->
-                    typeConstructors
+                Union { definition } ->
+                    definition
                         |> List.concatMap (Tuple.second)
 
                 _ ->
@@ -108,7 +108,7 @@ getLocalNames blocks =
                     TypeAliasDefinition ( name, _ ) ->
                         Just name
 
-                    Union ( name, _, _ ) ->
+                    Union { name } ->
                         Just name
 
                     _ ->
@@ -125,10 +125,7 @@ coreTypes =
     , "Char"
     , "List"
     , "Attribute"
-    , "Maybe"
     , "Dict"
-    , "Result"
-    , "Decoder" -- doesn't work?
     ]
 
 

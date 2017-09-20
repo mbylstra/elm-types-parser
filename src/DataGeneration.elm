@@ -35,7 +35,7 @@ generateData : AllTypes -> Type -> String
 generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
     case tipe of
         Var varName ->
-            "()"
+            "TYPEVAR_TODO!"
 
         Lambda leftTipe rightTipe ->
             let
@@ -60,7 +60,7 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
                     "1"
 
                 "String" ->
-                    "\"a\""
+                    "\"a string\""
 
                 "Bool" ->
                     "True"

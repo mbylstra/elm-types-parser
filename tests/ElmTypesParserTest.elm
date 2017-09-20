@@ -8,7 +8,7 @@ import ElmTypesParser
         , parseTypeConstructors
         , someWhitespace
         )
-import Types exposing (Type(..))
+import Types exposing (Type(..), UnionR)
 import Expect exposing (Expectation, equalSets)
 import Parser exposing (Parser, (|.), (|=))
 import Result.Extra exposing (isErr)
@@ -236,10 +236,11 @@ suite =
                     |> parseUnion
                     |> Expect.equal
                         (Ok
-                            ( "MyType"
-                            , []
-                            , [ ( "TypeA", [ Type "Int" [] ] )
-                              ]
+                            (UnionR
+                                "MyType"
+                                []
+                                [ ( "TypeA", [ Type "Int" [] ] )
+                                ]
                             )
                         )
         , test "unionType: single constructor that takes two args" <|
@@ -248,10 +249,11 @@ suite =
                     |> parseUnion
                     |> Expect.equal
                         (Ok
-                            ( "MyType"
-                            , []
-                            , [ ( "TypeA", [ Type "Int" [], Type "String" [] ] )
-                              ]
+                            (UnionR
+                                "MyType"
+                                []
+                                [ ( "TypeA", [ Type "Int" [], Type "String" [] ] )
+                                ]
                             )
                         )
         , test "unionType: single constructor that takes no args" <|
@@ -260,10 +262,10 @@ suite =
                     |> parseUnion
                     |> Expect.equal
                         (Ok
-                            ( "MyType"
-                            , []
-                            , [ ( "TypeA", [] )
-                              ]
+                            (UnionR "MyType"
+                                []
+                                [ ( "TypeA", [] )
+                                ]
                             )
                         )
         , test "unionType with two constructors that take no args" <|
@@ -272,11 +274,11 @@ suite =
                     |> parseUnion
                     |> Expect.equal
                         (Ok
-                            ( "MyType"
-                            , []
-                            , [ ( "TypeA", [] )
-                              , ( "TypeB", [] )
-                              ]
+                            (UnionR "MyType"
+                                []
+                                [ ( "TypeA", [] )
+                                , ( "TypeB", [] )
+                                ]
                             )
                         )
         , test "unionType with type variable" <|
@@ -285,10 +287,10 @@ suite =
                     |> parseUnion
                     |> Expect.equal
                         (Ok
-                            ( "MyType"
-                            , [ "a" ]
-                            , [ ( "TypeA", [ Var "a" ] )
-                              ]
+                            (UnionR "MyType"
+                                [ "a" ]
+                                [ ( "TypeA", [ Var "a" ] )
+                                ]
                             )
                         )
         ]

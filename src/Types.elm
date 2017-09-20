@@ -5,7 +5,7 @@ import Dict exposing (Dict)
 
 type Block
     = TypeAliasDefinition TypeAliasDefinition
-    | Union Union
+    | Union UnionR
     | Import ImportStatement
     | TypeAnnotation TypeAnnotation
     | IgnoreBlock
@@ -27,8 +27,11 @@ type alias TypeConstructorArgs =
     List Type
 
 
-type alias Union =
-    ( String, List String, UnionDefinition )
+type alias UnionR =
+    { name : String
+    , typeVars : List String
+    , definition : UnionDefinition
+    }
 
 
 type alias UnionDefinition =

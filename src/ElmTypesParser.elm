@@ -320,14 +320,14 @@ pipeSymbol =
     Parser.symbol "|"
 
 
-parseUnion : String -> Result Parser.Error Union
+parseUnion : String -> Result Parser.Error UnionR
 parseUnion source =
     Parser.run unionType source
 
 
-unionType : Parser Union
+unionType : Parser UnionR
 unionType =
-    Parser.succeed (,,)
+    Parser.succeed UnionR
         |. Parser.symbol "type"
         |. someWhitespace
         |= capVar

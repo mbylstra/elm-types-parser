@@ -205,24 +205,25 @@ update msg model =
                                 ++ newExtModulesCmds
                               )
 
-                -- _ =
-                --     case isFinished newModel of
-                --         True ->
-                --             let
-                --                 _ =
-                --                     Debug.log "\n\n\n FINISHED moduleInfos\n" (getLoadedModuleInfos newModel)
-                --
-                --                 _ =
-                --                     Debug.log "\n\n\n FINISHED subjectModuleInfo\n" (newModel.subjectModuleInfo)
-                --             in
-                --                 generateViewFunctions
-                --                     { subjectModuleInfo = newModel.subjectModuleInfo
-                --                     , allModulesInfo = simplifyAllModulesInfo newModel.allModulesInfo
-                --                     }
-                --                     |> List.map (Debug.log "viewFunction")
-                --
-                --         False ->
-                --             []
+                _ =
+                    case isFinished newModel of
+                        True ->
+                            let
+                                _ =
+                                    Debug.log "\n\n\n FINISHED moduleInfos\n" (getLoadedModuleInfos newModel)
+
+                                _ =
+                                    Debug.log "\n\n\n FINISHED subjectModuleInfo\n" (newModel.subjectModuleInfo)
+                            in
+                                generateViewFunctions
+                                    { subjectModuleInfo = newModel.subjectModuleInfo
+                                    , allModulesInfo = simplifyAllModulesInfo newModel.allModulesInfo
+                                    }
+                                    |> List.map (Debug.log "viewFunction")
+
+                        False ->
+                            []
+
                 _ =
                     Debug.log "failedLoads" (getFailedLoads newModel)
 
