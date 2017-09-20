@@ -27,7 +27,7 @@ import ImportStatement
 
 
 type alias LocalTypeDefinitions =
-    { unionTypes : Dict Name UnionDefinition
+    { unionTypes : Dict Name UnionR
     , typeAliases : Dict Name Type
     }
 
@@ -47,14 +47,14 @@ getTypeAliases blocks =
         |> Dict.fromList
 
 
-getUnionTypes : List Block -> Dict Name UnionDefinition
+getUnionTypes : List Block -> LocalUnionTypes
 getUnionTypes blocks =
     blocks
         |> List.filterMap
             (\block ->
                 case block of
-                    Union { name, definition } ->
-                        Just ( name, definition )
+                    Union unionR ->
+                        Just ( unionR.name, unionR )
 
                     _ ->
                         Nothing
@@ -179,7 +179,7 @@ getExternalNamesModuleInfo externalNames imports =
 
 
 type LocalOrExternalName
-    = LocalUnionType UnionDefinition
+    = LocalUnionType UnionR
     | LocalTypeAlias Type
     | ExternalName
 
@@ -250,9 +250,9 @@ getNames tipe =
                 |> List.concatMap (Tuple.second >> getNames)
 
 
-getNamesInUnionDefinition : UnionDefinition -> List String
-getNamesInUnionDefinition typeConstructors =
-    typeConstructors
+getNamesInUnionDefinition : UnionR -> List String
+getNamesInUnionDefinition { name, typeVars, definition } =
+    definition
         |> List.concatMap (\( _, args ) -> List.concatMap getNames args)
 
 

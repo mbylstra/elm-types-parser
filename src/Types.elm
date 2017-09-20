@@ -77,7 +77,7 @@ type DefinitionLocation
 
 
 type alias LocalUnionTypes =
-    Dict Name UnionDefinition
+    Dict Name UnionR
 
 
 type alias ViewFunctions =

@@ -2,8 +2,7 @@ module ModuleInfoTest exposing (..)
 
 import Expect exposing (Expectation, equalSets)
 import Test exposing (..)
-import Types exposing (Type(Type, Lambda))
-import Types exposing (Type(Type, Lambda))
+import Types exposing (Type(Type, Lambda), UnionR)
 import ModuleInfo exposing (getNames, getExternalNames, getExternalNamesModuleInfo)
 import Dict
 import FirstPass
@@ -25,7 +24,7 @@ suite =
                         { unionTypes =
                             Dict.fromList
                                 [ ( "Union1"
-                                  , [ ( "AUnion1Cons1", [ Type "Alias1" [] ] ) ]
+                                  , UnionR "Union1" [] [ ( "AUnion1Cons1", [ Type "Alias1" [] ] ) ]
                                   )
                                 ]
                         , typeAliases =
@@ -42,7 +41,7 @@ suite =
                         { unionTypes =
                             Dict.fromList
                                 [ ( "Union1"
-                                  , [ ( "AUnion1Cons1", [ Type "ExternalName1" [] ] ) ]
+                                  , UnionR "Union1" [] [ ( "AUnion1Cons1", [ Type "ExternalName1" [] ] ) ]
                                   )
                                 ]
                         , typeAliases =

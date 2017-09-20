@@ -4,9 +4,8 @@ import SubjectModuleInfo exposing (getExternalNames)
 import Dict
 import Expect exposing (Expectation, equalSets)
 import Test exposing (..)
-import Types exposing (Type(Type, Lambda))
+import Types exposing (Type(Type, Lambda), UnionR)
 import Dict
-import Types exposing (Type(Type, Lambda))
 
 
 suite : Test
@@ -58,9 +57,11 @@ suite =
 
                     unionType =
                         ( "SomeUnionType"
-                        , [ ( "TypeConstructorA", [] )
-                          , ( "TypeConstructorB", [] )
-                          ]
+                        , UnionR "SomeUnionType"
+                            []
+                            [ ( "TypeConstructorA", [] )
+                            , ( "TypeConstructorB", [] )
+                            ]
                         )
                 in
                     { viewFunctions = Dict.fromList <| [ viewFunction ]
@@ -75,7 +76,7 @@ suite =
                 ({ localUnionTypes =
                     Dict.fromList
                         [ ( "Union1"
-                          , [ ( "AUnion1Cons1", [ Type "ExternalName1" [] ] ) ]
+                          , UnionR "Union1" [] [ ( "AUnion1Cons1", [ Type "ExternalName1" [] ] ) ]
                           )
                         ]
                  , localTypeAliases =

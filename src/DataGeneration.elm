@@ -94,9 +94,9 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
                     ++ "}"
 
 
-generateFromUnionType : AllTypes -> UnionDefinition -> String
-generateFromUnionType allTypes unionDefinition =
-    unionDefinition
+generateFromUnionType : AllTypes -> UnionR -> String
+generateFromUnionType allTypes { name, typeVars, definition } =
+    definition
         |> unsafeListHead
         |> generateFromTypeConstructor allTypes
 
