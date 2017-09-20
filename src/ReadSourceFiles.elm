@@ -117,8 +117,6 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
         |> List.foldl
             (\( dirName, dirAttempt ) { dirAttempts, maybeCmds } ->
                 let
-                    -- _ =
-                    --     -- Debug.log "dirName" dirName
                     path : String
                     path =
                         dirName
@@ -143,9 +141,6 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
 
                             _ ->
                                 ( ( dirName, dirAttempt ), Nothing )
-
-                    -- _ =
-                    --     Debug.log "newDirAttempt" newDirAttempt
                 in
                     { dirAttempts = newDirAttempt :: dirAttempts
                     , maybeCmds = maybeCmd :: maybeCmds
@@ -244,39 +239,30 @@ hasFailed model =
 
 update : Msg -> Model -> { rsfModel : Model, rsfGoal : Maybe SourceCode, rsfCmd : Cmd Msg }
 update msg model =
-    let
-        -- _ =
-        --     Debug.log "\n\nmodel\n" model
-        -- _ =
-        --     Debug.log "ReadSoureFiles.update" True
-        _ =
-            False
-    in
-        case msg of
-            ReadElmModuleResult { contents, portScope } ->
-                let
-                    model2 =
-                        { model
-                            | dirAttempts =
-                                model.dirAttempts
-                                    |> Dict.update
-                                        portScope.dir
-                                        (updateDirAttempt contents)
-                            , sourceCode = contents
-                        }
+    case msg of
+        ReadElmModuleResult { contents, portScope } ->
+            let
+                model2 =
+                    { model
+                        | dirAttempts =
+                            model.dirAttempts
+                                |> Dict.update
+                                    portScope.dir
+                                    (updateDirAttempt contents)
+                        , sourceCode = contents
+                    }
 
-                    ( model3, cmds ) =
-                        getNextCmds model2
+                ( model3, cmds ) =
+                    getNextCmds model2
 
-                    goal =
-                        getGoal model3
-                in
-                    { rsfModel = model3, rsfCmd = Cmd.batch cmds, rsfGoal = goal |> Result.toMaybe }
+                goal =
+                    getGoal model3
+            in
+                { rsfModel = model3, rsfCmd = Cmd.batch cmds, rsfGoal = goal |> Result.toMaybe }
 
 
 updateDirAttempt : Maybe String -> Maybe DirAttempt -> Maybe DirAttempt
 updateDirAttempt maybeSourceCode maybeDirAttempt =
-    -- (Debug.log "maybeDirAttempt" maybeDirAttempt)
     maybeDirAttempt
         |> Maybe.map
             (\_ ->

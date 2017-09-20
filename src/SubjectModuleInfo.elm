@@ -35,18 +35,6 @@ import Helpers exposing (removeDuplicates)
 import ImportStatement exposing (elmImplicitImports)
 
 
--- what is the actual result we want?
--- every view function
----- every type alis or union type in the view function type definition
--- a list of every union type or type definition used by the view functions
--- for each one of these:
------ is it defined locally or in another module? And if another module,
--- are we handling the case where a type alias references a module?
----- I don't think we are!
--- Also, we need to replace aliases with the actual thingo.
--- { model : Info, modulesToLoad : List String }
-
-
 getModuleInfo : String -> ModuleInfo
 getModuleInfo sourceCode =
     let
@@ -64,19 +52,6 @@ getModuleInfo sourceCode =
         viewFunctions =
             getViewFunctions blocks
 
-        _ =
-            Debug.log "subject viewFunctions" (Dict.keys viewFunctions)
-
-        _ =
-            Debug.log "subject localUnionTypes" (localUnionTypes)
-
-        _ =
-            Debug.log "subject localTypeAliases" (localTypeAliases)
-
-        -- _ =
-        --     Debug.log "subject source" (blocks)
-        -- usedTypeNames =
-        --     []
         externalNames =
             getExternalNames
                 { viewFunctions = viewFunctions
@@ -84,10 +59,6 @@ getModuleInfo sourceCode =
                 , localTypeAliases = localTypeAliases
                 }
 
-        _ =
-            Debug.log "subject external names" externalNames
-
-        -- |> List.map rawNameToQualifiedName
         imports =
             elmImplicitImports
                 ++ filterByImports blocks
@@ -98,15 +69,8 @@ getModuleInfo sourceCode =
         { localUnionTypes = localUnionTypes
         , localTypeAliases = localTypeAliases
         , viewFunctions = viewFunctions
-
-        -- , usedTypeNames = usedTypeNames
         , externalNamesModuleInfo = getExternalNamesModuleInfo externalNames imports
         }
-
-
-
--- maybe take all the external names, check if it is in an "explicity import", but also return the fully
--- qualified version of the import, so we can get a unique on that.
 
 
 getExternalNames :
@@ -123,53 +87,8 @@ getExternalNames { viewFunctions, localTypeAliases, localUnionTypes } =
                 |> List.concatMap getNames
                 |> removeDuplicates
                 |> List.filter (not << isCoreName)
-
-        _ =
-            Debug.log "viewFunctionNames" viewFunctionNames
     in
         ModuleInfo.getExternalNames (LocalTypeDefinitions localUnionTypes localTypeAliases) viewFunctionNames
-
-
-
--- idea. fold over the viewFunction type aliases, and keep adding to a list of local and external names.
---
--- using allName, get a list of external names, AND a list of local names (split it)
--- for the localNames, do the same. I guess it could be stack/queue? You keep popping off the top and keep
--- going till its empty.
--- As long as there is nothing circular, this won't go forever.
--- blah : List String -> { localTypeAliases
--- blah names =
---     let
---         blah_
---     in
---
--- { externalNames = name :: externalNames, names = moreNames }
--- False ->
---     -- we need a getNames function for union ttypes and type aliases (like the view function one)
---     -- we need access to all the stuff.
---     -- here we need to pull any names out of the definition (we kinda need
---     -- to know if it's type or a type alias, but we can just check.
---     -- we should update the isExternalName function
---     -- consider making it a dual list of names instead of asingle list of both types?
---     -- ModuleInfo.getNamesInUnionDefinition
---     --     ModuleInfo.getNames
---     namesInTypeAliases =
---         Dict.values localTypeAliases |> List.concatMap ModuleInfo.getNames
---
---     namesInUnionTypes =
---         Dict.values localUnionTypes |> List.concatMap ModuleInfo.getNamesInUnionDefinition
--- getLocalTypeNames { localUnionTypes, localTypeAliases } =
---     Dict.keys LocalUnionTypes ++ Dict.keys LocalTypeAliases
--- getTypeNameAliases : List String -> Dict String String
--- getTypeNameAliases externalNames =
---     externalNames
---         |> List.concatMap
---             (\qualifiedName ->
---                 reversedImports
---                     |> List.filterMap (isExplicitlyInImportStatement qualifiedName)
---             )
---         |> Set.fromList
---         |> Set.toList
 
 
 getViewFunctions : List Block -> Dict Name Type
@@ -190,25 +109,6 @@ getViewFunctions blocks =
         |> Dict.fromList
 
 
-
--- isExternalName :
---     { viewFunctions : ViewFunctions
---     , localTypeAliases : LocalTypeAliases
---     , localUnionTypes : LocalUnionTypes
---     }
---     -> String
---     -> Bool
--- isExternalName { localUnionTypes, localTypeAliases, viewFunctions } name =
---     if String.contains "." name then
---         True
---     else
---         not <|
---             (Dict.member name localUnionTypes
---                 || Dict.member name localTypeAliases
---                 || Dict.member name viewFunctions
---             )
-
-
 getNames : Type -> List String
 getNames mainTipe =
     case mainTipe of
@@ -219,109 +119,3 @@ getNames mainTipe =
 
         _ ->
             ModuleInfo.getNames mainTipe
-
-
-
--- This turned out to be pointless as we don't actually need to substitute anything. Rather
--- we just need to keep a lookup dict.
--- substituteTypes : Info -> Type -> { tipe : Type, pendingNames : List String }
--- substituteTypes model tipe =
---     case tipe of
---         Var _ ->
---             { tipe = tipe, pendingNames = [] }
---
---         Tuple tipes ->
---             let
---                 concatResultsToTuple :
---                     List { tipe : Type, pendingNames : List String }
---                     -> { tipe : Type, pendingNames : List String }
---                 concatResultsToTuple =
---                     List.foldl
---                         (\{ tipe, pendingNames } { accTipes, accPendingNames } ->
---                             { accTipes = tipe :: accTipes
---                             , accPendingNames = pendingNames ++ accPendingNames
---                             }
---                         )
---                         { accTipes = [], accPendingNames = [] }
---                         >> (\{ accTipes, accPendingNames } ->
---                                 { tipe = Tuple accTipes, pendingNames = accPendingNames }
---                            )
---             in
---                 tipes |> List.map (substituteTypes model) |> concatResultsToTuple
---
---         Lambda leftTipe rightTipe ->
---             let
---                 resultsToLambda :
---                     { tipe : Type, pendingNames : List String }
---                     -> { tipe : Type, pendingNames : List String }
---                     -> { tipe : Type, pendingNames : List String }
---                 resultsToLambda leftResult rightResult =
---                     { tipe = Lambda leftResult.tipe rightResult.tipe
---                     , pendingNames = leftResult.pendingNames ++ rightResult.pendingNames
---                     }
---             in
---                 resultsToLambda (substituteTypes model leftTipe) (substituteTypes model rightTipe)
---
---         Record fields instantiatedTypeVars ->
---             let
---                 resultsToLambda :
---                     { tipe : Type, pendingNames : List String }
---                     -> { tipe : Type, pendingNames : List String }
---                     -> { tipe : Type, pendingNames : List String }
---                 resultsToLambda leftResult rightResult =
---                     { tipe = Lambda leftResult.tipe rightResult.tipe
---                     , pendingNames = leftResult.pendingNames ++ rightResult.pendingNames
---                     }
---             in
---                 fields
---                     |> List.map (Tuple.mapSecond <| substituteTypes model)
---                     |> (\items ->
---                             { tipe =
---                                 Record
---                                     (items
---                                         |> List.map
---                                             (\( fieldName, { tipe, pendingNames } ) ->
---                                                 ( fieldName, tipe )
---                                             )
---                                     )
---                                     instantiatedTypeVars
---                             , pendingNames =
---                                 items
---                                     |> List.map (Tuple.second >> .pendingNames)
---                                     |> List.concat
---                             }
---                        )
---             Type name instantiatedTypeVars ->
---                 if
---                 [ name ]
---
--- getAllExternalNames : List Block -> List String
--- getAllExternalNames blocks =
---     let
---         localNames =
---             getLocalNames blocks
---     in
---         blocks
---             |> filterTypeExpressions
---             |> List.concatMap (getExternalNames localNames)
---             |> removeDuplicates
--- getExternalNames : LocalNames -> Type -> List String
--- getExternalNames localNames tipe =
---     case tipe of
---         Var _ ->
---             []
---                 getExternalNames
---                 localNames
---                 typeA
---                 |> (++) (getExternalNames localNames typeB)
---
---         Tuple tupleItems ->
---             tupleItems
---                 |> List.concatMap (getExternalNames localNames)
---
---         Type name concreteTypeVars ->
---             handleTypeName localNames name |> unwrap [] List.singleton
---
---         Record fields _ ->
---             fields
---                 |> List.concatMap (Tuple.second >> (getExternalNames localNames))

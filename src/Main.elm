@@ -184,8 +184,8 @@ getFailedLoads model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case (Debug.log "msg" msg) of
-        -- case msg of
+    -- case (Debug.log "msg" msg) of
+    case msg of
         ReadElmPackageInfoContentsResult tupleList ->
             updateWithElmPackageInfoContentsResult tupleList model
 
@@ -198,9 +198,6 @@ update msg model =
 
                         ( allModulesInfo2, newExtModulesCmds ) =
                             addNewExternalModules model.sourceDirectories newAllModulesInfo newExternalModules
-
-                        _ =
-                            Debug.log ("ReadSourceFilesMsg for " ++ moduleName) True
                     in
                         { model | allModulesInfo = allModulesInfo2 }
                             ! ([ rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
@@ -296,8 +293,8 @@ updateWithElmPackageInfoContentsResult tupleList model =
                 , allModulesInfo = allModulesInfo
             }
 
-        _ =
-            Debug.log "\n\nnewModel after updateWithElmPackageInfoContentsResult" newModel
+        -- _ =
+        --     Debug.log "\n\nnewModel after updateWithElmPackageInfoContentsResult" newModel
     in
         newModel ! readSourceFilesCmds
 

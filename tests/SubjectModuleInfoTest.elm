@@ -70,6 +70,27 @@ suite =
                         |> getExternalNames
                         |> Expect.equal
                             []
+        , test "getExternalNames" <|
+            \_ ->
+                ({ localUnionTypes =
+                    Dict.fromList
+                        [ ( "Union1"
+                          , [ ( "AUnion1Cons1", [ Type "ExternalName1" [] ] ) ]
+                          )
+                        ]
+                 , localTypeAliases =
+                    Dict.fromList
+                        [ ( "Alias1", Type "Union1" [] ) ]
+                 , viewFunctions =
+                    Dict.fromList
+                        [ ( "view1"
+                          , Lambda (Type "Alias1" []) (Type "Html" [])
+                          )
+                        ]
+                 }
+                )
+                    |> SubjectModuleInfo.getExternalNames
+                    |> Expect.equal [ "ExternalName1" ]
         , test "getModulesToParse" <|
             \_ ->
                 ([ "import A exposing (Foo)"

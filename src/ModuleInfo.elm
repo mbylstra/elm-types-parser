@@ -281,6 +281,7 @@ getExternalNames : LocalTypeDefinitions -> List String -> List String
 getExternalNames localTypeDefinitions names =
     getExternalNames_ localTypeDefinitions { namesToLookUp = names, externalNames = [] }
         |> .externalNames
+        |> List.filter (not << isCoreName)
 
 
 type alias ExternalNamesAcc =
@@ -303,18 +304,24 @@ getExternalNames_ localTypeDefinitions acc =
             name :: moreNames ->
                 case getNameLocation localTypeDefinitions name of
                     ExternalName ->
-                        { externalNames = name :: externalNames, namesToLookUp = moreNames }
+                        getExternalNames_
+                            localTypeDefinitions
+                            { externalNames = name :: externalNames, namesToLookUp = moreNames }
 
                     LocalUnionType unionDefinition ->
                         let
                             extraNames =
                                 getNamesInUnionDefinition unionDefinition
                         in
-                            { acc | namesToLookUp = moreNames ++ extraNames }
+                            getExternalNames_
+                                localTypeDefinitions
+                                { acc | namesToLookUp = moreNames ++ extraNames }
 
                     LocalTypeAlias tipe ->
                         let
                             extraNames =
                                 getNames tipe
                         in
-                            { acc | namesToLookUp = moreNames ++ extraNames }
+                            getExternalNames_
+                                localTypeDefinitions
+                                { acc | namesToLookUp = moreNames ++ extraNames }
