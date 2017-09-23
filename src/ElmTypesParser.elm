@@ -298,19 +298,20 @@ comma =
 --------------------------------------------------------------------------------
 
 
-typeAlias : Parser TypeAliasDefinition
+typeAlias : Parser TypeAliasDefinitionR
 typeAlias =
-    Parser.succeed (,)
+    Parser.succeed TypeAliasDefinitionR
         |. Parser.symbol "type alias"
         |. someWhitespace
         |= capVar
         |. someWhitespace
+        |= parseTypeVariables
         |. Parser.symbol "="
         |. someWhitespace
         |= tipe
 
 
-parseTypeAlias : String -> Result Parser.Error TypeAliasDefinition
+parseTypeAlias : String -> Result Parser.Error TypeAliasDefinitionR
 parseTypeAlias source =
     Parser.run typeAlias source
 
@@ -332,14 +333,14 @@ unionType =
         |. someWhitespace
         |= capVar
         |. someWhitespace
-        |= parseUnionTypeVariables
+        |= parseTypeVariables
         |. Parser.symbol "="
         |. someWhitespace
         |= typeConstructors
 
 
-parseUnionTypeVariables : Parser (List String)
-parseUnionTypeVariables =
+parseTypeVariables : Parser (List String)
+parseTypeVariables =
     Parser.oneOf
         [ Parser.delayedCommitMap
             (\typeVariables _ -> typeVariables)

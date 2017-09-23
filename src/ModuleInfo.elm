@@ -5,7 +5,7 @@ import Types
         ( Block(TypeAnnotation, TypeAliasDefinition, Union, Import)
         , Type(Var, Lambda, Tuple, Type, Record)
         , TypeAnnotation
-        , TypeAliasDefinition
+        , TypeAliasDefinitionR
         , ImportStatement
         , UnionR
         , UnionDefinition
@@ -38,8 +38,8 @@ getTypeAliases blocks =
         |> List.filterMap
             (\block ->
                 case block of
-                    TypeAliasDefinition ( name, tipe ) ->
-                        Just ( name, tipe )
+                    TypeAliasDefinition { name, typeVars, definition } ->
+                        Just ( name, definition )
 
                     _ ->
                         Nothing
@@ -83,8 +83,8 @@ filterTypeExpressions =
                 TypeAnnotation ( _, tipe ) ->
                     [ tipe ]
 
-                TypeAliasDefinition ( _, tipe ) ->
-                    [ tipe ]
+                TypeAliasDefinition { definition } ->
+                    [ definition ]
 
                 Union { definition } ->
                     definition
@@ -105,7 +105,7 @@ getLocalNames blocks =
         |> List.filterMap
             (\block ->
                 case block of
-                    TypeAliasDefinition ( name, _ ) ->
+                    TypeAliasDefinition { name } ->
                         Just name
 
                     Union { name } ->

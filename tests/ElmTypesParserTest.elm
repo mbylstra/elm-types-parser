@@ -8,7 +8,7 @@ import ElmTypesParser
         , parseTypeConstructors
         , someWhitespace
         )
-import Types exposing (Type(..), UnionR)
+import Types exposing (Type(..), UnionR, TypeAliasDefinitionR)
 import Expect exposing (Expectation, equalSets)
 import Parser exposing (Parser, (|.), (|=))
 import Result.Extra exposing (isErr)
@@ -110,11 +110,23 @@ suite =
         --             |> List.map classifyBlock
         --             |> Expect.equal
         --                 [ ModuleStatement, ImportStatement, TypeAnnotation, FunctionDefinition ]
-        -- , test "parse type alias" <|
-        --     \_ ->
-        --         "type alias Id = Int"
-        --             |> parseTypeAlias
-        --             |> Expect.equal (Ok ( "Id", Type "Int" [] ))
+        , test "parse type alias" <|
+            \_ ->
+                "type alias Id = Int"
+                    |> parseTypeAlias
+                    |> Expect.equal (Ok (TypeAliasDefinitionR "Id" [] (Type "Int" [])))
+        , test "parse type alias with single type var" <|
+            \_ ->
+                "type alias Tagger msg = Int -> msg"
+                    |> parseTypeAlias
+                    |> Expect.equal
+                        (Ok
+                            (TypeAliasDefinitionR
+                                "Tagger"
+                                [ "msg" ]
+                                (Lambda (Type "Int" []) (Var "msg"))
+                            )
+                        )
         , test "typeConstructor: takes no args" <|
             \_ ->
                 "TypeA"

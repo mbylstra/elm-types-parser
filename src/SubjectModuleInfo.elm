@@ -5,7 +5,6 @@ import Types
         ( Block(TypeAnnotation, TypeAliasDefinition, Union, Import)
         , Type(Var, Lambda, Tuple, Type, Record)
         , TypeAnnotation
-        , TypeAliasDefinition
         , ImportStatement
         , UnionDefinition
         , ExternalNamesModuleInfo

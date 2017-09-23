@@ -214,6 +214,9 @@ update msg model =
 
                                 _ =
                                     Debug.log "\n\n\n FINISHED subjectModuleInfo\n" (newModel.subjectModuleInfo)
+
+                                _ =
+                                    Debug.log "\n\n\n FINISHED allModulesInfo\n" (newModel.allModulesInfo)
                             in
                                 generateViewFunctions
                                     { subjectModuleInfo = newModel.subjectModuleInfo
