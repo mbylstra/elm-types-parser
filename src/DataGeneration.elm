@@ -15,6 +15,10 @@ type alias AllTypes =
     }
 
 
+type alias InstantiatedTypeVars =
+    List Type
+
+
 generateViewFunctions : AllTypes -> List String
 generateViewFunctions ({ subjectModuleInfo, allModulesInfo } as allTypes) =
     subjectModuleInfo.viewFunctions
@@ -79,7 +83,13 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
                         "[" ++ generateData allTypes listType ++ "]"
 
                 _ ->
-                    substituteType allTypes typeName
+                    let
+                        -- typeArguments
+                        -- |> List.map qualifyTypeArgument
+                        _ =
+                            1
+                    in
+                        substituteType allTypes typeName typeArguments
 
         Record fields _ ->
             let
@@ -113,8 +123,12 @@ generateFromTypeConstructor allTypes ( name, args ) =
         name ++ " " ++ argsString
 
 
-substituteType : AllTypes -> String -> String
-substituteType ({ subjectModuleInfo, allModulesInfo } as allTypes) typeName =
+
+-- We need the full type, not just the type name
+
+
+substituteType : AllTypes -> String -> InstantiatedTypeVars -> String
+substituteType ({ subjectModuleInfo, allModulesInfo } as allTypes) typeName instantiatedTypeVars =
     case Dict.get typeName subjectModuleInfo.localTypeAliases of
         Just tipe ->
             generateData allTypes tipe
@@ -126,22 +140,48 @@ substituteType ({ subjectModuleInfo, allModulesInfo } as allTypes) typeName =
 
                 Nothing ->
                     -- unsafeDictGet "DataGeneration.elm line 118" typeName subjectModuleInfo.externalNamesModuleInfo
-                    case Dict.get typeName subjectModuleInfo.externalNamesModuleInfo of
-                        Just x ->
-                            x
-                                |> substitueExternalType allTypes.allModulesInfo
-
-                        Nothing ->
-                            Debug.crash ("couldnt find " ++ typeName ++ " in " ++ toString allTypes)
+                    let
+                        qualifiedExternalName =
+                            qualifyExternalName subjectModuleInfo.externalNamesModuleInfo typeName
+                    in
+                        substituteExternalType allTypes.allModulesInfo instantiatedTypeVars qualifiedExternalName
 
 
-substitueExternalType :
+
+-- case Dict.get typeName subjectModuleInfo.externalNamesModuleInfo of
+--     -- This is where I think we need to "reach in" and get the instantiated type vars
+--     Just exteralNamesModuleInfo ->
+--         let
+--             _ =
+--                 Debug.log "substituteType: typeName" typeName
+--
+--             _ =
+--                 Debug.log "substituteType: instantiatedTypeVars" instantiatedTypeVars
+--         in
+--             substituteExternalType allTypes.allModulesInfo instantiatedTypeVars exteralNamesModuleInfo
+--
+--     Nothing ->
+--         Debug.crash ("couldnt find " ++ typeName ++ " in " ++ toString allTypes)
+
+
+qualifyExternalName : ExternalNamesModuleInfo -> String -> { dottedModulePath : String, name : String }
+qualifyExternalName externalNamesModuleInfo name =
+    case Dict.get name externalNamesModuleInfo of
+        Just externalNamesModuleInfo ->
+            externalNamesModuleInfo
+
+        Nothing ->
+            Debug.crash ("couldnt find " ++ name ++ " in " ++ toString externalNamesModuleInfo)
+
+
+substituteExternalType :
     ModulesInfo
+    -> InstantiatedTypeVars
     -> { dottedModulePath : String, name : String }
     -> String
-substitueExternalType modulesInfo { dottedModulePath, name } =
+substituteExternalType modulesInfo instantiatedTypeVars { dottedModulePath, name } =
     let
         moduleInfo =
             unsafeDictGet "DataGeneration.elm line 129" dottedModulePath modulesInfo
     in
-        substituteType { subjectModuleInfo = moduleInfo, allModulesInfo = modulesInfo } name
+        substituteType { subjectModuleInfo = moduleInfo, allModulesInfo = modulesInfo } name instantiatedTypeVars
