@@ -19,6 +19,18 @@ type Type
     | Record (List ( String, Type )) (Maybe String)
 
 
+type alias QualifiedName =
+    { dottedModulePath : String, name : String }
+
+
+type QualifiedType
+    = QualifiedVar String
+    | QualifiedLambda QualifiedType QualifiedType
+    | QualifiedTuple (List QualifiedType)
+    | QualifiedType QualifiedName (List QualifiedType)
+    | QualifiedRecord (List ( String, QualifiedType )) (Maybe String)
+
+
 type alias TypeConstructor =
     ( String, TypeConstructorArgs )
 

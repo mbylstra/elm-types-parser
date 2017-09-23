@@ -35,6 +35,39 @@ generateViewFunction allTypes ( functionName, functionTipe ) =
         "staticView = " ++ functionName ++ " " ++ innards
 
 
+qualifyType : ModuleInfo -> Type -> QualifiedType
+qualifyType subjectModuleInfo tipe =
+    case tipe of
+        Var varName ->
+            QualifiedVar varName
+
+        Lambda leftTipe rightTipe ->
+            QualifiedLambda
+                (qualifyType subjectModuleInfo leftTipe)
+                (qualifyType subjectModuleInfo rightTipe)
+
+        Tuple tipes ->
+            QualifiedTuple (tipes |> List.map (qualifyType subjectModuleInfo))
+
+        Type typeName typeArgs ->
+            QualifiedType
+                (qualifyExternalName subjectModuleInfo.externalNamesModuleInfo typeName)
+                (typeArgs |> List.map (qualifyType subjectModuleInfo))
+
+        Record fields maybeString ->
+            let
+                qualifiedFields =
+                    fields
+                        |> List.map
+                            (\( name, tipe ) ->
+                                ( name
+                                , qualifyType subjectModuleInfo tipe
+                                )
+                            )
+            in
+                QualifiedRecord qualifiedFields maybeString
+
+
 generateData : AllTypes -> Type -> String
 generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
     case tipe of
