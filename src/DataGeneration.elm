@@ -188,6 +188,9 @@ substituteType ({ allModulesInfo } as allTypes) ({ dottedModulePath, name } as q
     let
         subjectModuleInfo =
             allModulesInfo |> unsafeDictGet "DataGeneration.elm 129" dottedModulePath
+
+        _ =
+            Debug.log "subjectModuleInfo" subjectModuleInfo
     in
         case Dict.get name subjectModuleInfo.typeAliases of
             Just tipe ->

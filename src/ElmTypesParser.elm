@@ -341,13 +341,13 @@ unionType =
 
 parseTypeVariables : Parser (List String)
 parseTypeVariables =
-    Parser.oneOf
-        [ Parser.delayedCommitMap
-            (\typeVariables _ -> typeVariables)
-            (lowVar |> Parser.map List.singleton)
+    Parser.repeat
+        zeroOrMore
+        (Parser.delayedCommitMap
+            (\typeVar _ -> typeVar)
+            lowVar
             someWhitespace
-        , Parser.succeed []
-        ]
+        )
 
 
 parseTypeConstructors : String -> Result Parser.Error (List TypeConstructor)
