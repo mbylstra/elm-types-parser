@@ -305,4 +305,17 @@ suite =
                                 ]
                             )
                         )
+        , test "unionType with two type variables (Result error value)" <|
+            \_ ->
+                "type Result error value = Ok value | Err error"
+                    |> parseUnion
+                    |> Expect.equal
+                        (Ok
+                            (UnionR "Result"
+                                [ "error", "value" ]
+                                [ ( "Ok", [ Var "value" ] )
+                                , ( "Err", [ Var "error" ] )
+                                ]
+                            )
+                        )
         ]
