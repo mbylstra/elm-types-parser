@@ -77,16 +77,7 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) instantiatedTyp
                         "\"String was chosen for wildcard type\""
 
             QualifiedLambda leftType rightType ->
-                let
-                    left =
-                        generateData allTypes instantiatedTypeVars leftType
-                in
-                    case rightType of
-                        QualifiedLambda _ _ ->
-                            left ++ " " ++ (generateData allTypes instantiatedTypeVars rightType)
-
-                        _ ->
-                            left
+                generateLambda allTypes instantiatedTypeVars leftType rightType
 
             QualifiedTuple tipes ->
                 "("
@@ -140,6 +131,30 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) instantiatedTyp
                                 |> String.join ", "
                            )
                         ++ "}"
+
+
+generateLambda : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedType -> QualifiedType -> String
+generateLambda allTypes instantiatedTypeVars leftType rightType =
+    lambdaToList leftType rightType
+        |> List.reverse
+        |> (\argsList ->
+                case argsList of
+                    [] ->
+                        Debug.crash "this shouldn't be possible"
+
+                    returnValue :: [] ->
+                        Debug.crash "this shouldn't be possible"
+
+                    returnValue :: arg1 :: args ->
+                        let
+                            numIgnoredArgs =
+                                1 + List.length args
+
+                            returnedValue =
+                                generateData allTypes instantiatedTypeVars returnValue
+                        in
+                            "(\\" ++ (List.repeat numIgnoredArgs "_" |> String.join " ") ++ " -> " ++ returnedValue ++ ")"
+           )
 
 
 generateFromUnionType : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedUnionR -> String
