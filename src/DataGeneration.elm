@@ -22,18 +22,38 @@ generateViewFunctions unqualifiedAllTypes =
 
 
 generateViewFunction : QualifiedAllTypes -> DottedModulePath -> ( String, QualifiedType ) -> String
-generateViewFunction allTypes dottedModulePath ( functionName, functionTipe ) =
-    let
-        _ =
-            Debug.log "functionTipe" functionTipe
+generateViewFunction allTypes dottedModulePath ( functionName, functionType ) =
+    case functionType of
+        QualifiedLambda leftType rightType ->
+            let
+                argTypes : List QualifiedType
+                argTypes =
+                    lambdaToList leftType rightType
 
-        innards =
-            generateData allTypes [] functionTipe
+                args =
+                    argTypes
+                        |> List.map (generateData allTypes [])
+                        |> List.map (\arg -> "(" ++ arg ++ ")")
 
-        qualifiedFunctionName =
-            dottedModulePath ++ "." ++ functionName
-    in
-        "staticView = " ++ qualifiedFunctionName ++ " " ++ innards
+                qualifiedFunctionName =
+                    dottedModulePath ++ "." ++ functionName
+            in
+                "staticView = " ++ qualifiedFunctionName ++ " " ++ (args |> String.join "")
+
+        _ ->
+            Debug.crash "We are only dealing with functions that take args at the moment"
+
+
+lambdaToList : QualifiedType -> QualifiedType -> List QualifiedType
+lambdaToList leftType rightType =
+    leftType
+        :: (case rightType of
+                QualifiedLambda nextLeftType nextRightType ->
+                    (lambdaToList nextLeftType nextRightType)
+
+                _ ->
+                    [ rightType ]
+           )
 
 
 generateData : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedType -> String
@@ -56,14 +76,14 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) instantiatedTyp
                     Nothing ->
                         "\"String was chosen for wildcard type\""
 
-            QualifiedLambda leftTipe rightTipe ->
+            QualifiedLambda leftType rightType ->
                 let
                     left =
-                        generateData allTypes instantiatedTypeVars leftTipe
+                        generateData allTypes instantiatedTypeVars leftType
                 in
-                    case rightTipe of
+                    case rightType of
                         QualifiedLambda _ _ ->
-                            left ++ " " ++ (generateData allTypes instantiatedTypeVars rightTipe)
+                            left ++ " " ++ (generateData allTypes instantiatedTypeVars rightType)
 
                         _ ->
                             left
