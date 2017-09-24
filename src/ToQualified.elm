@@ -8,18 +8,18 @@ import ModuleInfo exposing (coreTypes)
 qualifyAllTypes : AllTypes -> QualifiedAllTypes
 qualifyAllTypes { subjectModuleInfo, allModulesInfo } =
     -- TODO: we must pass in the module name, or just parse the module blah exposing ..
-    { subjectModuleInfo = toQualifiedModuleInfo "" subjectModuleInfo
+    { subjectModuleInfo = toQualifiedModuleInfo subjectModuleInfo
     , allModulesInfo =
         allModulesInfo
             |> Dict.map
-                (\dottedModulePath moduleInfo ->
-                    toQualifiedModuleInfo dottedModulePath moduleInfo
+                (\_ moduleInfo ->
+                    toQualifiedModuleInfo moduleInfo
                 )
     }
 
 
-toQualifiedModuleInfo : DottedModulePath -> ModuleInfo -> QualifiedModuleInfo
-toQualifiedModuleInfo dottedModulePath moduleInfo =
+toQualifiedModuleInfo : ModuleInfo -> QualifiedModuleInfo
+toQualifiedModuleInfo moduleInfo =
     let
         { viewFunctions, localTypeAliases, localUnionTypes, externalNamesModuleInfo } =
             moduleInfo
@@ -36,7 +36,7 @@ toQualifiedModuleInfo dottedModulePath moduleInfo =
         qualifiedUnionTypes =
             localUnionTypes |> Dict.map (\name unionR -> qualifyUnionR moduleInfo unionR)
     in
-        { dottedModulePath = dottedModulePath
+        { dottedModulePath = moduleInfo.dottedModulePath
         , viewFunctions = qualifiedViewFunctions
         , typeAliases = qualifiedTypeAliases
         , unionTypes = qualifiedUnionTypes

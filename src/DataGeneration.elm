@@ -18,96 +18,118 @@ generateViewFunctions unqualifiedAllTypes =
     in
         subjectModuleInfo.viewFunctions
             |> Dict.toList
-            |> List.map (generateViewFunction allTypes)
+            |> List.map (generateViewFunction allTypes subjectModuleInfo.dottedModulePath)
 
 
-generateViewFunction : QualifiedAllTypes -> ( String, QualifiedType ) -> String
-generateViewFunction allTypes ( functionName, functionTipe ) =
+generateViewFunction : QualifiedAllTypes -> DottedModulePath -> ( String, QualifiedType ) -> String
+generateViewFunction allTypes dottedModulePath ( functionName, functionTipe ) =
     let
+        _ =
+            Debug.log "functionTipe" functionTipe
+
         innards =
             generateData allTypes [] functionTipe
+
+        qualifiedFunctionName =
+            dottedModulePath ++ "." ++ functionName
     in
-        "staticView = " ++ functionName ++ " " ++ innards
+        "staticView = " ++ qualifiedFunctionName ++ " " ++ innards
 
 
 generateData : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedType -> String
 generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) instantiatedTypeVars tipe =
-    case tipe of
-        QualifiedVar varName ->
-            let
-                instantiatedType =
-                    unsafeListHead instantiatedTypeVars
-            in
-                generateData allTypes instantiatedTypeVars instantiatedType
+    let
+        _ =
+            Debug.log "instantiatedTypeVars" instantiatedTypeVars
+    in
+        case tipe of
+            QualifiedVar varName ->
+                case List.head instantiatedTypeVars of
+                    Just instantiatedType ->
+                        case instantiatedType of
+                            QualifiedVar _ ->
+                                "\"String was chosen for wildcard type\""
 
-        QualifiedLambda leftTipe rightTipe ->
-            let
-                left =
-                    generateData allTypes instantiatedTypeVars leftTipe
-            in
-                case rightTipe of
-                    QualifiedLambda _ _ ->
-                        left ++ " " ++ (generateData allTypes instantiatedTypeVars rightTipe)
+                            _ ->
+                                generateData allTypes instantiatedTypeVars (Debug.log "instantiatedType" instantiatedType)
+
+                    Nothing ->
+                        "\"String was chosen for wildcard type\""
+
+            QualifiedLambda leftTipe rightTipe ->
+                let
+                    left =
+                        generateData allTypes instantiatedTypeVars leftTipe
+                in
+                    case rightTipe of
+                        QualifiedLambda _ _ ->
+                            left ++ " " ++ (generateData allTypes instantiatedTypeVars rightTipe)
+
+                        _ ->
+                            left
+
+            QualifiedTuple tipes ->
+                "("
+                    ++ (tipes |> List.map (generateData allTypes instantiatedTypeVars) |> String.join ", ")
+                    ++ ")"
+
+            QualifiedType ({ dottedModulePath, name } as qualifiedName) typeArguments ->
+                case name of
+                    "Int" ->
+                        "1"
+
+                    "String" ->
+                        "\"a string\""
+
+                    "Bool" ->
+                        "True"
+
+                    "Float" ->
+                        "1.0"
+
+                    "Html" ->
+                        """(Html.text "hello")"""
+
+                    "List" ->
+                        let
+                            listType =
+                                unsafeListHead typeArguments
+                        in
+                            "[" ++ generateData allTypes instantiatedTypeVars listType ++ "]"
+
+                    "Date" ->
+                        "Date.fromTime 1506233184"
 
                     _ ->
-                        left
+                        let
+                            -- typeArguments
+                            -- |> List.map qualifyTypeArgument
+                            _ =
+                                1
+                        in
+                            substituteType allTypes qualifiedName typeArguments
 
-        QualifiedTuple tipes ->
-            "("
-                ++ (tipes |> List.map (generateData allTypes instantiatedTypeVars) |> String.join ", ")
-                ++ ")"
-
-        QualifiedType ({ dottedModulePath, name } as qualifiedName) typeArguments ->
-            case name of
-                "Int" ->
-                    "1"
-
-                "String" ->
-                    "\"a string\""
-
-                "Bool" ->
-                    "True"
-
-                "Float" ->
-                    "1.0"
-
-                "Html" ->
-                    """(Html.text "hello")"""
-
-                "List" ->
-                    let
-                        listType =
-                            unsafeListHead typeArguments
-                    in
-                        "[" ++ generateData allTypes instantiatedTypeVars listType ++ "]"
-
-                _ ->
-                    let
-                        -- typeArguments
-                        -- |> List.map qualifyTypeArgument
-                        _ =
-                            1
-                    in
-                        substituteType allTypes qualifiedName typeArguments
-
-        QualifiedRecord fields _ ->
-            let
-                generateFieldData ( name, tipe ) =
-                    name ++ " = " ++ (generateData allTypes instantiatedTypeVars tipe)
-            in
-                "{"
-                    ++ (fields
-                            |> List.map generateFieldData
-                            |> String.join ", "
-                       )
-                    ++ "}"
+            QualifiedRecord fields _ ->
+                let
+                    generateFieldData ( name, tipe ) =
+                        name ++ " = " ++ (generateData allTypes instantiatedTypeVars tipe)
+                in
+                    "{"
+                        ++ (fields
+                                |> List.map generateFieldData
+                                |> String.join ", "
+                           )
+                        ++ "}"
 
 
 generateFromUnionType : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedUnionR -> String
 generateFromUnionType allTypes instantiatedTypeVars { name, typeVars, definition } =
-    definition
-        |> unsafeListHead
-        |> generateFromTypeConstructor allTypes instantiatedTypeVars
+    let
+        firstConstructor =
+            definition
+                |> unsafeListHead
+    in
+        firstConstructor |> generateFromTypeConstructor allTypes instantiatedTypeVars
 
 
 generateFromTypeConstructor : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedTypeConstructor -> String

@@ -209,6 +209,12 @@ update msg model =
                     case isFinished newModel of
                         True ->
                             let
+                                simplifiedAllModuleInfos =
+                                    simplifyAllModulesInfo newModel.allModulesInfo newModel.subjectModuleInfo
+
+                                _ =
+                                    Debug.log "\n\n\n FINISHED simplifiedAllModuleInfos\n" simplifiedAllModuleInfos
+
                                 _ =
                                     Debug.log "\n\n\n FINISHED moduleInfos\n" (getLoadedModuleInfos newModel)
 
@@ -220,18 +226,18 @@ update msg model =
                             in
                                 generateViewFunctions
                                     { subjectModuleInfo = newModel.subjectModuleInfo
-                                    , allModulesInfo = simplifyAllModulesInfo newModel.allModulesInfo
+                                    , allModulesInfo = simplifiedAllModuleInfos
                                     }
-                                    |> List.map (Debug.log "viewFunction")
+                                    |> List.map (Debug.log "\n\nviewFunction")
 
                         False ->
                             []
 
                 _ =
-                    Debug.log "failedLoads" (getFailedLoads newModel)
+                    Debug.log "\n\nfailedLoads" (getFailedLoads newModel)
 
                 _ =
-                    Debug.log "isFinished" (isFinished newModel)
+                    Debug.log "\n\nisFinished" (isFinished newModel)
             in
                 ( newModel, cmd )
 
@@ -434,8 +440,9 @@ readSourceFilesSubscription =
 
 simplifyAllModulesInfo :
     AllModulesInfo
+    -> ModuleInfo
     -> Dict DottedModulePath ModuleInfo
-simplifyAllModulesInfo allModulesInfo =
+simplifyAllModulesInfo allModulesInfo subjectModuleInfo =
     allModulesInfo
         |> Dict.toList
         |> List.filterMap
@@ -448,6 +455,7 @@ simplifyAllModulesInfo allModulesInfo =
                         Nothing
             )
         |> Dict.fromList
+        |> Dict.insert subjectModuleInfo.dottedModulePath subjectModuleInfo
 
 
 
