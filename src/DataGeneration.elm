@@ -3,96 +3,62 @@ module DataGeneration exposing (..)
 import Dict exposing (Dict)
 import Helpers exposing (unsafeDictGet, unsafeListHead)
 import Types exposing (..)
-
-
-type alias ModulesInfo =
-    Dict DottedModuleName ModuleInfo
-
-
-type alias AllTypes =
-    { subjectModuleInfo : ModuleInfo
-    , allModulesInfo : ModulesInfo
-    }
+import ToQualified exposing (qualifyAllTypes)
 
 
 type alias InstantiatedTypeVars =
-    List Type
+    List QualifiedType
 
 
 generateViewFunctions : AllTypes -> List String
-generateViewFunctions ({ subjectModuleInfo, allModulesInfo } as allTypes) =
-    subjectModuleInfo.viewFunctions
-        |> Dict.toList
-        |> List.map (generateViewFunction allTypes)
+generateViewFunctions unqualifiedAllTypes =
+    let
+        ({ subjectModuleInfo, allModulesInfo } as allTypes) =
+            qualifyAllTypes unqualifiedAllTypes
+    in
+        subjectModuleInfo.viewFunctions
+            |> Dict.toList
+            |> List.map (generateViewFunction allTypes)
 
 
-generateViewFunction : AllTypes -> ( String, Type ) -> String
+generateViewFunction : QualifiedAllTypes -> ( String, QualifiedType ) -> String
 generateViewFunction allTypes ( functionName, functionTipe ) =
     let
         innards =
-            generateData allTypes functionTipe
+            generateData allTypes [] functionTipe
     in
         "staticView = " ++ functionName ++ " " ++ innards
 
 
-qualifyType : ModuleInfo -> Type -> QualifiedType
-qualifyType subjectModuleInfo tipe =
+generateData : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedType -> String
+generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) instantiatedTypeVars tipe =
     case tipe of
-        Var varName ->
-            QualifiedVar varName
-
-        Lambda leftTipe rightTipe ->
-            QualifiedLambda
-                (qualifyType subjectModuleInfo leftTipe)
-                (qualifyType subjectModuleInfo rightTipe)
-
-        Tuple tipes ->
-            QualifiedTuple (tipes |> List.map (qualifyType subjectModuleInfo))
-
-        Type typeName typeArgs ->
-            QualifiedType
-                (qualifyExternalName subjectModuleInfo.externalNamesModuleInfo typeName)
-                (typeArgs |> List.map (qualifyType subjectModuleInfo))
-
-        Record fields maybeString ->
+        QualifiedVar varName ->
             let
-                qualifiedFields =
-                    fields
-                        |> List.map
-                            (\( name, tipe ) ->
-                                ( name
-                                , qualifyType subjectModuleInfo tipe
-                                )
-                            )
+                instantiatedType =
+                    unsafeListHead instantiatedTypeVars
             in
-                QualifiedRecord qualifiedFields maybeString
+                generateData allTypes instantiatedTypeVars instantiatedType
 
-
-generateData : AllTypes -> Type -> String
-generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
-    case tipe of
-        Var varName ->
-            "TYPEVAR_TODO!"
-
-        Lambda leftTipe rightTipe ->
+        QualifiedLambda leftTipe rightTipe ->
             let
                 left =
-                    generateData allTypes leftTipe
+                    generateData allTypes instantiatedTypeVars leftTipe
             in
                 case rightTipe of
-                    Lambda _ _ ->
-                        left ++ " " ++ (generateData allTypes rightTipe)
+                    QualifiedLambda _ _ ->
+                        left ++ " " ++ (generateData allTypes instantiatedTypeVars rightTipe)
 
                     _ ->
                         left
 
-        Tuple tipes ->
+        QualifiedTuple tipes ->
             "("
-                ++ (tipes |> List.map (generateData allTypes) |> String.join ", ")
+                ++ (tipes |> List.map (generateData allTypes instantiatedTypeVars) |> String.join ", ")
                 ++ ")"
 
-        Type typeName typeArguments ->
-            case typeName of
+        QualifiedType ({ dottedModulePath, name } as qualifiedName) typeArguments ->
+            case name of
                 "Int" ->
                     "1"
 
@@ -113,7 +79,7 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
                         listType =
                             unsafeListHead typeArguments
                     in
-                        "[" ++ generateData allTypes listType ++ "]"
+                        "[" ++ generateData allTypes instantiatedTypeVars listType ++ "]"
 
                 _ ->
                     let
@@ -122,12 +88,12 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
                         _ =
                             1
                     in
-                        substituteType allTypes typeName typeArguments
+                        substituteType allTypes qualifiedName typeArguments
 
-        Record fields _ ->
+        QualifiedRecord fields _ ->
             let
                 generateFieldData ( name, tipe ) =
-                    name ++ " = " ++ (generateData allTypes tipe)
+                    name ++ " = " ++ (generateData allTypes instantiatedTypeVars tipe)
             in
                 "{"
                     ++ (fields
@@ -137,18 +103,18 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) tipe =
                     ++ "}"
 
 
-generateFromUnionType : AllTypes -> UnionR -> String
-generateFromUnionType allTypes { name, typeVars, definition } =
+generateFromUnionType : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedUnionR -> String
+generateFromUnionType allTypes instantiatedTypeVars { name, typeVars, definition } =
     definition
         |> unsafeListHead
-        |> generateFromTypeConstructor allTypes
+        |> generateFromTypeConstructor allTypes instantiatedTypeVars
 
 
-generateFromTypeConstructor : AllTypes -> TypeConstructor -> String
-generateFromTypeConstructor allTypes ( name, args ) =
+generateFromTypeConstructor : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedTypeConstructor -> String
+generateFromTypeConstructor allTypes instantiateTypeVars ( name, args ) =
     let
         generateArg tipe =
-            " ( " ++ generateData allTypes tipe ++ " ) "
+            " ( " ++ generateData allTypes instantiateTypeVars tipe ++ " ) "
 
         argsString =
             List.map generateArg args |> String.join " "
@@ -160,61 +126,20 @@ generateFromTypeConstructor allTypes ( name, args ) =
 -- We need the full type, not just the type name
 
 
-substituteType : AllTypes -> String -> InstantiatedTypeVars -> String
-substituteType ({ subjectModuleInfo, allModulesInfo } as allTypes) typeName instantiatedTypeVars =
-    case Dict.get typeName subjectModuleInfo.localTypeAliases of
-        Just tipe ->
-            generateData allTypes tipe
-
-        Nothing ->
-            case Dict.get typeName subjectModuleInfo.localUnionTypes of
-                Just unionDefinition ->
-                    generateFromUnionType allTypes unionDefinition
-
-                Nothing ->
-                    -- unsafeDictGet "DataGeneration.elm line 118" typeName subjectModuleInfo.externalNamesModuleInfo
-                    let
-                        qualifiedExternalName =
-                            qualifyExternalName subjectModuleInfo.externalNamesModuleInfo typeName
-                    in
-                        substituteExternalType allTypes.allModulesInfo instantiatedTypeVars qualifiedExternalName
-
-
-
--- case Dict.get typeName subjectModuleInfo.externalNamesModuleInfo of
---     -- This is where I think we need to "reach in" and get the instantiated type vars
---     Just exteralNamesModuleInfo ->
---         let
---             _ =
---                 Debug.log "substituteType: typeName" typeName
---
---             _ =
---                 Debug.log "substituteType: instantiatedTypeVars" instantiatedTypeVars
---         in
---             substituteExternalType allTypes.allModulesInfo instantiatedTypeVars exteralNamesModuleInfo
---
---     Nothing ->
---         Debug.crash ("couldnt find " ++ typeName ++ " in " ++ toString allTypes)
-
-
-qualifyExternalName : ExternalNamesModuleInfo -> String -> { dottedModulePath : String, name : String }
-qualifyExternalName externalNamesModuleInfo name =
-    case Dict.get name externalNamesModuleInfo of
-        Just externalNamesModuleInfo ->
-            externalNamesModuleInfo
-
-        Nothing ->
-            Debug.crash ("couldnt find " ++ name ++ " in " ++ toString externalNamesModuleInfo)
-
-
-substituteExternalType :
-    ModulesInfo
-    -> InstantiatedTypeVars
-    -> { dottedModulePath : String, name : String }
-    -> String
-substituteExternalType modulesInfo instantiatedTypeVars { dottedModulePath, name } =
+substituteType : QualifiedAllTypes -> QualifiedName -> InstantiatedTypeVars -> String
+substituteType ({ allModulesInfo } as allTypes) ({ dottedModulePath, name } as qualifiedName) instantiatedTypeVars =
     let
-        moduleInfo =
-            unsafeDictGet "DataGeneration.elm line 129" dottedModulePath modulesInfo
+        subjectModuleInfo =
+            allModulesInfo |> unsafeDictGet "DataGeneration.elm 129" dottedModulePath
     in
-        substituteType { subjectModuleInfo = moduleInfo, allModulesInfo = modulesInfo } name instantiatedTypeVars
+        case Dict.get name subjectModuleInfo.typeAliases of
+            Just tipe ->
+                generateData allTypes instantiatedTypeVars tipe
+
+            Nothing ->
+                case Dict.get name subjectModuleInfo.unionTypes of
+                    Just unionDefinition ->
+                        generateFromUnionType allTypes instantiatedTypeVars unionDefinition
+
+                    Nothing ->
+                        Debug.crash ("could not find " ++ toString qualifiedName)

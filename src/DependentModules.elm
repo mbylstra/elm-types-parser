@@ -58,6 +58,7 @@ getModuleInfo { sourceCode, relevantNames } =
         , localTypeAliases = localTypeAliases
         , externalNamesModuleInfo = getExternalNamesModuleInfo externalNames imports
         , viewFunctions = Dict.empty -- irrelevant
+        , dottedModulePath = ModuleInfo.getDottedModulePath blocks
         }
 
 

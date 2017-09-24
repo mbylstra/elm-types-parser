@@ -13,7 +13,7 @@ import PackageInfo exposing (PackageInfo)
 import Path.Posix as Path exposing (dropFileName, joinPath, takeDirectory)
 import ReadSourceFiles
 import SubjectModuleInfo
-import Types exposing (DottedModuleName, ModuleInfo, ModuleToModuleInfo, ModuleToSource)
+import Types exposing (DottedModulePath, ModuleInfo, ModuleToModuleInfo, ModuleToSource)
 
 
 {- REMOVE WHEN COMPILER BUG IS FIXED -}
@@ -72,7 +72,7 @@ type EitherModuleInfo
 
 
 type alias AllModulesInfo =
-    Dict DottedModuleName
+    Dict DottedModulePath
         { relevantNames : List String
         , eitherModuleInfo : EitherModuleInfo
         }
@@ -81,7 +81,7 @@ type alias AllModulesInfo =
 type Msg
     = Stop
     | Abort
-    | ReadSourceFilesMsg DottedModuleName ReadSourceFiles.Msg
+    | ReadSourceFilesMsg DottedModulePath ReadSourceFiles.Msg
     | ReadElmPackageInfoContentsResult (List ( String, String ))
 
 
@@ -147,7 +147,7 @@ isFinished model =
         |> allTrue
 
 
-getLoadedModuleInfos : Model -> Dict DottedModuleName ModuleInfo
+getLoadedModuleInfos : Model -> Dict DottedModulePath ModuleInfo
 getLoadedModuleInfos model =
     model.allModulesInfo
         |> Dict.toList
@@ -304,12 +304,12 @@ updateWithElmPackageInfoContentsResult tupleList model =
 
 
 updateAllModulesInfoForRsf :
-    DottedModuleName
+    DottedModulePath
     -> ReadSourceFiles.Msg
     -> AllModulesInfo
     ->
         { newAllModulesInfo : AllModulesInfo
-        , newExternalModules : List { moduleName : DottedModuleName, relevantNames : List String }
+        , newExternalModules : List { moduleName : DottedModulePath, relevantNames : List String }
         , rsfCmd : Cmd ReadSourceFiles.Msg
         }
 updateAllModulesInfoForRsf moduleName rsfMsg allModulesInfo =
@@ -337,7 +337,7 @@ updateAllModulesInfoForRsf moduleName rsfMsg allModulesInfo =
 
                                 newExternalModules :
                                     List
-                                        { moduleName : DottedModuleName
+                                        { moduleName : DottedModulePath
                                         , relevantNames : List String
                                         }
                                 newExternalModules =
@@ -374,7 +374,7 @@ updateAllModulesInfoForRsf moduleName rsfMsg allModulesInfo =
 addNewExternalModules :
     List String
     -> AllModulesInfo
-    -> List { moduleName : DottedModuleName, relevantNames : List String }
+    -> List { moduleName : DottedModulePath, relevantNames : List String }
     -> ( AllModulesInfo, List (Cmd Msg) )
 addNewExternalModules sourceDirectories allModulesInfo newExternalModules =
     -- this is really naive as it assumes we only pass over a module once.
@@ -434,7 +434,7 @@ readSourceFilesSubscription =
 
 simplifyAllModulesInfo :
     AllModulesInfo
-    -> Dict DottedModuleName ModuleInfo
+    -> Dict DottedModulePath ModuleInfo
 simplifyAllModulesInfo allModulesInfo =
     allModulesInfo
         |> Dict.toList

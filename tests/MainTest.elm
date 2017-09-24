@@ -57,6 +57,7 @@ suite =
                           , { dottedModulePath = "ModuleA", name = "Foo" }
                           )
                         ]
+                , dottedModulePath = "Main"
                 }
 
             ( initialModel, cmd ) =
@@ -139,6 +140,7 @@ suite =
                                                   )
                                                 ]
                                         , viewFunctions = Dict.fromList []
+                                        , dottedModulePath = "ModuleA"
                                         }
                                 }
                               )
@@ -175,7 +177,7 @@ suite =
 
 subjectSourceCode : String
 subjectSourceCode =
-    """module SomeComponent exposing (..)
+    """module Main exposing (..)
 
 import ModuleA exposing (Foo)
 

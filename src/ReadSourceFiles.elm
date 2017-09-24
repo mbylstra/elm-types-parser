@@ -3,7 +3,7 @@ port module ReadSourceFiles exposing (..)
 import Dict exposing (Dict)
 import Helpers exposing (qualifiedNameToPath)
 import Maybe.Extra exposing (isJust, isNothing)
-import Types exposing (DottedModuleName, ModuleToSource, SourceCode)
+import Types exposing (DottedModulePath, ModuleToSource, SourceCode)
 
 
 type alias Model =
@@ -167,7 +167,7 @@ getGoal model =
         Err model
 
 
-subscription : Sub ( DottedModuleName, Msg )
+subscription : Sub ( DottedModulePath, Msg )
 subscription =
     readElmModuleResult ReadElmModuleResult
         |> Sub.map

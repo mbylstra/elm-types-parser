@@ -3,11 +3,13 @@ module FirstPass exposing (..)
 import String.Extra
 import ElmTypesParser exposing (parseTypeAlias, parseTypeAnnotation, parseUnion)
 import ImportStatement exposing (importStatement, parseImportStatement)
+import ModuleStatement exposing (parseModuleStatement)
 import Parser
 import Types
     exposing
-        ( Block(Import, IgnoreBlock, TypeAliasDefinition, Union, TypeAnnotation)
+        ( Block(Import, IgnoreBlock, TypeAliasDefinition, Union, TypeAnnotation, Module)
         , ImportStatement
+        , ModuleStatement
         )
 
 
@@ -123,7 +125,8 @@ parseBlock rawBlock =
                 |> Result.map TypeAnnotation
 
         ModuleStatementBlock string ->
-            Ok IgnoreBlock
+            parseModuleStatement string
+                |> Result.map Module
 
         FunctionDefinitionBlock string ->
             Ok IgnoreBlock

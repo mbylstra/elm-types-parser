@@ -94,7 +94,8 @@ suite =
                     |> Expect.equal [ "ExternalName1" ]
         , test "getModulesToParse" <|
             \_ ->
-                ([ "import A exposing (Foo)"
+                ([ "module Main exposing (..)"
+                 , "import A exposing (Foo)"
                  , "import B.C"
                  , "import C.D as D"
                  , "import E"

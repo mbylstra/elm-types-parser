@@ -2,7 +2,7 @@ module ModuleInfo exposing (..)
 
 import Types
     exposing
-        ( Block(TypeAnnotation, TypeAliasDefinition, Union, Import)
+        ( Block(TypeAnnotation, TypeAliasDefinition, Union, Import, Module)
         , Type(Var, Lambda, Tuple, Type, Record)
         , TypeAnnotation
         , TypeAliasDefinitionR
@@ -15,7 +15,7 @@ import Types
         , LocalUnionTypes
         , Name
         , ViewFunctions
-        , DottedModuleName
+        , DottedModulePath
         )
 import Dict exposing (Dict)
 import Helpers exposing (groupByFirstTupleItem, anyTrue)
@@ -24,12 +24,28 @@ import ImportStatement
     exposing
         ( isExplicitlyInImportStatement
         )
+import Helpers exposing (unsafeListHead)
 
 
 type alias LocalTypeDefinitions =
     { unionTypes : Dict Name UnionR
     , typeAliases : Dict Name Type
     }
+
+
+getDottedModulePath : List Block -> String
+getDottedModulePath blocks =
+    blocks
+        |> List.filterMap
+            (\block ->
+                case block of
+                    Module dottedModulePath ->
+                        Just dottedModulePath
+
+                    _ ->
+                        Nothing
+            )
+        |> unsafeListHead
 
 
 getTypeAliases : List Block -> Dict Name Type
@@ -126,6 +142,7 @@ coreTypes =
     , "List"
     , "Attribute"
     , "Dict"
+    , "Html" -- just temporary!
     ]
 
 
@@ -150,7 +167,7 @@ isCoreName name =
 
 groupNamesByModule :
     ExternalNamesModuleInfo
-    -> List { moduleName : DottedModuleName, relevantNames : List String }
+    -> List { moduleName : DottedModulePath, relevantNames : List String }
 groupNamesByModule externalNamesModuleInfo =
     externalNamesModuleInfo
         |> Dict.values

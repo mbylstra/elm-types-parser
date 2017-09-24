@@ -4,11 +4,18 @@ import Dict exposing (Dict)
 
 
 type Block
-    = TypeAliasDefinition TypeAliasDefinitionR
+    = Module ModuleStatement
+    | TypeAliasDefinition TypeAliasDefinitionR
     | Union UnionR
     | Import ImportStatement
     | TypeAnnotation TypeAnnotation
     | IgnoreBlock
+
+
+{-| it's just the dotted module name for now
+-}
+type alias ModuleStatement =
+    String
 
 
 type Type
@@ -35,8 +42,16 @@ type alias TypeConstructor =
     ( String, TypeConstructorArgs )
 
 
+type alias QualifiedTypeConstructor =
+    ( String, QualifiedTypeConstructorArgs )
+
+
 type alias TypeConstructorArgs =
     List Type
+
+
+type alias QualifiedTypeConstructorArgs =
+    List QualifiedType
 
 
 type alias UnionR =
@@ -46,8 +61,19 @@ type alias UnionR =
     }
 
 
+type alias QualifiedUnionR =
+    { name : String
+    , typeVars : List String
+    , definition : QualifiedUnionDefinition
+    }
+
+
 type alias UnionDefinition =
     List TypeConstructor
+
+
+type alias QualifiedUnionDefinition =
+    List QualifiedTypeConstructor
 
 
 type alias TypeAliasDefinitionR =
@@ -79,10 +105,19 @@ type alias Listing =
 
 
 type alias ModuleInfo =
-    { viewFunctions : ViewFunctions
+    { dottedModulePath : String
+    , viewFunctions : ViewFunctions
     , localTypeAliases : LocalTypeAliases
     , localUnionTypes : LocalUnionTypes
     , externalNamesModuleInfo : ExternalNamesModuleInfo
+    }
+
+
+type alias QualifiedModuleInfo =
+    { dottedModulePath : String
+    , viewFunctions : Dict Name QualifiedType
+    , typeAliases : Dict Name QualifiedType
+    , unionTypes : Dict Name QualifiedUnionR
     }
 
 
@@ -115,7 +150,7 @@ type alias Name =
     String
 
 
-type alias DottedModuleName =
+type alias DottedModulePath =
     String
 
 
@@ -124,8 +159,24 @@ type alias SourceCode =
 
 
 type alias ModuleToSource =
-    Dict DottedModuleName SourceCode
+    Dict DottedModulePath SourceCode
 
 
 type alias ModuleToModuleInfo =
-    Dict DottedModuleName (Maybe ModuleInfo)
+    Dict DottedModulePath (Maybe ModuleInfo)
+
+
+type alias AllTypes =
+    { subjectModuleInfo : ModuleInfo
+    , allModulesInfo : ModulesInfo
+    }
+
+
+type alias QualifiedAllTypes =
+    { subjectModuleInfo : QualifiedModuleInfo
+    , allModulesInfo : Dict DottedModulePath QualifiedModuleInfo
+    }
+
+
+type alias ModulesInfo =
+    Dict DottedModulePath ModuleInfo

@@ -13,7 +13,6 @@ import Types
         , LocalUnionTypes
         , Name
         , ViewFunctions
-        , DottedModuleName
         )
 import Dict exposing (Dict)
 import ViewFunctionDetector exposing (isViewFunction)
@@ -68,6 +67,7 @@ getModuleInfo sourceCode =
         , localTypeAliases = localTypeAliases
         , viewFunctions = viewFunctions
         , externalNamesModuleInfo = getExternalNamesModuleInfo externalNames imports
+        , dottedModulePath = ModuleInfo.getDottedModulePath blocks
         }
 
 

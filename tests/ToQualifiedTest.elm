@@ -1,6 +1,6 @@
-module DataGenerationQualifyTypeTest exposing (..)
+module ToQualifiedTest exposing (..)
 
-import DataGeneration exposing (generateFromUnionType, qualifyType)
+import ToQualified exposing (qualifyType)
 import Dict
 import Expect exposing (Expectation, equalSets)
 import Test exposing (..)
@@ -22,6 +22,7 @@ suite =
                                 Dict.fromList
                                     [ ( "Maybe", { dottedModulePath = "Maybe", name = "Maybe" } )
                                     ]
+                            , dottedModulePath = "Maybe"
                             }
                     in
                         (qualifyType moduleInfo (Type "Maybe" [ Var "a" ]))
@@ -42,6 +43,7 @@ suite =
                                     [ ( "Maybe", { dottedModulePath = "Maybe", name = "Maybe" } )
                                     , ( "Foo.Bar", { dottedModulePath = "Foo", name = "Bar" } )
                                     ]
+                            , dottedModulePath = "Maybe"
                             }
                     in
                         (qualifyType moduleInfo (Type "Maybe" [ Type "Foo.Bar" [] ]))
@@ -52,11 +54,3 @@ suite =
                                 )
             ]
         ]
-
-
-
--- type alias AllTypes =
---     { subjectModuleInfo : ModuleInfo
---     , allModulesInfo : ModulesInfo
---     }
--- generateFromUnionType : AllTypes -> UnionR -> String
