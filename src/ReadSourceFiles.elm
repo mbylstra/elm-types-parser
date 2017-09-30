@@ -8,7 +8,7 @@ import Types exposing (DottedModulePath, ModuleToSource, SourceCode)
 
 type alias Model =
     { moduleName : String
-    , sourceCode : Maybe String
+    , maybeSourceCode : Maybe String
     , dirAttempts : Dict String DirAttempt
     }
 
@@ -48,7 +48,7 @@ type Msg
 
 
 type alias ReadElmModuleResultR =
-    { contents : Maybe String
+    { maybeContents : Maybe String
     , portScope : ReadElmModulePortScope
     }
 
@@ -77,8 +77,9 @@ port readElmModuleResult : (ReadElmModuleResultR -> msg) -> Sub msg
 -- port getFilenamesInDirReturned : (? -> msg) -> Sub msg
 
 
-init : { moduleName : String, sourceDirectories : List String } -> ( Model, Cmd Msg )
+init : { moduleName : String, sourceDirectories : List String } -> ( Model, List (Cmd Msg) )
 init { moduleName, sourceDirectories } =
+    -- rather than getting cmds, just run an update after initialising it ?
     let
         model =
             { moduleName = moduleName
@@ -87,27 +88,44 @@ init { moduleName, sourceDirectories } =
                     |> List.map
                         (((,) |> flip) DirNotAttemptedYet)
                     |> Dict.fromList
-            , sourceCode = Nothing
+            , maybeSourceCode = Nothing
             }
-
-        ( model2, cmds ) =
-            getNextCmds model
     in
-        model2 ! cmds
+        getNextCmds { model = model, maxCmdsReached = False }
 
 
-getNextCmds : Model -> ( Model, List (Cmd Msg) )
-getNextCmds ({ moduleName, sourceCode, dirAttempts } as model) =
-    case sourceCode of
-        Just _ ->
+{-| If a module has been lying dormant because the max number of commands was reached,
+then this can be used to kick it back into action, which should generate a msg which
+keeps the app running until it Finished
+-}
+kickBackIntoAction : Model -> ( Model, List (Cmd Msg) )
+kickBackIntoAction model =
+    getNextCmds { model = model, maxCmdsReached = False }
+
+
+getNextCmds : { model : Model, maxCmdsReached : Bool } -> ( Model, List (Cmd Msg) )
+getNextCmds { model, maxCmdsReached } =
+    let
+        { moduleName, maybeSourceCode, dirAttempts } =
+            model
+
+        _ =
+            Debug.log "numCmdsInFlight " (numCmdsInFlight model)
+    in
+        if maxCmdsReached || (numCmdsInFlight model >= 1) then
+            -- if maxCmdsReached then
             ( model, [] )
+        else
+            case maybeSourceCode of
+                Just _ ->
+                    ( model, [] )
 
-        Nothing ->
-            let
-                ( newDirAttempts, cmds ) =
-                    getNextCmdsForDirAttempts moduleName dirAttempts
-            in
-                ( { model | dirAttempts = newDirAttempts }, cmds )
+                Nothing ->
+                    let
+                        ( newDirAttempts, cmds ) =
+                            getNextCmdsForDirAttempts moduleName dirAttempts
+                    in
+                        ( { model | dirAttempts = newDirAttempts }, cmds )
 
 
 getNextCmdsForDirAttempts : String -> DirAttempts -> ( DirAttempts, List (Cmd Msg) )
@@ -115,7 +133,7 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
     originalDirAttempts
         |> Dict.toList
         |> List.foldl
-            (\( dirName, dirAttempt ) { dirAttempts, maybeCmds } ->
+            (\(( dirName, dirAttempt ) as listItem) ({ dirAttempts, cmds } as acc) ->
                 let
                     path : String
                     path =
@@ -123,33 +141,38 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
                             ++ "/"
                             ++ (qualifiedNameToPath moduleName)
 
-                    ( newDirAttempt, maybeCmd ) =
-                        case dirAttempt of
-                            DirNotAttemptedYet ->
-                                ( ( dirName, InFlight )
-                                , Just
-                                    (readElmModule
-                                        { path = path
-                                        , portScope =
-                                            { path = path
-                                            , dir = dirName
-                                            , moduleName = moduleName
-                                            }
-                                        }
-                                    )
-                                )
+                    ( newDirAttempt, newCmds ) =
+                        case cmds of
+                            [] ->
+                                case dirAttempt of
+                                    DirNotAttemptedYet ->
+                                        ( ( dirName, InFlight )
+                                        , [ readElmModule
+                                                { path = path
+                                                , portScope =
+                                                    { path = path
+                                                    , dir = dirName
+                                                    , moduleName = moduleName
+                                                    }
+                                                }
+                                          ]
+                                        )
 
-                            _ ->
-                                ( ( dirName, dirAttempt ), Nothing )
+                                    _ ->
+                                        ( listItem, [] )
+
+                            multipleCmds ->
+                                -- we only want to omit one cmd at a time, so lets just keep the existing command and let the fold run to the end
+                                ( listItem, multipleCmds )
                 in
                     { dirAttempts = newDirAttempt :: dirAttempts
-                    , maybeCmds = maybeCmd :: maybeCmds
+                    , cmds = newCmds
                     }
             )
-            { dirAttempts = [], maybeCmds = [] }
-        |> (\{ dirAttempts, maybeCmds } ->
+            { dirAttempts = [], cmds = [] }
+        |> (\{ dirAttempts, cmds } ->
                 ( dirAttempts |> Dict.fromList
-                , maybeCmds |> List.filterMap identity
+                , cmds
                 )
            )
 
@@ -162,7 +185,7 @@ getNextCmdsForDirAttempts moduleName originalDirAttempts =
 getGoal : Model -> Result Model SourceCode
 getGoal model =
     if isFinished model then
-        Ok (model.sourceCode |> Maybe.withDefault "")
+        Ok (model.maybeSourceCode |> Maybe.withDefault "")
     else
         Err model
 
@@ -180,7 +203,7 @@ subscription =
 
 isFinished : Model -> Bool
 isFinished model =
-    isJust model.sourceCode
+    isJust model.maybeSourceCode
 
 
 
@@ -237,10 +260,10 @@ hasFailed model =
         Nothing
 
 
-update : Msg -> Model -> { rsfModel : Model, rsfGoal : Maybe SourceCode, rsfCmd : Cmd Msg }
-update msg model =
+update : Msg -> Bool -> Model -> { rsfModel : Model, rsfGoal : Maybe SourceCode, rsfCmds : List (Cmd Msg) }
+update msg maxCmdsReached model =
     case msg of
-        ReadElmModuleResult { contents, portScope } ->
+        ReadElmModuleResult { maybeContents, portScope } ->
             let
                 model2 =
                     { model
@@ -248,17 +271,17 @@ update msg model =
                             model.dirAttempts
                                 |> Dict.update
                                     portScope.dir
-                                    (updateDirAttempt contents)
-                        , sourceCode = contents
+                                    (updateDirAttempt maybeContents)
+                        , maybeSourceCode = maybeContents
                     }
 
                 ( model3, cmds ) =
-                    getNextCmds model2
+                    getNextCmds { model = model2, maxCmdsReached = maxCmdsReached }
 
                 goal =
                     getGoal model3
             in
-                { rsfModel = model3, rsfCmd = Cmd.batch cmds, rsfGoal = goal |> Result.toMaybe }
+                { rsfModel = model3, rsfCmds = cmds, rsfGoal = goal |> Result.toMaybe }
 
 
 updateDirAttempt : Maybe String -> Maybe DirAttempt -> Maybe DirAttempt
@@ -273,3 +296,21 @@ updateDirAttempt maybeSourceCode maybeDirAttempt =
                     Nothing ->
                         DirFail
             )
+
+
+isInFlight : DirAttempt -> Bool
+isInFlight dirAttempt =
+    case dirAttempt of
+        InFlight ->
+            True
+
+        _ ->
+            False
+
+
+numCmdsInFlight : Model -> Int
+numCmdsInFlight model =
+    model.dirAttempts
+        |> Dict.values
+        |> List.filter isInFlight
+        |> List.length

@@ -293,19 +293,19 @@ getModulesToLoad info =
 
 getExternalNames : LocalTypeDefinitions -> List String -> List String
 getExternalNames localTypeDefinitions names =
-    getExternalNames_ localTypeDefinitions { namesToLookUp = names, externalNames = [] }
+    getExternalNames_ localTypeDefinitions { namesToLookUp = names, externalNames = [], doneLookingUp = [] }
         |> .externalNames
         |> List.filter (not << isCoreName)
 
 
 type alias ExternalNamesAcc =
-    { namesToLookUp : List String, externalNames : List String }
+    { namesToLookUp : List String, doneLookingUp : List String, externalNames : List String }
 
 
 getExternalNames_ : LocalTypeDefinitions -> ExternalNamesAcc -> ExternalNamesAcc
 getExternalNames_ localTypeDefinitions acc =
     let
-        { externalNames, namesToLookUp } =
+        { externalNames, namesToLookUp, doneLookingUp } =
             acc
 
         { unionTypes, typeAliases } =
@@ -316,26 +316,40 @@ getExternalNames_ localTypeDefinitions acc =
                 acc
 
             name :: moreNames ->
-                case getNameLocation localTypeDefinitions name of
-                    ExternalName ->
-                        getExternalNames_
-                            localTypeDefinitions
-                            { externalNames = name :: externalNames, namesToLookUp = moreNames }
-
-                    LocalUnionType unionDefinition ->
-                        let
-                            extraNames =
-                                getNamesInUnionDefinition unionDefinition
-                        in
+                if List.member name doneLookingUp then
+                    getExternalNames_
+                        localTypeDefinitions
+                        { acc | namesToLookUp = moreNames }
+                else
+                    case getNameLocation localTypeDefinitions name of
+                        ExternalName ->
                             getExternalNames_
                                 localTypeDefinitions
-                                { acc | namesToLookUp = moreNames ++ extraNames }
+                                { externalNames = name :: externalNames
+                                , doneLookingUp = name :: doneLookingUp
+                                , namesToLookUp = moreNames
+                                }
 
-                    LocalTypeAlias tipe ->
-                        let
-                            extraNames =
-                                getNames tipe
-                        in
-                            getExternalNames_
-                                localTypeDefinitions
-                                { acc | namesToLookUp = moreNames ++ extraNames }
+                        LocalUnionType unionDefinition ->
+                            let
+                                extraNames =
+                                    getNamesInUnionDefinition unionDefinition
+                            in
+                                getExternalNames_
+                                    localTypeDefinitions
+                                    { acc
+                                        | namesToLookUp = moreNames ++ extraNames
+                                        , doneLookingUp = name :: doneLookingUp
+                                    }
+
+                        LocalTypeAlias tipe ->
+                            let
+                                extraNames =
+                                    getNames tipe
+                            in
+                                getExternalNames_
+                                    localTypeDefinitions
+                                    { acc
+                                        | namesToLookUp = moreNames ++ extraNames
+                                        , doneLookingUp = name :: doneLookingUp
+                                    }

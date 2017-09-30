@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import Helpers exposing (unsafeDictGet, unsafeListHead)
 import Types exposing (..)
 import ToQualified exposing (qualifyAllTypes)
+import String.Extra
 
 
 type alias InstantiatedTypeVars =
@@ -23,25 +24,42 @@ generateViewFunctions unqualifiedAllTypes =
 
 generateViewFunction : QualifiedAllTypes -> DottedModulePath -> ( String, QualifiedType ) -> String
 generateViewFunction allTypes dottedModulePath ( functionName, functionType ) =
-    case functionType of
-        QualifiedLambda leftType rightType ->
-            let
-                argTypes : List QualifiedType
-                argTypes =
-                    lambdaToList leftType rightType
+    let
+        imports =
+            Dict.keys allTypes.allModulesInfo
+                |> List.map (\dottedModulePath -> "import " ++ dottedModulePath)
+                |> (::) "import Html"
+                |> String.join "\n"
+    in
+        case functionType of
+            QualifiedLambda leftType rightType ->
+                let
+                    argTypes : List QualifiedType
+                    argTypes =
+                        lambdaToList leftType rightType
+                            -- remove the last arg (it's just the Html msg one at the end)
+                            |> List.reverse
+                            |> List.drop 1
+                            |> List.reverse
 
-                args =
-                    argTypes
-                        |> List.map (generateData allTypes [])
-                        |> List.map (\arg -> "(" ++ arg ++ ")")
+                    args =
+                        argTypes
+                            |> List.map (generateData allTypes [])
+                            |> List.map (\arg -> "(" ++ arg ++ ")")
 
-                qualifiedFunctionName =
-                    dottedModulePath ++ "." ++ functionName
-            in
-                "staticView = " ++ qualifiedFunctionName ++ " " ++ (args |> String.join "")
+                    qualifiedFunctionName =
+                        dottedModulePath ++ "." ++ functionName
+                in
+                    imports
+                        ++ "\nstaticView = "
+                        ++ qualifiedFunctionName
+                        ++ " "
+                        ++ (args |> String.join "")
+                        |> String.Extra.replace ", " ",\n"
 
-        _ ->
-            Debug.crash "We are only dealing with functions that take args at the moment"
+            -- this is so that elm format makes things nicer
+            _ ->
+                Debug.crash "We are only dealing with functions that take args at the moment"
 
 
 lambdaToList : QualifiedType -> QualifiedType -> List QualifiedType
@@ -58,79 +76,79 @@ lambdaToList leftType rightType =
 
 generateData : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedType -> String
 generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) instantiatedTypeVars tipe =
-    let
-        _ =
-            Debug.log "instantiatedTypeVars" instantiatedTypeVars
-    in
-        case tipe of
-            QualifiedVar varName ->
-                case List.head instantiatedTypeVars of
-                    Just instantiatedType ->
-                        case instantiatedType of
-                            QualifiedVar _ ->
-                                "\"String was chosen for wildcard type\""
+    case tipe of
+        QualifiedVar varName ->
+            case List.head instantiatedTypeVars of
+                Just instantiatedType ->
+                    case instantiatedType of
+                        QualifiedVar _ ->
+                            "\"String was chosen for wildcard type\""
 
-                            _ ->
-                                generateData allTypes instantiatedTypeVars (Debug.log "instantiatedType" instantiatedType)
+                        _ ->
+                            generateData allTypes instantiatedTypeVars (Debug.log "instantiatedType" instantiatedType)
 
-                    Nothing ->
-                        "\"String was chosen for wildcard type\""
+                Nothing ->
+                    "\"String was chosen for wildcard type\""
 
-            QualifiedLambda leftType rightType ->
-                generateLambda allTypes instantiatedTypeVars leftType rightType
+        QualifiedLambda leftType rightType ->
+            generateLambda allTypes instantiatedTypeVars leftType rightType
 
-            QualifiedTuple tipes ->
-                "("
-                    ++ (tipes |> List.map (generateData allTypes instantiatedTypeVars) |> String.join ", ")
-                    ++ ")"
+        QualifiedTuple tipes ->
+            "("
+                ++ (tipes |> List.map (generateData allTypes instantiatedTypeVars) |> String.join ", ")
+                ++ ")"
 
-            QualifiedType ({ dottedModulePath, name } as qualifiedName) typeArguments ->
-                case name of
-                    "Int" ->
-                        "1"
+        QualifiedType ({ dottedModulePath, name } as qualifiedName) typeArguments ->
+            case name of
+                "Int" ->
+                    "1"
 
-                    "String" ->
-                        "\"a string\""
+                "String" ->
+                    "\"a string\""
 
-                    "Bool" ->
-                        "True"
+                "Bool" ->
+                    "True"
 
-                    "Float" ->
-                        "1.0"
+                "Float" ->
+                    "1.0"
 
-                    "Html" ->
-                        """(Html.text "hello")"""
+                "Html" ->
+                    """(Html.text "hello")"""
 
-                    "List" ->
-                        let
-                            listType =
-                                unsafeListHead typeArguments
-                        in
-                            "[" ++ generateData allTypes instantiatedTypeVars listType ++ "]"
+                "List" ->
+                    let
+                        listType =
+                            unsafeListHead typeArguments
+                    in
+                        "[" ++ generateData allTypes instantiatedTypeVars listType ++ "]"
 
-                    "Date" ->
-                        "Date.fromTime 1506233184"
+                "Date" ->
+                    "Date.fromTime 1506233184"
 
-                    _ ->
-                        let
-                            -- typeArguments
-                            -- |> List.map qualifyTypeArgument
-                            _ =
-                                1
-                        in
-                            substituteType allTypes qualifiedName typeArguments
+                -- This is just temporary for a proof of concept
+                "DatePicker" ->
+                    "DatePicker.init DatePicker.defaultSettings |> Tuple.first"
 
-            QualifiedRecord fields _ ->
-                let
-                    generateFieldData ( name, tipe ) =
-                        name ++ " = " ++ (generateData allTypes instantiatedTypeVars tipe)
-                in
-                    "{"
-                        ++ (fields
-                                |> List.map generateFieldData
-                                |> String.join ", "
-                           )
-                        ++ "}"
+                _ ->
+                    let
+                        -- typeArguments
+                        -- |> List.map qualifyTypeArgument
+                        _ =
+                            1
+                    in
+                        substituteType allTypes qualifiedName typeArguments
+
+        QualifiedRecord fields _ ->
+            let
+                generateFieldData ( name, tipe ) =
+                    name ++ " = " ++ (generateData allTypes instantiatedTypeVars tipe)
+            in
+                "{"
+                    ++ (fields
+                            |> List.map generateFieldData
+                            |> String.join ", "
+                       )
+                    ++ "}"
 
 
 generateLambda : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedType -> QualifiedType -> String
@@ -157,18 +175,18 @@ generateLambda allTypes instantiatedTypeVars leftType rightType =
            )
 
 
-generateFromUnionType : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedUnionR -> String
-generateFromUnionType allTypes instantiatedTypeVars { name, typeVars, definition } =
+generateFromUnionType : QualifiedAllTypes -> DottedModulePath -> InstantiatedTypeVars -> QualifiedUnionR -> String
+generateFromUnionType allTypes dottedModulePath instantiatedTypeVars { name, typeVars, definition } =
     let
         firstConstructor =
             definition
                 |> unsafeListHead
     in
-        firstConstructor |> generateFromTypeConstructor allTypes instantiatedTypeVars
+        firstConstructor |> generateFromTypeConstructor allTypes dottedModulePath instantiatedTypeVars
 
 
-generateFromTypeConstructor : QualifiedAllTypes -> InstantiatedTypeVars -> QualifiedTypeConstructor -> String
-generateFromTypeConstructor allTypes instantiateTypeVars ( name, args ) =
+generateFromTypeConstructor : QualifiedAllTypes -> DottedModulePath -> InstantiatedTypeVars -> QualifiedTypeConstructor -> String
+generateFromTypeConstructor allTypes dottedModulePath instantiateTypeVars ( name, args ) =
     let
         generateArg tipe =
             " ( " ++ generateData allTypes instantiateTypeVars tipe ++ " ) "
@@ -176,7 +194,7 @@ generateFromTypeConstructor allTypes instantiateTypeVars ( name, args ) =
         argsString =
             List.map generateArg args |> String.join " "
     in
-        name ++ " " ++ argsString
+        dottedModulePath ++ "." ++ name ++ " " ++ argsString
 
 
 
@@ -188,9 +206,6 @@ substituteType ({ allModulesInfo } as allTypes) ({ dottedModulePath, name } as q
     let
         subjectModuleInfo =
             allModulesInfo |> unsafeDictGet "DataGeneration.elm 129" dottedModulePath
-
-        _ =
-            Debug.log "subjectModuleInfo" subjectModuleInfo
     in
         case Dict.get name subjectModuleInfo.typeAliases of
             Just tipe ->
@@ -199,7 +214,7 @@ substituteType ({ allModulesInfo } as allTypes) ({ dottedModulePath, name } as q
             Nothing ->
                 case Dict.get name subjectModuleInfo.unionTypes of
                     Just unionDefinition ->
-                        generateFromUnionType allTypes instantiatedTypeVars unionDefinition
+                        generateFromUnionType allTypes dottedModulePath instantiatedTypeVars unionDefinition
 
                     Nothing ->
                         Debug.crash ("could not find " ++ toString qualifiedName)

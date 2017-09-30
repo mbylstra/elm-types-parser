@@ -82,6 +82,25 @@ suite =
                                   )
                                 ]
                             )
+        , test "getExternalNames for recursive union type" <|
+            \_ ->
+                let
+                    localTypeDefinitions =
+                        { unionTypes =
+                            Dict.fromList
+                                [ ( "RecursiveType"
+                                  , UnionR "RecursiveType"
+                                        []
+                                        [ ( "RecurseMe", [ Type "RecursiveType" [] ] )
+                                        , ( "StopRecursing", [] )
+                                        ]
+                                  )
+                                ]
+                        , typeAliases = Dict.empty
+                        }
+                in
+                    getExternalNames localTypeDefinitions [ "RecursiveType" ]
+                        |> Expect.equal []
 
         -- (Type "Maybe" [ Type "Int" [] ])
         --     |> getNames

@@ -12,6 +12,7 @@ import ReadSourceFiles
         , getGoal
         , readElmModule
         , init
+        , getNextCmdsForDirAttempts
         )
 import Test exposing (..)
 
@@ -19,7 +20,7 @@ import Test exposing (..)
 suite : Test
 suite =
     describe "ReadSourceFiles"
-        [ describe "qualifiedNameToPath"
+        [ describe "misc"
             [ test "atLeastOneSuccess" <|
                 \_ ->
                     (Dict.fromList
@@ -46,7 +47,7 @@ suite =
                         model : Model
                         model =
                             { moduleName = "Module1"
-                            , sourceCode = Nothing
+                            , maybeSourceCode = Nothing
                             , dirAttempts =
                                 Dict.fromList
                                     [ ( "dir1", DirNotAttemptedYet )
@@ -54,27 +55,27 @@ suite =
                             }
 
                         result =
-                            getNextCmds model
+                            getNextCmds { model = model, maxCmdsReached = False }
                     in
                         result
                             |> Expect.all
                                 [ Tuple.first
                                     >> Expect.equal
                                         { moduleName = "Module1"
-                                        , sourceCode = Nothing
+                                        , maybeSourceCode = Nothing
                                         , dirAttempts =
                                             Dict.fromList
                                                 [ ( "dir1", InFlight )
                                                 ]
                                         }
-                                , Tuple.second >> List.length >> Expect.equal 1
+                                , Tuple.second >> (Expect.notEqual [])
                                 ]
             , test "getGoal with Nothing result" <|
                 \_ ->
                     let
                         model =
                             { moduleName = "Module1"
-                            , sourceCode = Nothing
+                            , maybeSourceCode = Nothing
                             , dirAttempts = Dict.fromList [ ( "dir1", DirNotAttemptedYet ) ]
                             }
                     in
@@ -86,7 +87,7 @@ suite =
                     let
                         model =
                             { moduleName = "Module1"
-                            , sourceCode = Just "x = 1"
+                            , maybeSourceCode = Just "x = 1"
                             , dirAttempts = Dict.fromList [ ( "dir1", DirSuccess ) ]
                             }
                     in
@@ -108,23 +109,74 @@ suite =
                             model
                                 |> Expect.equal
                                     { moduleName = "Foo"
-                                    , sourceCode = Nothing
+                                    , maybeSourceCode = Nothing
                                     , dirAttempts =
                                         Dict.fromList
                                             [ ( "dir1", InFlight )
-                                            , ( "dir2", InFlight )
+                                            , ( "dir2", DirNotAttemptedYet )
                                             ]
                                     }
                 , test "cmd" <|
                     \_ ->
                         let
-                            ( _, cmd ) =
+                            ( _, maybeCmd ) =
                                 init initArg
                         in
-                            cmd
+                            maybeCmd
                                 |> Expect.equal
-                                    (Cmd.batch
-                                        [ readElmModule
+                                    [ readElmModule
+                                        { path = "dir1/Foo.elm"
+                                        , portScope =
+                                            { path = "dir1/Foo.elm"
+                                            , dir = "dir1"
+                                            , moduleName = "Foo"
+                                            }
+                                        }
+                                    ]
+                ]
+            )
+        , describe "getNextCmdForDirAttempts"
+            (let
+                dirAttempts =
+                    Dict.fromList
+                        [ ( "dir1", DirNotAttemptedYet )
+                        , ( "dir2", DirNotAttemptedYet )
+                        ]
+             in
+                [ test "none attempted yet" <|
+                    \_ ->
+                        getNextCmdsForDirAttempts "Foo" dirAttempts
+                            |> Expect.equal
+                                ( Dict.fromList
+                                    [ ( "dir1", InFlight )
+                                    , ( "dir2", DirNotAttemptedYet )
+                                    ]
+                                , [ readElmModule
+                                        { path = "dir1/Foo.elm"
+                                        , portScope =
+                                            { path = "dir1/Foo.elm"
+                                            , dir = "dir1"
+                                            , moduleName = "Foo"
+                                            }
+                                        }
+                                  ]
+                                )
+                , test "one in flight" <|
+                    \_ ->
+                        let
+                            dirAttempts =
+                                Dict.fromList
+                                    [ ( "dir1", InFlight )
+                                    , ( "dir2", DirNotAttemptedYet )
+                                    ]
+                        in
+                            getNextCmdsForDirAttempts "Foo" dirAttempts
+                                |> Expect.equal
+                                    ( Dict.fromList
+                                        [ ( "dir1", InFlight )
+                                        , ( "dir2", InFlight )
+                                        ]
+                                    , [ readElmModule
                                             { path = "dir2/Foo.elm"
                                             , portScope =
                                                 { path = "dir2/Foo.elm"
@@ -132,15 +184,7 @@ suite =
                                                 , moduleName = "Foo"
                                                 }
                                             }
-                                        , readElmModule
-                                            { path = "dir1/Foo.elm"
-                                            , portScope =
-                                                { path = "dir1/Foo.elm"
-                                                , dir = "dir1"
-                                                , moduleName = "Foo"
-                                                }
-                                            }
-                                        ]
+                                      ]
                                     )
                 ]
             )

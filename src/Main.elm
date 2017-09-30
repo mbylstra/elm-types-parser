@@ -27,6 +27,9 @@ port readElmPackageInfoContents : List String -> Cmd msg
 port readElmPackageInfoContentsResult : (List ( String, String ) -> msg) -> Sub msg
 
 
+port writeOutput : String -> Cmd msg
+
+
 port exitApp : Float -> Cmd msg
 
 
@@ -182,70 +185,252 @@ getFailedLoads model =
         |> List.filterMap identity
 
 
+getUnfinishedLoads : Model -> List ReadSourceFiles.Model
+getUnfinishedLoads model =
+    model.allModulesInfo
+        |> Dict.toList
+        |> List.map
+            (\( moduleName, moduleInfo ) ->
+                (case moduleInfo.eitherModuleInfo of
+                    Loaded _ ->
+                        Nothing
+
+                    NotLoaded rsfModel ->
+                        case ReadSourceFiles.hasFailed rsfModel of
+                            Just _ ->
+                                Nothing
+
+                            Nothing ->
+                                Just rsfModel
+                )
+            )
+        |> List.filterMap identity
+
+
+classifyLoads :
+    Model
+    -> { loaded : List String, inFlight : List String, failed : List String }
+classifyLoads model =
+    model.allModulesInfo
+        |> Dict.toList
+        |> List.foldl
+            (\( moduleName, moduleInfo ) ({ inFlight, loaded, failed } as acc) ->
+                (case moduleInfo.eitherModuleInfo of
+                    Loaded _ ->
+                        { inFlight = inFlight, loaded = loaded ++ [ moduleName ], failed = failed }
+
+                    NotLoaded rsfModel ->
+                        case ReadSourceFiles.hasFailed rsfModel of
+                            Just _ ->
+                                { inFlight = inFlight, loaded = loaded, failed = failed ++ [ moduleName ] }
+
+                            Nothing ->
+                                { inFlight = inFlight ++ [ moduleName ], loaded = loaded, failed = failed }
+                )
+            )
+            { inFlight = [], loaded = [], failed = [] }
+
+
+type CurrentProgressState
+    = Finished
+    | Failed
+    | Doing
+
+
+getCurrentProgressState : Model -> CurrentProgressState
+getCurrentProgressState model =
+    let
+        { inFlight, loaded, failed } =
+            classifyLoads model
+    in
+        if not (List.isEmpty failed) then
+            Failed
+        else if not (List.isEmpty inFlight) then
+            Doing
+        else
+            Finished
+
+
+maxCmdsAtOnce : Int
+maxCmdsAtOnce =
+    3
+
+
+{-| Lets assume this will only ever be called if the module hasn't been loaded yet
+(there's not need to update it once it's loaded)
+-}
+updateReadSourceFilesModel : Model -> ReadSourceFiles.Model -> Model
+updateReadSourceFilesModel model rsfModel =
+    { model
+        | allModulesInfo =
+            model.allModulesInfo
+                |> Dict.update
+                    rsfModel.moduleName
+                    (Maybe.map
+                        (\moduleInfo ->
+                            case moduleInfo.eitherModuleInfo of
+                                Loaded loadedModuleInfo ->
+                                    -- We have to "repack" the data. Is there a better way?
+                                    { moduleInfo | eitherModuleInfo = Loaded loadedModuleInfo }
+
+                                NotLoaded _ ->
+                                    { moduleInfo | eitherModuleInfo = NotLoaded rsfModel }
+                        )
+                    )
+    }
+
+
+
+-- |> Helpers.unsafeDictGet rsfModel.moduleName
+-- |> .eitherModuleInfo
+-- |> (\eitherModule -> case eitherModule of
+--     Just loaded ->
+--         Loaded _ ->
+--
+--         NotLoaded _ ->
+--             { model
+--------------------------------------------------------------------------------
+-- UPDATE ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    -- case (Debug.log "msg" msg) of
-    case msg of
-        ReadElmPackageInfoContentsResult tupleList ->
-            updateWithElmPackageInfoContentsResult tupleList model
+    let
+        isTooManyCmdsInFlight =
+            getNumCmdsInFlight model >= maxCmdsAtOnce
+    in
+        -- case (Debug.log "msg" msg) of
+        case msg of
+            ReadElmPackageInfoContentsResult tupleList ->
+                updateWithElmPackageInfoContentsResult tupleList model
 
-        ReadSourceFilesMsg moduleName rsfMsg ->
+            ReadSourceFilesMsg moduleName rsfMsg ->
+                handleReadSourceFilesMsg
+                    { isTooManyCmdsInFlight = isTooManyCmdsInFlight
+                    , model = model
+                    , moduleName = moduleName
+                    , rsfMsg = rsfMsg
+                    }
+
+            Stop ->
+                model ! [ exitApp 0 ]
+
+            Abort ->
+                model ! [ exitApp -1 ]
+
+
+handleReadSourceFilesMsg :
+    { model : Model
+    , moduleName : String
+    , rsfMsg : ReadSourceFiles.Msg
+    , isTooManyCmdsInFlight : Bool
+    }
+    -> ( Model, Cmd Msg )
+handleReadSourceFilesMsg { model, moduleName, rsfMsg, isTooManyCmdsInFlight } =
+    let
+        ( newModel, readSourceFilesCmds ) =
             let
-                ( newModel, cmd ) =
-                    let
-                        { newAllModulesInfo, newExternalModules, rsfCmd } =
-                            updateAllModulesInfoForRsf moduleName rsfMsg model.allModulesInfo
+                { newAllModulesInfo, newExternalModules, rsfCmds } =
+                    updateAllModulesInfoForRsf moduleName rsfMsg isTooManyCmdsInFlight model.allModulesInfo
 
-                        ( allModulesInfo2, newExtModulesCmds ) =
-                            addNewExternalModules model.sourceDirectories newAllModulesInfo newExternalModules
-                    in
-                        { model | allModulesInfo = allModulesInfo2 }
-                            ! ([ rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
-                               ]
-                                ++ newExtModulesCmds
-                              )
-
-                _ =
-                    case isFinished newModel of
-                        True ->
-                            let
-                                simplifiedAllModuleInfos =
-                                    simplifyAllModulesInfo newModel.allModulesInfo newModel.subjectModuleInfo
-
-                                _ =
-                                    Debug.log "\n\n\n FINISHED simplifiedAllModuleInfos\n" simplifiedAllModuleInfos
-
-                                _ =
-                                    Debug.log "\n\n\n FINISHED moduleInfos\n" (getLoadedModuleInfos newModel)
-
-                                _ =
-                                    Debug.log "\n\n\n FINISHED subjectModuleInfo\n" (newModel.subjectModuleInfo)
-
-                                _ =
-                                    Debug.log "\n\n\n FINISHED allModulesInfo\n" (newModel.allModulesInfo)
-                            in
-                                generateViewFunctions
-                                    { subjectModuleInfo = newModel.subjectModuleInfo
-                                    , allModulesInfo = simplifiedAllModuleInfos
-                                    }
-                                    |> List.map (Debug.log "\n\nviewFunction")
-
-                        False ->
-                            []
-
-                _ =
-                    Debug.log "\n\nfailedLoads" (getFailedLoads newModel)
-
-                _ =
-                    Debug.log "\n\nisFinished" (isFinished newModel)
+                ( allModulesInfo2, newExtModulesCmds ) =
+                    addNewExternalModules model.sourceDirectories newAllModulesInfo newExternalModules
             in
-                ( newModel, cmd )
+                ( { model | allModulesInfo = allModulesInfo2 }
+                , (rsfCmds |> List.map (Cmd.map (ReadSourceFilesMsg moduleName)))
+                    ++ newExtModulesCmds
+                )
 
-        Stop ->
-            model ! [ exitApp 0 ]
+        writeOutputFileCmd =
+            case isFinished newModel of
+                True ->
+                    let
+                        simplifiedAllModuleInfos =
+                            simplifyAllModulesInfo newModel.allModulesInfo newModel.subjectModuleInfo
 
-        Abort ->
-            model ! [ exitApp -1 ]
+                        output =
+                            generateViewFunctions
+                                { subjectModuleInfo = newModel.subjectModuleInfo
+                                , allModulesInfo = simplifiedAllModuleInfos
+                                }
+                                |> String.join "\n\n\n\n"
+
+                        _ =
+                            Debug.log "Generating Views! Yay!"
+                    in
+                        writeOutput output
+
+                False ->
+                    Cmd.none
+
+        _ =
+            case isFinished newModel of
+                True ->
+                    let
+                        simplifiedAllModuleInfos =
+                            simplifyAllModulesInfo newModel.allModulesInfo newModel.subjectModuleInfo
+
+                        _ =
+                            Debug.log "\n\n\n FINISHED simplifiedAllModuleInfos\n" simplifiedAllModuleInfos
+
+                        _ =
+                            Debug.log "\n\n\n FINISHED moduleInfos\n" (getLoadedModuleInfos newModel)
+
+                        _ =
+                            Debug.log "\n\n\n FINISHED subjectModuleInfo\n" (newModel.subjectModuleInfo)
+
+                        _ =
+                            Debug.log "\n\n\n FINISHED allModulesInfo\n" (newModel.allModulesInfo)
+                    in
+                        generateViewFunctions
+                            { subjectModuleInfo = newModel.subjectModuleInfo
+                            , allModulesInfo = simplifiedAllModuleInfos
+                            }
+                            |> List.map (Debug.log "\n\nviewFunction")
+
+                False ->
+                    []
+
+        -- _ =
+        --     Debug.log "\n\nfailedLoads" (getFailedLoads newModel)
+        _ =
+            Debug.log "\n\nmodule load status" (classifyLoads newModel)
+
+        _ =
+            Debug.log "\n\nisFinished?" (isFinished newModel)
+
+        ( model3, readSourceFilesCmds2 ) =
+            case getCurrentProgressState model of
+                Failed ->
+                    ( newModel, [] )
+
+                Doing ->
+                    if (List.isEmpty readSourceFilesCmds) then
+                        let
+                            rsfModel =
+                                getUnfinishedLoads newModel
+                                    |> Helpers.unsafeListHead
+                        in
+                            ReadSourceFiles.kickBackIntoAction rsfModel
+                                |> Tuple.mapFirst (updateReadSourceFilesModel newModel)
+                                |> Tuple.mapSecond (List.map <| Cmd.map <| ReadSourceFilesMsg rsfModel.moduleName)
+                        -- TODO: generate new comds!
+                    else
+                        let
+                            _ =
+                                Debug.log "\n\n\nTHERE ARE STILL CMDS" True
+                        in
+                            ( newModel, readSourceFilesCmds )
+
+                Finished ->
+                    let
+                        _ =
+                            Debug.log "\n\n\nFINISHED!" True
+                    in
+                        ( newModel, [] )
+    in
+        ( model3, Cmd.batch [ readSourceFilesCmds2 |> Cmd.batch, writeOutputFileCmd ] )
 
 
 updateWithElmPackageInfoContentsResult : List ( String, String ) -> Model -> ( Model, Cmd Msg )
@@ -273,13 +458,15 @@ updateWithElmPackageInfoContentsResult tupleList model =
         allSourceDirectories =
             model.sourceDirectories ++ packageSourceDirectories
 
+        -- (_, List (Cmd Msg))
         ( allModulesInfo, readSourceFilesCmds ) =
             model.subjectModuleInfo.externalNamesModuleInfo
                 |> groupNamesByModule
                 |> List.map
                     (\{ moduleName, relevantNames } ->
                         let
-                            ( rsfModel, rsfCmd ) =
+                            -- (_, List (ReadSourceFiles.Cmd Msg))
+                            ( rsfModel, rsfCmds ) =
                                 ReadSourceFiles.init
                                     { sourceDirectories = allSourceDirectories
                                     , moduleName = moduleName
@@ -290,11 +477,12 @@ updateWithElmPackageInfoContentsResult tupleList model =
                                 , eitherModuleInfo = NotLoaded rsfModel
                                 }
                               )
-                            , rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
+                            , rsfCmds |> List.map (Cmd.map (ReadSourceFilesMsg moduleName))
                             )
                     )
                 |> List.unzip
                 |> Tuple.mapFirst Dict.fromList
+                |> Tuple.mapSecond List.concat
 
         newModel =
             { model
@@ -304,21 +492,26 @@ updateWithElmPackageInfoContentsResult tupleList model =
             }
 
         -- _ =
-        --     Debug.log "\n\nnewModel after updateWithElmPackageInfoContentsResult" newModel
+        --     Debug.log "allSourceDirectories" allSourceDirectories
+        -- _ =
+        --     Debug.log "externa;NamesModuleInfo" model.subjectModuleInfo.externalNamesModuleInfo
+        _ =
+            Debug.log "\n\n\nmodel" model
     in
-        newModel ! readSourceFilesCmds
+        ( newModel, readSourceFilesCmds |> Cmd.batch )
 
 
 updateAllModulesInfoForRsf :
     DottedModulePath
     -> ReadSourceFiles.Msg
+    -> Bool
     -> AllModulesInfo
     ->
         { newAllModulesInfo : AllModulesInfo
         , newExternalModules : List { moduleName : DottedModulePath, relevantNames : List String }
-        , rsfCmd : Cmd ReadSourceFiles.Msg
+        , rsfCmds : List (Cmd ReadSourceFiles.Msg)
         }
-updateAllModulesInfoForRsf moduleName rsfMsg allModulesInfo =
+updateAllModulesInfoForRsf moduleName rsfMsg isTooManyCmdsInFlight allModulesInfo =
     let
         { relevantNames, eitherModuleInfo } =
             unsafeDictGet "Main.elm line 312" moduleName allModulesInfo
@@ -326,9 +519,10 @@ updateAllModulesInfoForRsf moduleName rsfMsg allModulesInfo =
         case eitherModuleInfo of
             NotLoaded oldRsfModel ->
                 let
-                    { rsfModel, rsfGoal, rsfCmd } =
+                    { rsfModel, rsfGoal, rsfCmds } =
                         ReadSourceFiles.update
                             rsfMsg
+                            isTooManyCmdsInFlight
                             oldRsfModel
                 in
                     case rsfGoal of
@@ -341,11 +535,7 @@ updateAllModulesInfoForRsf moduleName rsfMsg allModulesInfo =
                                         , relevantNames = relevantNames
                                         }
 
-                                newExternalModules :
-                                    List
-                                        { moduleName : DottedModulePath
-                                        , relevantNames : List String
-                                        }
+                                newExternalModules : List { moduleName : DottedModulePath, relevantNames : List String }
                                 newExternalModules =
                                     groupNamesByModule moduleInfo.externalNamesModuleInfo
                             in
@@ -356,7 +546,7 @@ updateAllModulesInfoForRsf moduleName rsfMsg allModulesInfo =
                                             , eitherModuleInfo = Loaded moduleInfo
                                             }
                                 , newExternalModules = newExternalModules
-                                , rsfCmd = rsfCmd
+                                , rsfCmds = rsfCmds
                                 }
 
                         Nothing ->
@@ -367,13 +557,13 @@ updateAllModulesInfoForRsf moduleName rsfMsg allModulesInfo =
                                         , eitherModuleInfo = NotLoaded rsfModel
                                         }
                             , newExternalModules = []
-                            , rsfCmd = rsfCmd
+                            , rsfCmds = rsfCmds
                             }
 
             Loaded _ ->
                 { newAllModulesInfo = allModulesInfo
                 , newExternalModules = []
-                , rsfCmd = Cmd.none
+                , rsfCmds = []
                 }
 
 
@@ -397,14 +587,14 @@ addNewExternalModules sourceDirectories allModulesInfo newExternalModules =
 
                     Nothing ->
                         let
-                            ( rsfModel, rsfCmd ) =
+                            ( rsfModel, rsfCmds ) =
                                 ReadSourceFiles.init
                                     { sourceDirectories = sourceDirectories
                                     , moduleName = moduleName
                                     }
 
-                            mappedCmd =
-                                rsfCmd |> Cmd.map (ReadSourceFilesMsg moduleName)
+                            mappedCmds =
+                                rsfCmds |> List.map (Cmd.map (ReadSourceFilesMsg moduleName))
                         in
                             { accAllModulesInfo =
                                 accAllModulesInfo
@@ -412,7 +602,7 @@ addNewExternalModules sourceDirectories allModulesInfo newExternalModules =
                                         { relevantNames = relevantNames
                                         , eitherModuleInfo = NotLoaded rsfModel
                                         }
-                            , accCmds = mappedCmd :: accCmds
+                            , accCmds = accCmds ++ mappedCmds
                             }
             )
             { accAllModulesInfo = allModulesInfo
@@ -458,5 +648,18 @@ simplifyAllModulesInfo allModulesInfo subjectModuleInfo =
         |> Dict.insert subjectModuleInfo.dottedModulePath subjectModuleInfo
 
 
+getNumCmdsInFlight : Model -> Int
+getNumCmdsInFlight model =
+    model.allModulesInfo
+        |> Dict.values
+        |> List.map .eitherModuleInfo
+        |> List.map
+            (\eitherModuleInfo ->
+                case eitherModuleInfo of
+                    NotLoaded readSourceFilesModel ->
+                        ReadSourceFiles.numCmdsInFlight readSourceFilesModel
 
--- |> Dict.fromList
+                    _ ->
+                        0
+            )
+        |> List.sum

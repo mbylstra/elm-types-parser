@@ -33,7 +33,7 @@ suite =
                             , eitherModuleInfo =
                                 NotLoaded
                                     { moduleName = "ModuleA"
-                                    , sourceCode = Nothing
+                                    , maybeSourceCode = Nothing
                                     , dirAttempts =
                                         Dict.fromList [ ( "src", InFlight ) ]
                                     }
@@ -101,7 +101,7 @@ suite =
                         ReadSourceFilesMsg
                             "ModuleA"
                             (ReadSourceFiles.ReadElmModuleResult
-                                { contents = Just moduleASourceCode
+                                { maybeContents = Just moduleASourceCode
                                 , portScope =
                                     { path = "src/ModuleA.elm"
                                     , dir = "src"
@@ -116,7 +116,7 @@ suite =
                     expectedNewReadSourceFilesModel =
                         Dict.fromList
                             [ ( "ModuleA"
-                              , { sourceCode = Just moduleASourceCode
+                              , { maybeSourceCode = Just moduleASourceCode
                                 , dirAttempts =
                                     Dict.fromList
                                         [ ( "src", DirSuccess )
@@ -149,7 +149,7 @@ suite =
                                 , eitherModuleInfo =
                                     NotLoaded
                                         { moduleName = "ModuleB"
-                                        , sourceCode = Nothing
+                                        , maybeSourceCode = Nothing
                                         , dirAttempts =
                                             Dict.fromList [ ( "src", InFlight ) ]
                                         }
