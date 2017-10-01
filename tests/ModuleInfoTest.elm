@@ -82,7 +82,7 @@ suite =
                                   )
                                 ]
                             )
-        , test "getExternalNames for recursive union type" <|
+        , test "etExternalNames for recursive union type" <|
             \_ ->
                 let
                     localTypeDefinitions =

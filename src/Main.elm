@@ -342,56 +342,68 @@ handleReadSourceFilesMsg { model, moduleName, rsfMsg, isTooManyCmdsInFlight } =
                     ++ newExtModulesCmds
                 )
 
-        writeOutputFileCmd =
-            case isFinished newModel of
-                True ->
-                    let
-                        simplifiedAllModuleInfos =
-                            simplifyAllModulesInfo newModel.allModulesInfo newModel.subjectModuleInfo
-
-                        output =
-                            generateViewFunctions
-                                { subjectModuleInfo = newModel.subjectModuleInfo
-                                , allModulesInfo = simplifiedAllModuleInfos
-                                }
-                                |> String.join "\n\n\n\n"
-
-                        _ =
-                            Debug.log "Generating Views! Yay!"
-                    in
-                        writeOutput output
-
-                False ->
-                    Cmd.none
-
         _ =
-            case isFinished newModel of
-                True ->
-                    let
-                        simplifiedAllModuleInfos =
-                            simplifyAllModulesInfo newModel.allModulesInfo newModel.subjectModuleInfo
+            Debug.log "writeOutputFileCmd" writeOutputFileCmd
 
-                        _ =
-                            Debug.log "\n\n\n FINISHED simplifiedAllModuleInfos\n" simplifiedAllModuleInfos
+        writeOutputFileCmd =
+            let
+                _ =
+                    Debug.log "writeOutputFileCmd" True
+            in
+                case isFinished newModel of
+                    True ->
+                        let
+                            _ =
+                                Debug.log "generating view functions" True
 
-                        _ =
-                            Debug.log "\n\n\n FINISHED moduleInfos\n" (getLoadedModuleInfos newModel)
+                            simplifiedAllModuleInfos =
+                                simplifyAllModulesInfo newModel.allModulesInfo newModel.subjectModuleInfo
 
-                        _ =
-                            Debug.log "\n\n\n FINISHED subjectModuleInfo\n" (newModel.subjectModuleInfo)
+                            _ =
+                                Debug.log "simplifiedAllModuleInfos" simplifiedAllModuleInfos
 
-                        _ =
-                            Debug.log "\n\n\n FINISHED allModulesInfo\n" (newModel.allModulesInfo)
-                    in
-                        generateViewFunctions
-                            { subjectModuleInfo = newModel.subjectModuleInfo
-                            , allModulesInfo = simplifiedAllModuleInfos
-                            }
-                            |> List.map (Debug.log "\n\nviewFunction")
+                            output =
+                                generateViewFunctions
+                                    { subjectModuleInfo = newModel.subjectModuleInfo
+                                    , allModulesInfo = simplifiedAllModuleInfos
+                                    }
+                                    |> String.join "\n\n\n\n"
 
-                False ->
-                    []
+                            _ =
+                                Debug.log "generated view functions" True
+                        in
+                            writeOutput output
 
+                    False ->
+                        Cmd.none
+
+        -- _ =
+        --     case isFinished newModel of
+        --         True ->
+        --             let
+        --                 simplifiedAllModuleInfos =
+        --                     simplifyAllModulesInfo newModel.allModulesInfo newModel.subjectModuleInfo
+        --
+        --                 _ =
+        --                     Debug.log "\n\n\n FINISHED simplifiedAllModuleInfos\n" simplifiedAllModuleInfos
+        --
+        --                 _ =
+        --                     Debug.log "\n\n\n FINISHED moduleInfos\n" (getLoadedModuleInfos newModel)
+        --
+        --                 _ =
+        --                     Debug.log "\n\n\n FINISHED subjectModuleInfo\n" (newModel.subjectModuleInfo)
+        --
+        --                 _ =
+        --                     Debug.log "\n\n\n FINISHED allModulesInfo\n" (newModel.allModulesInfo)
+        --             in
+        --                 generateViewFunctions
+        --                     { subjectModuleInfo = newModel.subjectModuleInfo
+        --                     , allModulesInfo = simplifiedAllModuleInfos
+        --                     }
+        --                     |> List.map (Debug.log "\n\nviewFunction")
+        --
+        --         False ->
+        --             []
         -- _ =
         --     Debug.log "\n\nfailedLoads" (getFailedLoads newModel)
         _ =
@@ -401,7 +413,7 @@ handleReadSourceFilesMsg { model, moduleName, rsfMsg, isTooManyCmdsInFlight } =
             Debug.log "\n\nisFinished?" (isFinished newModel)
 
         ( model3, readSourceFilesCmds2 ) =
-            case getCurrentProgressState model of
+            case getCurrentProgressState newModel of
                 Failed ->
                     ( newModel, [] )
 
@@ -431,6 +443,10 @@ handleReadSourceFilesMsg { model, moduleName, rsfMsg, isTooManyCmdsInFlight } =
                         ( newModel, [] )
     in
         ( model3, Cmd.batch [ readSourceFilesCmds2 |> Cmd.batch, writeOutputFileCmd ] )
+
+
+
+-- ( model3, Cmd.batch [ readSourceFilesCmds2 |> Cmd.batch ] )
 
 
 updateWithElmPackageInfoContentsResult : List ( String, String ) -> Model -> ( Model, Cmd Msg )

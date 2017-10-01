@@ -122,6 +122,13 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) instantiatedTyp
                     in
                         "[" ++ generateData allTypes instantiatedTypeVars listType ++ "]"
 
+                "Set" ->
+                    let
+                        listType =
+                            unsafeListHead typeArguments
+                    in
+                        "Set.fromList [" ++ generateData allTypes instantiatedTypeVars listType ++ "]"
+
                 "Date" ->
                     "Date.fromTime 1506233184"
 
@@ -201,20 +208,30 @@ generateFromTypeConstructor allTypes dottedModulePath instantiateTypeVars ( name
 -- We need the full type, not just the type name
 
 
+coreDifficultTypes : List QualifiedName
+coreDifficultTypes =
+    [ { dottedModulePath = "Dict", name = "Dict" }
+    , { dottedModulePath = "Set", name = "Set" }
+    ]
+
+
 substituteType : QualifiedAllTypes -> QualifiedName -> InstantiatedTypeVars -> String
 substituteType ({ allModulesInfo } as allTypes) ({ dottedModulePath, name } as qualifiedName) instantiatedTypeVars =
-    let
-        subjectModuleInfo =
-            allModulesInfo |> unsafeDictGet "DataGeneration.elm 129" dottedModulePath
-    in
-        case Dict.get name subjectModuleInfo.typeAliases of
-            Just tipe ->
-                generateData allTypes instantiatedTypeVars tipe
+    if List.member qualifiedName coreDifficultTypes then
+        "(TOO HARD BASKET)"
+    else
+        let
+            subjectModuleInfo =
+                allModulesInfo |> unsafeDictGet "DataGeneration.elm 129" dottedModulePath
+        in
+            case Dict.get name subjectModuleInfo.typeAliases of
+                Just tipe ->
+                    generateData allTypes instantiatedTypeVars tipe
 
-            Nothing ->
-                case Dict.get name subjectModuleInfo.unionTypes of
-                    Just unionDefinition ->
-                        generateFromUnionType allTypes dottedModulePath instantiatedTypeVars unionDefinition
+                Nothing ->
+                    case Dict.get name subjectModuleInfo.unionTypes of
+                        Just unionDefinition ->
+                            generateFromUnionType allTypes dottedModulePath instantiatedTypeVars unionDefinition
 
-                    Nothing ->
-                        Debug.crash ("could not find " ++ toString qualifiedName)
+                        Nothing ->
+                            Debug.crash ("could not find " ++ toString qualifiedName)

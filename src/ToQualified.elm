@@ -12,9 +12,21 @@ qualifyAllTypes { subjectModuleInfo, allModulesInfo } =
     , allModulesInfo =
         allModulesInfo
             |> Dict.map
-                (\_ moduleInfo ->
-                    toQualifiedModuleInfo moduleInfo
+                (\dottedModulePath moduleInfo ->
+                    if List.member dottedModulePath [ "Dict", "Set" ] then
+                        emptyQualifiedModuleInfo
+                    else
+                        toQualifiedModuleInfo moduleInfo
                 )
+    }
+
+
+emptyQualifiedModuleInfo : QualifiedModuleInfo
+emptyQualifiedModuleInfo =
+    { dottedModulePath = "EMPTY"
+    , viewFunctions = Dict.empty
+    , typeAliases = Dict.empty
+    , unionTypes = Dict.empty
     }
 
 
@@ -24,17 +36,22 @@ toQualifiedModuleInfo moduleInfo =
         { viewFunctions, localTypeAliases, localUnionTypes, externalNamesModuleInfo } =
             moduleInfo
 
+        initContext =
+            { moduleInfo = moduleInfo, alreadyDone = [] }
+
         qualifiedViewFunctions : Dict Name QualifiedType
         qualifiedViewFunctions =
-            viewFunctions |> Dict.map (\name tipe -> qualifyType moduleInfo tipe)
+            viewFunctions |> Dict.map (\name tipe -> qualifyType initContext tipe)
 
         qualifiedTypeAliases : Dict Name QualifiedType
         qualifiedTypeAliases =
-            localTypeAliases |> Dict.map (\name tipe -> qualifyType moduleInfo tipe)
+            localTypeAliases |> Dict.map (\name tipe -> qualifyType initContext tipe)
 
         qualifiedUnionTypes : Dict Name QualifiedUnionR
         qualifiedUnionTypes =
-            localUnionTypes |> Dict.map (\name unionR -> qualifyUnionR moduleInfo unionR)
+            localUnionTypes
+                |> Dict.map
+                    (\name unionR -> qualifyUnionR initContext unionR)
     in
         { dottedModulePath = moduleInfo.dottedModulePath
         , viewFunctions = qualifiedViewFunctions
@@ -43,43 +60,69 @@ toQualifiedModuleInfo moduleInfo =
         }
 
 
-qualifyUnionR : ModuleInfo -> UnionR -> QualifiedUnionR
-qualifyUnionR moduleInfo { name, typeVars, definition } =
+qualifyUnionR :
+    { moduleInfo : ModuleInfo, alreadyDone : List String }
+    -> UnionR
+    -> QualifiedUnionR
+qualifyUnionR { moduleInfo, alreadyDone } { name, typeVars, definition } =
     { name = name
     , typeVars = typeVars
-    , definition = qualifyUnionDefinition moduleInfo definition
+    , definition =
+        qualifyUnionDefinition
+            { moduleInfo = moduleInfo, alreadyDone = alreadyDone }
+            definition
     }
 
 
-qualifyUnionDefinition : ModuleInfo -> UnionDefinition -> QualifiedUnionDefinition
-qualifyUnionDefinition moduleInfo typeConstructors =
+qualifyUnionDefinition :
+    { moduleInfo : ModuleInfo, alreadyDone : List String }
+    -> UnionDefinition
+    -> QualifiedUnionDefinition
+qualifyUnionDefinition { moduleInfo, alreadyDone } typeConstructors =
     typeConstructors
-        |> List.map (qualifyTypeConstructor moduleInfo)
+        |> List.map (qualifyTypeConstructor { moduleInfo = moduleInfo, alreadyDone = alreadyDone })
 
 
-qualifyTypeConstructor : ModuleInfo -> TypeConstructor -> QualifiedTypeConstructor
-qualifyTypeConstructor moduleInfo ( name, tipes ) =
-    ( name, tipes |> List.map (qualifyType moduleInfo) )
+qualifyTypeConstructor :
+    { moduleInfo : ModuleInfo, alreadyDone : List String }
+    -> TypeConstructor
+    -> QualifiedTypeConstructor
+qualifyTypeConstructor { moduleInfo, alreadyDone } ( name, tipes ) =
+    ( name
+    , tipes
+        |> List.map
+            (qualifyType
+                { moduleInfo = moduleInfo, alreadyDone = alreadyDone }
+            )
+    )
 
 
-qualifyType : ModuleInfo -> Type -> QualifiedType
-qualifyType subjectModuleInfo tipe =
+qualifyType :
+    { moduleInfo : ModuleInfo, alreadyDone : List String }
+    -> Type
+    -> QualifiedType
+qualifyType ({ moduleInfo, alreadyDone } as context) tipe =
     case tipe of
         Var varName ->
             QualifiedVar varName
 
         Lambda leftTipe rightTipe ->
             QualifiedLambda
-                (qualifyType subjectModuleInfo leftTipe)
-                (qualifyType subjectModuleInfo rightTipe)
+                (qualifyType context leftTipe)
+                (qualifyType context rightTipe)
 
         Tuple tipes ->
-            QualifiedTuple (tipes |> List.map (qualifyType subjectModuleInfo))
+            QualifiedTuple (tipes |> List.map (qualifyType context))
 
         Type typeName typeArgs ->
             QualifiedType
-                (qualifyName subjectModuleInfo typeName)
-                (typeArgs |> List.map (qualifyType subjectModuleInfo))
+                (qualifyName
+                    { moduleInfo = moduleInfo
+                    , name = typeName
+                    , alreadyDone = alreadyDone
+                    }
+                )
+                (typeArgs |> List.map (qualifyType context))
 
         Record fields maybeString ->
             let
@@ -88,21 +131,33 @@ qualifyType subjectModuleInfo tipe =
                         |> List.map
                             (\( name, tipe ) ->
                                 ( name
-                                , qualifyType subjectModuleInfo tipe
+                                , qualifyType context tipe
                                 )
                             )
             in
                 QualifiedRecord qualifiedFields maybeString
 
 
-qualifyName : ModuleInfo -> String -> QualifiedName
-qualifyName moduleInfo name =
+qualifyName :
+    { moduleInfo : ModuleInfo, name : String, alreadyDone : List String }
+    -> QualifiedName
+qualifyName { moduleInfo, name, alreadyDone } =
     case isLocalName moduleInfo name of
         True ->
             QualifiedName moduleInfo.dottedModulePath name
 
         False ->
-            qualifyExternalName moduleInfo.externalNamesModuleInfo name
+            case isExternalName moduleInfo name of
+                True ->
+                    qualifyExternalName
+                        { externalNamesModuleInfo = moduleInfo.externalNamesModuleInfo
+                        , name = name
+                        , alreadyDone = alreadyDone
+                        }
+
+                False ->
+                    -- This is bogus, but it won't be used.
+                    { dottedModulePath = "IGNORED", name = name }
 
 
 isLocalName : ModuleInfo -> String -> Bool
@@ -120,6 +175,26 @@ isLocalName subjectModuleInfo name =
                     False
 
 
+isExternalName : ModuleInfo -> String -> Bool
+isExternalName subjectModuleInfo name =
+    case Dict.get name subjectModuleInfo.externalNamesModuleInfo of
+        Just _ ->
+            True
+
+        Nothing ->
+            False
+
+
+{-| The problem is that we parse ALL local type aliases and union types, so this
+is a problem if we have one that isn't used by a view function, and references
+an external module that we haven't loaded.
+-}
+isNameToIgnore : ModuleInfo -> String -> Bool
+isNameToIgnore subjectModuleInfo name =
+    (not <| isLocalName subjectModuleInfo name)
+        && (not <| isExternalName subjectModuleInfo name)
+
+
 qualifyLocalName : String -> String -> QualifiedName
 qualifyLocalName dottedModulePath name =
     { dottedModulePath = dottedModulePath
@@ -127,8 +202,13 @@ qualifyLocalName dottedModulePath name =
     }
 
 
-qualifyExternalName : ExternalNamesModuleInfo -> String -> { dottedModulePath : String, name : String }
-qualifyExternalName externalNamesModuleInfo name =
+qualifyExternalName :
+    { externalNamesModuleInfo : ExternalNamesModuleInfo
+    , name : String
+    , alreadyDone : List String
+    }
+    -> { dottedModulePath : String, name : String }
+qualifyExternalName { externalNamesModuleInfo, name, alreadyDone } =
     if List.member name coreTypes then
         { dottedModulePath = "__CORE__", name = name }
     else
@@ -137,4 +217,9 @@ qualifyExternalName externalNamesModuleInfo name =
                 externalNamesModuleInfo
 
             Nothing ->
-                Debug.crash ("couldnt find " ++ name ++ " in " ++ toString externalNamesModuleInfo)
+                Debug.crash
+                    ("couldnt find "
+                        ++ name
+                        ++ " in "
+                        ++ toString externalNamesModuleInfo
+                    )
