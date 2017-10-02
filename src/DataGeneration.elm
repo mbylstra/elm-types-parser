@@ -56,6 +56,7 @@ generateViewFunction allTypes dottedModulePath ( functionName, functionType ) =
                         ++ " "
                         ++ (args |> String.join "")
                         |> String.Extra.replace ", " ",\n"
+                        |> wrapInHtmlProgram
 
             -- this is so that elm format makes things nicer
             _ ->
@@ -235,3 +236,17 @@ substituteType ({ allModulesInfo } as allTypes) ({ dottedModulePath, name } as q
 
                         Nothing ->
                             Debug.crash ("could not find " ++ toString qualifiedName)
+
+
+wrapInHtmlProgram : String -> String
+wrapInHtmlProgram code =
+    code ++ """
+    |> Html.map (\\_ -> ())
+
+main =
+    Html.beginnerProgram
+        { model = ()
+        , view = (\\() -> staticView)
+        , update = (\\() () -> ())
+        }
+        """

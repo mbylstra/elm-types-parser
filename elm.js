@@ -11707,6 +11707,9 @@ var _user$project$ToQualified$qualifyAllTypes = function (_p32) {
 	};
 };
 
+var _user$project$DataGeneration$wrapInHtmlProgram = function (code) {
+	return A2(_elm_lang$core$Basics_ops['++'], code, '\n    |> Html.map (\\_ -> ())\n\nmain =\n    Html.beginnerProgram\n        { model = ()\n        , view = (\\() -> staticView)\n        , update = (\\() () -> ())\n        }\n        ');
+};
 var _user$project$DataGeneration$coreDifficultTypes = {
 	ctor: '::',
 	_0: {dottedModulePath: 'Dict', name: 'Dict'},
@@ -11743,8 +11746,8 @@ var _user$project$DataGeneration$generateLambda = F4(
 				return _elm_lang$core$Native_Utils.crashCase(
 					'DataGeneration',
 					{
-						start: {line: 166, column: 17},
-						end: {line: 181, column: 123}
+						start: {line: 167, column: 17},
+						end: {line: 182, column: 123}
 					},
 					_p1)('this shouldn\'t be possible');
 			} else {
@@ -11752,8 +11755,8 @@ var _user$project$DataGeneration$generateLambda = F4(
 					return _elm_lang$core$Native_Utils.crashCase(
 						'DataGeneration',
 						{
-							start: {line: 166, column: 17},
-							end: {line: 181, column: 123}
+							start: {line: 167, column: 17},
+							end: {line: 182, column: 123}
 						},
 						_p1)('this shouldn\'t be possible');
 				} else {
@@ -11908,8 +11911,8 @@ var _user$project$DataGeneration$substituteType = F3(
 					return _elm_lang$core$Native_Utils.crashCase(
 						'DataGeneration',
 						{
-							start: {line: 232, column: 21},
-							end: {line: 237, column: 86}
+							start: {line: 233, column: 21},
+							end: {line: 238, column: 86}
 						},
 						_p21)(
 						A2(
@@ -11998,29 +12001,30 @@ var _user$project$DataGeneration$generateViewFunction = F3(
 						allTypes,
 						{ctor: '[]'}),
 					argTypes));
-			return A3(
-				_elm_community$string_extra$String_Extra$replace,
-				', ',
-				',\n',
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					imports,
+			return _user$project$DataGeneration$wrapInHtmlProgram(
+				A3(
+					_elm_community$string_extra$String_Extra$replace,
+					', ',
+					',\n',
 					A2(
 						_elm_lang$core$Basics_ops['++'],
-						'\nstaticView = ',
+						imports,
 						A2(
 							_elm_lang$core$Basics_ops['++'],
-							qualifiedFunctionName,
+							'\nstaticView = ',
 							A2(
 								_elm_lang$core$Basics_ops['++'],
-								' ',
-								A2(_elm_lang$core$String$join, '', args))))));
+								qualifiedFunctionName,
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									' ',
+									A2(_elm_lang$core$String$join, '', args)))))));
 		} else {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'DataGeneration',
 				{
 					start: {line: 34, column: 9},
-					end: {line: 62, column: 94}
+					end: {line: 63, column: 94}
 				},
 				_p33)('We are only dealing with functions that take args at the moment');
 		}
