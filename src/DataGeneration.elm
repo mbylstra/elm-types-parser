@@ -135,7 +135,7 @@ generateData ({ subjectModuleInfo, allModulesInfo } as allTypes) instantiatedTyp
 
                 -- This is just temporary for a proof of concept
                 "DatePicker" ->
-                    "DatePicker.init DatePicker.defaultSettings |> Tuple.first"
+                    "DatePicker.initFromDate (Date.fromTime 1506233184)"
 
                 _ ->
                     let

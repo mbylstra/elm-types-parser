@@ -11859,7 +11859,7 @@ var _user$project$DataGeneration$generateData = F3(
 						case 'Date':
 							return 'Date.fromTime 1506233184';
 						case 'DatePicker':
-							return 'DatePicker.init DatePicker.defaultSettings |> Tuple.first';
+							return 'DatePicker.initFromDate (Date.fromTime 1506233184)';
 						default:
 							var _p11 = 1;
 							return A3(_user$project$DataGeneration$substituteType, _p15, _p6._0, _p12);
